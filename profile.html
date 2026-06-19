@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find My Artisan — Profile</title>
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/profile.css" />
+</head>
+<body>
+  <!-- everything from Chunk B and C goes here, before the scripts -->
+
+  <main class="profile">
+
+  <!-- PROFILE HEADER: photo on one side, info on the other -->
+  <header class="profile-header">
+    <img class="profile-photo" id="worker-photo" src="" alt="" />
+    <div class="profile-info">
+      <h1 class="profile-name" id="worker-name">
+        <!-- name fills in here -->
+        <span class="badge" id="worker-badge">✓ Verified</span>
+      </h1>
+      <p class="profile-skill" id="worker-skill"></p>
+      <p class="profile-location" id="worker-location"></p>
+      <p class="profile-price" id="worker-price"></p>
+    </div>
+  </header>
+
+  <!-- BIO -->
+  <section class="bio">
+    <h2>About</h2>
+    <p id="worker-bio"></p>
+  </section>
+
+  <!-- REVIEWS: JS will fill this list with one card per review -->
+  <section class="reviews">
+    <h2>Reviews</h2>
+    <div id="reviews-list"></div>
+  </section>
+
+    <!-- BOOKING INQUIRY FORM -->
+  <section class="booking">
+    <h2>Request this artisan</h2>
+
+    <form id="booking-form" novalidate>
+      <div class="field">
+        <label for="name">Your name</label>
+        <input type="text" id="name" name="name" />
+        <small class="error" id="name-error"></small>
+      </div>
+
+      <div class="field">
+        <label for="contact">Email or phone</label>
+        <input type="text" id="contact" name="contact" />
+        <small class="error" id="contact-error"></small>
+      </div>
+
+      <div class="field">
+        <label for="job">Describe the job</label>
+        <textarea id="job" name="job" rows="4"></textarea>
+        <small class="error" id="job-error"></small>
+      </div>
+
+      <button type="submit" class="submit-btn">Send request</button>
+    </form>
+
+    <!-- hidden until the form succeeds; JS reveals it -->
+    <div class="confirmation hidden" id="confirmation">
+      ✅ Your request has been sent. The artisan will contact you shortly.
+    </div>
+  </section>
+</main>
+  <script src="js/mockData.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>

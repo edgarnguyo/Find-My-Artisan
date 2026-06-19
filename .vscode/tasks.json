@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Open profile.html in Safari",
+      "type": "shell",
+      "command": "open -a Safari '${workspaceFolder}/profile.html'",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": { "reveal": "silent" }
+    }
+  ]
+}
