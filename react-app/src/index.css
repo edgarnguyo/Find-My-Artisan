@@ -1,232 +1,310 @@
 :root {
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-verified: #16a34a;
-  --color-text: #1e293b;
-  --color-text-muted: #64748b;
-  --color-bg: #f8fafc;
-  --color-surface: #ffffff;
-  --color-border: #e2e8f0;
-  --color-error: #dc2626;
-  --color-star: #f59e0b;
+--color-primary: #2563eb;
+--color-primary-dark: #1d4ed8;
+--color-verified: #16a34a;
+--color-text: #1e293b;
+--color-text-muted: #64748b;
+--color-bg: #f8fafc;
+--color-surface: #ffffff;
+--color-border: #e2e8f0;
+--color-error: #dc2626;
+--color-star: #f59e0b;
 
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
+--spacing-sm: 0.5rem;
+--spacing-md: 1rem;
+--spacing-lg: 1.5rem;
+--spacing-xl: 2rem;
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-full: 9999px;
+--radius-sm: 4px;
+--radius-md: 8px;
+--radius-full: 9999px;
 
-  --font-base: system-ui, sans-serif;
+--font-base: system-ui, sans-serif;
 }
 
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+box-sizing: border-box;
+margin: 0;
+padding: 0;
 }
 
 body {
-  font-family: var(--font-base);
-  background: var(--color-bg);
-  color: var(--color-text);
-  line-height: 1.6;
+font-family: var(--font-base);
+background: var(--color-bg);
+color: var(--color-text);
+line-height: 1.6;
 }
 
 img {
-  max-width: 100%;
-  display: block;
+max-width: 100%;
+display: block;
 }
 
-/* ── Page wrapper ── */
+/* =========================
+PROFILE PAGE (Person C)
+========================= */
+
 .profile {
-  max-width: 720px;
-  margin: var(--spacing-xl) auto;
-  padding: 0 var(--spacing-md);
+max-width: 720px;
+margin: var(--spacing-xl) auto;
+padding: 0 var(--spacing-md);
 }
 
-/* ── Profile header ── */
 .profile-header {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: var(--spacing-lg);
-  align-items: start;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+display: grid;
+grid-template-columns: 160px 1fr;
+gap: var(--spacing-lg);
+align-items: start;
+background: var(--color-surface);
+border: 1px solid var(--color-border);
+border-radius: var(--radius-md);
+padding: var(--spacing-lg);
+margin-bottom: var(--spacing-xl);
 }
 
 .profile-photo {
-  width: 160px;
-  height: 160px;
-  border-radius: var(--radius-full);
-  object-fit: cover;
+width: 160px;
+height: 160px;
+border-radius: var(--radius-full);
+object-fit: cover;
 }
 
 .profile-name {
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-  margin-bottom: var(--spacing-sm);
+font-size: 1.5rem;
+display: flex;
+align-items: center;
+gap: var(--spacing-sm);
+flex-wrap: wrap;
+margin-bottom: var(--spacing-sm);
 }
 
 .badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-surface);
-  background: var(--color-verified);
-  padding: 2px 10px;
-  border-radius: var(--radius-full);
+font-size: 0.75rem;
+font-weight: 600;
+color: var(--color-surface);
+background: var(--color-verified);
+padding: 2px 10px;
+border-radius: var(--radius-full);
 }
 
 .profile-skill {
-  font-weight: 600;
-  color: var(--color-primary);
-  margin-bottom: 4px;
+font-weight: 600;
+color: var(--color-primary);
+margin-bottom: 4px;
 }
 
 .profile-location,
 .profile-price {
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
+color: var(--color-text-muted);
+font-size: 0.9rem;
 }
 
-/* ── Sections ── */
 .bio,
 .reviews,
 .booking {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+background: var(--color-surface);
+border: 1px solid var(--color-border);
+border-radius: var(--radius-md);
+padding: var(--spacing-lg);
+margin-bottom: var(--spacing-xl);
 }
 
 .bio h2,
 .reviews h2,
 .booking h2 {
-  font-size: 1.1rem;
-  margin-bottom: var(--spacing-md);
-  color: var(--color-text);
+font-size: 1.1rem;
+margin-bottom: var(--spacing-md);
 }
 
-/* ── Review cards ── */
 .review-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+border: 1px solid var(--color-border);
+border-radius: var(--radius-sm);
+padding: var(--spacing-md);
+margin-bottom: var(--spacing-md);
 }
 
 .review-card:last-child {
-  margin-bottom: 0;
+margin-bottom: 0;
 }
 
 .review-stars {
-  color: var(--color-star);
-  font-size: 1rem;
-  margin-bottom: 4px;
+color: var(--color-star);
+margin-bottom: 4px;
 }
 
 .review-author {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  margin-bottom: 4px;
+font-weight: 600;
+font-size: 0.85rem;
+color: var(--color-text-muted);
+margin-bottom: 4px;
 }
 
-.review-comment {
-  font-size: 0.95rem;
-}
-
-/* ── Booking form ── */
 .field {
-  margin-bottom: var(--spacing-md);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+margin-bottom: var(--spacing-md);
+display: flex;
+flex-direction: column;
+gap: 4px;
 }
 
 label {
-  font-size: 0.9rem;
-  font-weight: 600;
+font-size: 0.9rem;
+font-weight: 600;
 }
 
 input,
 textarea {
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: 1rem;
-  font-family: var(--font-base);
-  transition: border-color 0.15s;
-  outline: none;
+border: 1.5px solid var(--color-border);
+border-radius: var(--radius-sm);
+padding: var(--spacing-sm) var(--spacing-md);
+font-size: 1rem;
+font-family: var(--font-base);
+outline: none;
 }
 
 input:focus,
 textarea:focus {
-  border-color: var(--color-primary);
+border-color: var(--color-primary);
 }
 
 .error {
-  color: var(--color-error);
-  font-size: 0.8rem;
+color: var(--color-error);
+font-size: 0.8rem;
 }
 
 .submit-btn {
-  margin-top: var(--spacing-sm);
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-sm) var(--spacing-xl);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
+background: var(--color-primary);
+color: white;
+border: none;
+border-radius: var(--radius-sm);
+padding: var(--spacing-sm) var(--spacing-xl);
+cursor: pointer;
 }
 
-.submit-btn:hover {
-  background: var(--color-primary-dark);
-}
-
-/* ── Confirmation ── */
 .confirmation {
-  padding: var(--spacing-md);
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: var(--radius-sm);
-  color: var(--color-verified);
-  font-weight: 600;
+padding: var(--spacing-md);
+background: #f0fdf4;
+border: 1px solid #bbf7d0;
+border-radius: var(--radius-sm);
+color: var(--color-verified);
 }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .profile-header {
-    grid-template-columns: 1fr;
-  }
+/* =========================
+LISTINGS PAGE (Person B)
+========================= */
 
-  .profile-photo {
-    width: 100px;
-    height: 100px;
-  }
+.listings-page {
+max-width: 1200px;
+margin: var(--spacing-xl) auto;
+padding: 0 var(--spacing-md);
+}
 
-  .reviews {
-    max-height: 400px;
-    overflow-y: auto;
-  }
+.listings-page h1 {
+text-align: center;
+margin-bottom: var(--spacing-xl);
+}
 
-  input,
-  textarea,
-  .submit-btn {
-    width: 100%;
-  }
+.search-input {
+width: 100%;
+padding: 12px;
+border: 1px solid var(--color-border);
+border-radius: var(--radius-md);
+margin-bottom: var(--spacing-lg);
+}
+
+.filter-container {
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+margin-bottom: var(--spacing-xl);
+}
+
+.filter-btn {
+padding: 10px 16px;
+border: 1px solid var(--color-border);
+background: white;
+border-radius: var(--radius-md);
+cursor: pointer;
+}
+
+.filter-btn.active {
+background: var(--color-primary);
+color: white;
+border-color: var(--color-primary);
+}
+
+.worker-grid {
+display: grid;
+grid-template-columns:
+repeat(auto-fill, minmax(250px, 1fr));
+gap: 20px;
+}
+
+.worker-card {
+background: var(--color-surface);
+border: 1px solid var(--color-border);
+border-radius: var(--radius-md);
+padding: var(--spacing-lg);
+text-align: center;
+transition: transform 0.2s;
+}
+
+.worker-card:hover {
+transform: translateY(-4px);
+}
+
+.worker-image {
+width: 110px;
+height: 110px;
+border-radius: 50%;
+object-fit: cover;
+margin: 0 auto var(--spacing-md);
+}
+
+.skill-badge {
+display: inline-block;
+padding: 4px 10px;
+border-radius: var(--radius-full);
+background: #eff6ff;
+color: var(--color-primary);
+font-weight: 600;
+margin: var(--spacing-sm) 0;
+}
+
+.skeleton-card {
+height: 260px;
+border-radius: var(--radius-md);
+background: #e2e8f0;
+}
+
+@media (max-width: 768px) {
+.worker-grid {
+grid-template-columns: repeat(2, 1fr);
+}
+
+.profile-header {
+grid-template-columns: 1fr;
+}
+}
+
+@media (max-width: 480px) {
+.worker-grid {
+grid-template-columns: 1fr;
+}
+
+.filter-container {
+justify-content: center;
+}
+
+.profile-photo {
+width: 100px;
+height: 100px;
+}
+
+input,
+textarea,
+.submit-btn {
+width: 100%;
+}
 }

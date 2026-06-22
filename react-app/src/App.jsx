@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import ListingsPage from './pages/ListingsPage';
 import ProfilePage from './pages/ProfilePage';
 
 // BrowserRouter provides the routing context for the whole app.
@@ -13,8 +14,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<ListingsPage />} />
         <Route path="/profile/:id" element={<ProfilePage />} />
-        <Route path="/" element={<Navigate to="/profile/1" replace />} />
       </Routes>
     </BrowserRouter>
   );
