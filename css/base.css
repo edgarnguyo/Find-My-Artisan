@@ -49,3 +49,9 @@ img {
   max-width: 100%;
   display: block;
 }
+
+/* .hidden: JS toggles this class to show/hide elements.
+   display: none removes the element from layout entirely (not just invisible). */
+.hidden {
+  display: none;
+}

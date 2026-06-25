@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find My Artisan — Home</title>
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/landing.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-logo">Find My Artisan</a>
+
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html" class="nav-link active">Home</a></li>
+      <li><a href="listings.html" class="nav-link">Find Artisans</a></li>
+      <li><a href="listings.html" class="nav-cta">Get Started</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="home">
+      <div class="hero-content">
+        <span class="hero-eyebrow">Trusted artisans, near you</span>
+        <h1 class="hero-heading">Find skilled hands for every job at home</h1>
+        <p class="hero-sub">
+          Connect with verified plumbers, electricians, carpenters, and painters
+          in your neighbourhood. Browse profiles, read reviews, and book in minutes.
+        </p>
+        <div class="hero-actions">
+          <a href="listings.html" class="btn-primary">Browse Artisans</a>
+          <a href="#how-it-works" class="btn-secondary">See how it works</a>
+        </div>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-number">200+</span>
+          <span class="stat-label">Verified artisans</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">4.8★</span>
+          <span class="stat-label">Average rating</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">1,000+</span>
+          <span class="stat-label">Jobs completed</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works" id="how-it-works">
+      <div class="section-header">
+        <span class="section-eyebrow">Simple process</span>
+        <h2 class="section-title">How it works</h2>
+        <p class="section-sub">Three steps from search to sorted.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-icon">🔍</div>
+          <h3 class="step-title">Search &amp; filter</h3>
+          <p class="step-desc">
+            Browse artisans by skill, location, or name. Filter down to exactly
+            who you need in seconds.
+          </p>
+        </div>
+        <div class="step-card">
+          <div class="step-icon">📋</div>
+          <h3 class="step-title">View profiles &amp; reviews</h3>
+          <p class="step-desc">
+            Check verified badges, read real customer reviews, and compare
+            prices before you decide.
+          </p>
+        </div>
+        <div class="step-card">
+          <div class="step-icon">📞</div>
+          <h3 class="step-title">Book &amp; get it done</h3>
+          <p class="step-desc">
+            Send a booking request directly from the profile page. The artisan
+            contacts you to confirm.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURED ARTISANS (JS fills this in, mirrors React's fetch + render) -->
+    <section class="worker-preview-section" id="artisans">
+      <div class="section-header">
+        <span class="section-eyebrow">Featured artisans</span>
+        <h2 class="section-title">Meet some of our community</h2>
+      </div>
+
+      <div class="preview-grid" id="preview-grid">
+        <div class="preview-skeleton"></div>
+        <div class="preview-skeleton"></div>
+        <div class="preview-skeleton"></div>
+      </div>
+
+      <p class="preview-error hidden" id="preview-error">
+        Could not load preview — showing sample artisans.
+      </p>
+
+      <div class="preview-cta">
+        <a href="listings.html" class="btn-primary">View all artisans</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="footer-logo">Find My Artisan</span>
+        <p class="footer-tagline">Connecting skilled hands with people who need them.</p>
+      </div>
+
+      <nav class="footer-nav" aria-label="Footer navigation">
+        <a href="index.html" class="footer-link">Home</a>
+        <a href="listings.html" class="footer-link">Find Artisans</a>
+        <a href="#how-it-works" class="footer-link">How it works</a>
+      </nav>
+    </div>
+
+    <div class="footer-bottom">
+      <p id="footer-year">© Find My Artisan. Built for the web.</p>
+    </div>
+  </footer>
+
+  <script src="js/landing.js"></script>
+</body>
+</html>
