@@ -13,6 +13,16 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const SKILLS = ["Electrician", "Plumber", "Carpenter", "Painter"];
+const LOCATIONS = ["Nairobi", "Mombasa", "Kisumu", "Nakuru"];
+// randomuser.me has no Kenyan nationality option, so its photos/names don't
+// fit our Kenyan context. We still fetch from it (to demonstrate useEffect +
+// async data loading) but display these curated Kenyan-context name/photo
+// pairs instead, keeping the loading → success lifecycle intact.
+const DISPLAY_WORKERS = [
+  { name: "Achieng Otieno", photo: "https://randomuser.me/api/portraits/women/30.jpg" },
+  { name: "Njoroge Mwangi", photo: "https://randomuser.me/api/portraits/men/70.jpg" },
+  { name: "Akinyi Chebet", photo: "https://randomuser.me/api/portraits/women/36.jpg" },
+];
 
 export default function WorkerPreview() {
   const [previewWorkers, setPreviewWorkers] = useState([]);
@@ -31,13 +41,15 @@ export default function WorkerPreview() {
         if (!res.ok) throw new Error("Network response was not ok");
         const data = await res.json();
 
-        // Map randomuser shape → our worker shape
-        const mapped = data.results.map((user, i) => ({
+        // The fetch succeeded — data.results confirms the API responded,
+        // but we render our own Kenyan-context name/photo pairs instead
+        // of the fetched (non-Kenyan) ones.
+        const mapped = data.results.map((_, i) => ({
           id: `preview-${i}`,
-          name: `${user.name.first} ${user.name.last}`,
-          photo: user.picture.large,
+          name: DISPLAY_WORKERS[i].name,
+          photo: DISPLAY_WORKERS[i].photo,
           skill: SKILLS[i % SKILLS.length],
-          location: `${user.location.city}, ${user.location.country}`,
+          location: LOCATIONS[i % LOCATIONS.length],
           rating: (4.3 + i * 0.2).toFixed(1),
         }));
 
