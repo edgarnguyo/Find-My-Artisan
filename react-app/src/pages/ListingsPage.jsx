@@ -42,7 +42,7 @@ function ListingsPage() {
   });
 
   return (
-    <div className="listings-page">
+    <main className="listings-page">
       <h1>Find Skilled Artisans</h1>
 
       <SearchBar
@@ -74,7 +74,7 @@ function ListingsPage() {
           <p>No artisans found.</p>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 
