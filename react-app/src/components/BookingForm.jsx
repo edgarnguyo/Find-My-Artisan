@@ -36,7 +36,7 @@ export default function BookingForm({ worker }) {
   function validate() {
     const newErrors = {};
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phonePattern = /^[\d\s+()\-]{7,}$/;
+    const phonePattern = /^[\d\s+()-]{7,}$/;
 
     if (name.trim() === '') {
       newErrors.name = 'Please enter your name.';

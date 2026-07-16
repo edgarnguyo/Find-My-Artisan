@@ -137,15 +137,21 @@ const confirmation = document.getElementById("confirmation");
 
 const nameError    = document.getElementById("name-error");
 const contactError = document.getElementById("contact-error");
+const dateError    = document.getElementById("date-error");
+const timeError    = document.getElementById("time-error");
 const jobError     = document.getElementById("job-error");
+
+document.getElementById("budget").placeholder = `e.g. ${worker.price}`;
 
 function clearErrors() {
   nameError.textContent    = "";
   contactError.textContent = "";
+  dateError.textContent    = "";
+  timeError.textContent    = "";
   jobError.textContent     = "";
 }
 
-function validate(name, contact, job) {
+function validate(name, contact, date, time, job) {
   let valid = true;
 
   if (name.trim() === "") {
@@ -154,13 +160,30 @@ function validate(name, contact, job) {
   }
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const phonePattern = /^[\d\s+()\-]{7,}$/;
+  const phonePattern = /^[\d\s+()-]{7,}$/;
 
   if (contact.trim() === "") {
     contactError.textContent = "Please enter your email or phone number.";
     valid = false;
   } else if (!emailPattern.test(contact) && !phonePattern.test(contact)) {
     contactError.textContent = "Enter a valid email (name@domain.com) or phone (min 7 digits).";
+    valid = false;
+  }
+
+  if (date.trim() === "") {
+    dateError.textContent = "Please choose a preferred date.";
+    valid = false;
+  } else {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(date) < today) {
+      dateError.textContent = "Date cannot be in the past.";
+      valid = false;
+    }
+  }
+
+  if (time.trim() === "") {
+    timeError.textContent = "Please choose a preferred time.";
     valid = false;
   }
 
@@ -183,16 +206,22 @@ form.addEventListener("submit", function(event) {
 
   const name    = document.getElementById("name").value;
   const contact = document.getElementById("contact").value;
+  const date    = document.getElementById("date").value;
+  const time    = document.getElementById("time").value;
+  const budget  = document.getElementById("budget").value;
   const job     = document.getElementById("job").value;
 
   clearErrors();
 
-  if (validate(name, contact, job)) {
+  if (validate(name, contact, date, time, job)) {
     saveBookingRequest({
       workerId: worker.id,
       workerName: worker.name,
       name,
       contact,
+      date,
+      time,
+      budget,
       job,
       submittedAt: new Date().toISOString(),
     });

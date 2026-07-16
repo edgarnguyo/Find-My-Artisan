@@ -419,8 +419,15 @@ button {
 
 .field-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--spacing-sm);
+  align-items: end;
+}
+
+/* min-width: 0 overrides the grid item default of auto, which would otherwise
+   floor each column at the date input's intrinsic width and overflow the row. */
+.field-row .field {
+  min-width: 0;
 }
 
 .availability-days {
