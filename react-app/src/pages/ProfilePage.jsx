@@ -1,13 +1,12 @@
 import { useParams } from 'react-router-dom';
 import { WORKERS } from '../data/mockData';
 import ProfileHeader from '../components/ProfileHeader';
+import ProfileStats from '../components/ProfileStats';
+import ProfileGallery from '../components/ProfileGallery';
+import ProfileWorkHistory from '../components/ProfileWorkHistory';
 import ReviewsList from '../components/ReviewsList';
 import BookingForm from '../components/BookingForm';
-
-// useParams() is a React Router hook. It reads the dynamic segments
-// from the current URL. We defined the route as /profile/:id, so
-// useParams() returns { id: "2" } when the URL is /profile/2.
-// This replaces the manual URLSearchParams parsing from Week 1.
+import AvailabilityCalendar from '../components/AvailabilityCalendar';
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -26,13 +25,25 @@ export default function ProfilePage() {
     <main className="profile">
       <ProfileHeader worker={worker} />
 
-      <section className="bio">
-        <h2>About</h2>
-        <p>{worker.bio}</p>
-      </section>
+      <div className="profile-layout">
+        <aside className="profile-sidebar" id="booking">
+          <BookingForm worker={worker} />
+          <ProfileStats worker={worker} />
+        </aside>
 
-      <ReviewsList reviews={worker.reviews} />
-      <BookingForm />
+        <div className="profile-main">
+          <section className="bio">
+            <h2>About</h2>
+            <p>{worker.bio}</p>
+          </section>
+
+          <AvailabilityCalendar worker={worker} />
+
+          <ProfileGallery worker={worker} />
+          <ProfileWorkHistory history={worker.workHistory} />
+          <ReviewsList reviews={worker.reviews} />
+        </div>
+      </div>
     </main>
   );
 }

@@ -1,32 +1,30 @@
 import { useState, useEffect } from 'react';
 
-// useState(initialValue) returns a pair: [currentValue, setterFunction].
-// Every time you call the setter, React re-renders this component with
-// the new value. This is a "controlled form" — React owns the value of
-// each input; the input just displays whatever React says.
+function saveBookingRequest(request) {
+  const requests = JSON.parse(localStorage.getItem('bookingRequests') || '[]');
+  requests.push(request);
+  localStorage.setItem('bookingRequests', JSON.stringify(requests));
+}
 
-export default function BookingForm() {
+export default function BookingForm({ worker }) {
   const [name,      setName]      = useState('');
   const [contact,   setContact]   = useState('');
+  const [date,      setDate]      = useState('');
+  const [time,      setTime]      = useState('');
+  const [budget,    setBudget]    = useState('');
   const [job,       setJob]       = useState('');
   const [errors,    setErrors]    = useState({});
   const [submitted, setSubmitted] = useState(false);
 
-  // useEffect(fn, [deps]) runs `fn` after the component renders,
-  // but ONLY when a value in the deps array has changed since the
-  // last render. Here the dep is `submitted`, so this effect only
-  // runs when `submitted` flips from false to true.
-  //
-  // The effect starts a 3-second timer. When the timer fires it
-  // resets the form back to empty. The returned cleanup function
-  // cancels the timer if the component unmounts before 3 seconds
-  // are up — without it you'd get a memory leak.
   useEffect(() => {
     if (!submitted) return;
 
     const timer = setTimeout(() => {
       setName('');
       setContact('');
+      setDate('');
+      setTime('');
+      setBudget('');
       setJob('');
       setErrors({});
       setSubmitted(false);
@@ -48,6 +46,18 @@ export default function BookingForm() {
     } else if (!emailPattern.test(contact) && !phonePattern.test(contact)) {
       newErrors.contact = 'Enter a valid email (name@domain.com) or phone (min 7 digits).';
     }
+    if (date.trim() === '') {
+      newErrors.date = 'Please choose a preferred date.';
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (new Date(date) < today) {
+        newErrors.date = 'Date cannot be in the past.';
+      }
+    }
+    if (time.trim() === '') {
+      newErrors.time = 'Please choose a preferred time.';
+    }
     if (job.trim() === '') {
       newErrors.job = 'Please describe the job.';
     }
@@ -59,9 +69,18 @@ export default function BookingForm() {
     e.preventDefault();
     const newErrors = validate();
 
-    // Object.keys returns an array of the object's own keys.
-    // If there are no keys, the errors object is empty → all fields passed.
     if (Object.keys(newErrors).length === 0) {
+      saveBookingRequest({
+        workerId: worker.id,
+        workerName: worker.name,
+        name,
+        contact,
+        date,
+        time,
+        budget,
+        job,
+        submittedAt: new Date().toISOString(),
+      });
       setSubmitted(true);
     } else {
       setErrors(newErrors);
@@ -82,9 +101,6 @@ export default function BookingForm() {
     <section className="booking">
       <h2>Request this artisan</h2>
 
-      {/* onSubmit={handleSubmit} wires our function to the form's submit event.
-          onChange on each input keeps state in sync with what the user types.
-          value={name} makes the input "controlled" — React sets what it shows. */}
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
           <label htmlFor="name">Your name</label>
@@ -106,6 +122,41 @@ export default function BookingForm() {
             onChange={e => setContact(e.target.value)}
           />
           {errors.contact && <small className="error">{errors.contact}</small>}
+        </div>
+
+        <div className="field-row">
+          <div className="field">
+            <label htmlFor="date">Preferred date</label>
+            <input
+              id="date"
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+            />
+            {errors.date && <small className="error">{errors.date}</small>}
+          </div>
+
+          <div className="field">
+            <label htmlFor="time">Preferred time</label>
+            <input
+              id="time"
+              type="time"
+              value={time}
+              onChange={e => setTime(e.target.value)}
+            />
+            {errors.time && <small className="error">{errors.time}</small>}
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="budget">Budget (optional)</label>
+          <input
+            id="budget"
+            type="text"
+            placeholder={`e.g. ${worker.price}`}
+            value={budget}
+            onChange={e => setBudget(e.target.value)}
+          />
         </div>
 
         <div className="field">

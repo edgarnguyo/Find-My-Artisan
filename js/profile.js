@@ -1,143 +1,150 @@
-// ─────────────────────────────────────────────
-//  profile.js  —  Week 1 vanilla JS
-//  Runs after the DOM is ready (scripts are at
-//  the bottom of body, so HTML exists by the
-//  time this file executes).
-// ─────────────────────────────────────────────
-
-// ── 1. READ THE WORKER ID FROM THE URL ────────
-// window.location.search is the query string portion of the URL —
-// everything from the "?" onward. Example:
-//   URL: profile.html?id=2
-//   window.location.search → "?id=2"
-//
-// URLSearchParams parses that string into key/value pairs so you
-// can read individual values by name without splitting strings yourself.
-//   new URLSearchParams("?id=2").get("id") → "2"  (always a string)
-//
-// If no id is in the URL (page opened directly), we default to 1.
 const params = new URLSearchParams(window.location.search);
 const rawId  = params.get("id");
 const id     = rawId ? parseInt(rawId, 10) : 1;
-// parseInt converts the string "2" to the number 2.
-// The second argument (10) is the radix — base 10 (decimal).
-// Always pass it; without it, parseInt can misread strings like "08".
 
-
-// ── 2. FIND THE MATCHING WORKER ───────────────
-// WORKERS comes from mockData.js, which attached it to window.
-// Array.find() loops through the array and returns the first element
-// for which the callback returns true. If nothing matches, it returns
-// undefined. Example:
-//   [1,2,3].find(n => n > 1)  →  2
 const worker = WORKERS.find(w => w.id === id);
 
 if (!worker) {
-  // If the id isn't in our data, bail early with a visible error.
   document.body.innerHTML = `
     <div style="text-align:center;padding:4rem;font-family:system-ui">
       <h1>Worker not found</h1>
       <p>No artisan with id ${id} exists. <a href="profile.html">Go to default</a></p>
     </div>`;
   throw new Error(`No worker with id ${id}`);
-  // throw stops the rest of the script from running.
 }
 
-
-// ── 3. POPULATE THE PAGE ──────────────────────
-// document.getElementById returns the one element that has that id
-// attribute. This is how JavaScript reaches into the HTML you wrote
-// and changes it. Example:
-//   document.getElementById("worker-name").textContent = "Grace"
-//   → the <h1 id="worker-name"> now reads "Grace"
-
-// textContent sets the visible text inside an element.
-// It treats the value as plain text, so it won't interpret < > as HTML —
-// that prevents XSS (someone injecting malicious HTML via the data).
-
-// src and alt are attributes on the <img>, not text nodes, so we
-// set them via the .src and .alt properties instead.
-
-const nameEl   = document.getElementById("worker-name");
-const badgeEl  = document.getElementById("worker-badge");
-const photoEl  = document.getElementById("worker-photo");
-const skillEl  = document.getElementById("worker-skill");
+const nameEl     = document.getElementById("worker-name");
+const badgeEl    = document.getElementById("worker-badge");
+const photoEl    = document.getElementById("worker-photo");
+const skillEl    = document.getElementById("worker-skill");
 const locationEl = document.getElementById("worker-location");
-const priceEl  = document.getElementById("worker-price");
-const bioEl    = document.getElementById("worker-bio");
-const reviewsEl = document.getElementById("reviews-list");
+const ratingEl   = document.getElementById("worker-rating");
+const successEl  = document.getElementById("worker-success");
+const priceEl    = document.getElementById("worker-price");
+const bioEl      = document.getElementById("worker-bio");
+const reviewsEl  = document.getElementById("reviews-list");
 
-// Photo
 photoEl.src = worker.photo;
 photoEl.alt = `Photo of ${worker.name}`;
 
-// Name — the badge span is inside the h1, so we set only the text node
-// before the span. We do that by inserting a text node directly.
 nameEl.insertBefore(
   document.createTextNode(worker.name + " "),
-  badgeEl   // insert before the badge span so it reads: "Grace ✓ Verified"
+  badgeEl
 );
 
-// Hide the badge if the worker is not verified
 if (!worker.verified) {
   badgeEl.classList.add("hidden");
 }
 
 skillEl.textContent    = worker.skill;
 locationEl.textContent = "📍 " + worker.location;
+ratingEl.textContent   = `⭐ ${worker.rating} rating`;
+successEl.textContent  = `${worker.jobSuccess}% job success`;
 priceEl.textContent    = worker.price;
 bioEl.textContent      = worker.bio;
 
+document.getElementById("stat-success").textContent      = `${worker.jobSuccess}%`;
+document.getElementById("stat-jobs").textContent          = worker.jobsCompleted;
+document.getElementById("stat-hours").textContent         = worker.hoursWorked.toLocaleString();
+document.getElementById("stat-earnings").textContent      = worker.totalEarnings;
+document.getElementById("stat-availability").textContent  = worker.hoursPerWeek;
+document.getElementById("stat-languages").textContent     = worker.languages
+  .map(lang => `${lang.name} (${lang.level})`)
+  .join(", ");
 
-// ── 4. BUILD REVIEW CARDS ─────────────────────
-// forEach is an array method that calls a function once per element.
-// It doesn't return a new array (unlike map); it's used purely for
-// side effects — in this case, building and appending DOM nodes.
+const verificationEl = document.getElementById("stat-verification");
+verificationEl.textContent = worker.verified ? "✓ ID verified" : "Not yet verified";
+if (worker.verified) {
+  verificationEl.classList.add("stats-verified");
+}
+
+const SKILL_PHOTOS = {
+  Electrician: [
+    { keyword: "electrical,panel", lock: 101 },
+    { keyword: "circuitbreaker", lock: 103 },
+  ],
+  Plumber: [
+    { keyword: "plumber,tools", lock: 205 },
+    { keyword: "pipewrench", lock: 206 },
+  ],
+  Carpenter: [
+    { keyword: "carpentrytools", lock: 305 },
+    { keyword: "woodshop", lock: 306 },
+  ],
+  Painter: [
+    { keyword: "paintcans", lock: 406 },
+    { keyword: "paintdrip", lock: 413 },
+  ],
+};
+
+const galleryGrid = document.getElementById("profile-gallery-grid");
+const galleryPhotos = SKILL_PHOTOS[worker.skill] || SKILL_PHOTOS.Electrician;
+
+galleryPhotos.forEach((photo) => {
+  const tile = document.createElement("div");
+  tile.className = "profile-gallery-tile";
+  tile.innerHTML = `
+    <img src="https://loremflickr.com/500/500/${photo.keyword}/all?lock=${photo.lock}" alt="${worker.skill} work sample" />
+  `;
+  galleryGrid.appendChild(tile);
+});
+
+const historySection = document.getElementById("profile-history");
+const historyList = document.getElementById("history-list");
+
+if (worker.workHistory && worker.workHistory.length > 0) {
+  historySection.classList.remove("hidden");
+
+  worker.workHistory.forEach(job => {
+    const item = document.createElement("li");
+    item.className = "history-item";
+
+    const stars = "★".repeat(job.rating) + "☆".repeat(5 - job.rating);
+
+    item.innerHTML = `
+      <div class="history-top">
+        <h3 class="history-title">${job.title}</h3>
+        <span class="history-price">${job.price}</span>
+      </div>
+      <div class="history-meta">
+        <span class="history-stars">${stars}</span>
+        <span class="history-date">${job.dateRange}</span>
+        <span class="history-type">${job.priceType}</span>
+      </div>
+    `;
+
+    historyList.appendChild(item);
+  });
+}
 
 worker.reviews.forEach(review => {
-  // Create a new <div> in memory (not yet on the page).
   const card = document.createElement("div");
   card.className = "review-card";
 
-  // starsFromRating: repeat the ★ character `rating` times.
-  // "★".repeat(4) → "★★★★"
   const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
 
-  // innerHTML sets the HTML content of an element.
-  // We use it here (not textContent) because we want to create child
-  // elements inside the card. The data comes from our own mockData,
-  // not user input, so XSS risk is negligible here. In a real app with
-  // server data you'd create each child element individually.
   card.innerHTML = `
     <div class="review-stars">${stars}</div>
     <div class="review-author">${review.author}</div>
     <p class="review-comment">${review.comment}</p>
   `;
 
-  // appendChild adds the card to the end of the reviews container.
   reviewsEl.appendChild(card);
 });
-
-
-// ── 5. BOOKING FORM ───────────────────────────
 
 const form         = document.getElementById("booking-form");
 const confirmation = document.getElementById("confirmation");
 
-// Grab the error <small> elements by id once, reuse them below.
 const nameError    = document.getElementById("name-error");
 const contactError = document.getElementById("contact-error");
 const jobError     = document.getElementById("job-error");
 
-// A helper that clears all error messages before each new validation pass.
 function clearErrors() {
   nameError.textContent    = "";
   contactError.textContent = "";
   jobError.textContent     = "";
 }
 
-// validate() inspects each field and writes a message to the matching
-// error element if it fails. Returns true only if every field is valid.
 function validate(name, contact, job) {
   let valid = true;
 
@@ -146,16 +153,6 @@ function validate(name, contact, job) {
     valid = false;
   }
 
-  // We accept either a phone number (digits, spaces, +, min 7 chars)
-  // OR an email address. We test the contact value against both patterns.
-  //
-  // A regular expression (regex) is a pattern that describes a set of strings.
-  // /pattern/.test(string) returns true if the string matches the pattern.
-  //   /^[^\s@]+@[^\s@]+\.[^\s@]+$/ — a simple email pattern:
-  //     ^ start  [^\s@]+ one or more chars that aren't space or @
-  //     @ literal @
-  //     [^\s@]+ domain part  \. literal dot  [^\s@]+$ TLD
-  //   /^[\d\s+()\-]{7,}$/ — phone: digits, spaces, +, (), -, at least 7 chars
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phonePattern = /^[\d\s+()\-]{7,}$/;
 
@@ -175,17 +172,15 @@ function validate(name, contact, job) {
   return valid;
 }
 
-// The "submit" event fires when the user clicks the submit button OR
-// presses Enter inside the form. addEventListener attaches a function
-// to run when that event occurs on this element.
-//
-// event.preventDefault() cancels the browser's default submit behaviour,
-// which would reload (or navigate) the page. We want to stay on the page
-// and handle it ourselves.
+function saveBookingRequest(request) {
+  const requests = JSON.parse(localStorage.getItem("bookingRequests") || "[]");
+  requests.push(request);
+  localStorage.setItem("bookingRequests", JSON.stringify(requests));
+}
+
 form.addEventListener("submit", function(event) {
   event.preventDefault();
 
-  // Read the current value of each input.
   const name    = document.getElementById("name").value;
   const contact = document.getElementById("contact").value;
   const job     = document.getElementById("job").value;
@@ -193,25 +188,26 @@ form.addEventListener("submit", function(event) {
   clearErrors();
 
   if (validate(name, contact, job)) {
-    // All fields passed — hide the form, show the confirmation message.
+    saveBookingRequest({
+      workerId: worker.id,
+      workerName: worker.name,
+      name,
+      contact,
+      job,
+      submittedAt: new Date().toISOString(),
+    });
     form.classList.add("hidden");
     confirmation.classList.remove("hidden");
   }
-  // If validate returned false, the error messages are already set —
-  // the form stays visible so the user can fix their input.
 });
 
-
-// ── 6. DEV CONTROL (remove before final demo if you like) ────
-// A quick jump tool so you can test each worker without needing
-// a listings page to link to you. It lives at the bottom of the
-// page and is styled inline so it doesn't need extra CSS.
 const devBar = document.createElement("div");
 devBar.style.cssText = `
   position: fixed; bottom: 0; left: 0; right: 0;
-  background: #1e293b; color: #fff;
+  background: #241d17; color: #fff;
   padding: 8px 16px; font-family: monospace; font-size: 13px;
-  display: flex; gap: 8px; align-items: center;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  max-height: 40vh; overflow-y: auto; z-index: 50;
 `;
 devBar.innerHTML = `<span>DEV: jump to worker</span>`;
 
@@ -219,12 +215,10 @@ WORKERS.forEach(w => {
   const btn = document.createElement("button");
   btn.textContent = `#${w.id} ${w.name.split(" ")[0]}`;
   btn.style.cssText = `
-    background: #2563eb; color: #fff; border: none;
+    background: #b1502f; color: #fff; border: none;
     border-radius: 4px; padding: 4px 10px; cursor: pointer;
     font-size: 12px;
   `;
-  // Navigating to the same page with a different ?id= reloads and
-  // runs all the JS again with the new worker.
   btn.addEventListener("click", () => {
     window.location.href = `profile.html?id=${w.id}`;
   });

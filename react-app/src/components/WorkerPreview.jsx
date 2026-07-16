@@ -1,27 +1,12 @@
-// src/components/WorkerPreview.jsx
-// Person A owns this component.
-//
-// useEffect + API Fetch (Week 2 requirement):
-//   useEffect runs AFTER the component first renders.
-//   Inside it, we fetch from randomuser.me and map the response into
-//   a shape that matches our WORKERS schema (name, photo, skill, location).
-//   The cleanup function (the return inside useEffect) cancels the fetch
-//   if the component unmounts before the response arrives — avoids a
-//   "can't set state on unmounted component" warning.
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const SKILLS = ["Electrician", "Plumber", "Carpenter", "Painter"];
 const LOCATIONS = ["Nairobi", "Mombasa", "Kisumu", "Nakuru"];
-// randomuser.me has no Kenyan nationality option, so its photos/names don't
-// fit our Kenyan context. We still fetch from it (to demonstrate useEffect +
-// async data loading) but display these curated Kenyan-context name/photo
-// pairs instead, keeping the loading → success lifecycle intact.
 const DISPLAY_WORKERS = [
-  { name: "Achieng Otieno", photo: "https://randomuser.me/api/portraits/women/30.jpg" },
-  { name: "Njoroge Mwangi", photo: "https://randomuser.me/api/portraits/men/70.jpg" },
-  { name: "Akinyi Chebet", photo: "https://randomuser.me/api/portraits/women/36.jpg" },
+  { name: "Achieng Otieno", photo: "https://randomuser.me/api/portraits/women/69.jpg" },
+  { name: "Njoroge Mwangi", photo: "https://randomuser.me/api/portraits/men/91.jpg" },
+  { name: "Akinyi Chebet", photo: "https://randomuser.me/api/portraits/women/92.jpg" },
 ];
 
 export default function WorkerPreview() {
@@ -41,9 +26,6 @@ export default function WorkerPreview() {
         if (!res.ok) throw new Error("Network response was not ok");
         const data = await res.json();
 
-        // The fetch succeeded — data.results confirms the API responded,
-        // but we render our own Kenyan-context name/photo pairs instead
-        // of the fetched (non-Kenyan) ones.
         const mapped = data.results.map((_, i) => ({
           id: `preview-${i}`,
           name: DISPLAY_WORKERS[i].name,
@@ -65,9 +47,8 @@ export default function WorkerPreview() {
 
     fetchWorkers();
 
-    // Cleanup: abort the fetch if this component unmounts first
     return () => controller.abort();
-  }, []); // Empty dependency array → runs only on mount
+  }, []);
 
   return (
     <section className="worker-preview-section" id="artisans">

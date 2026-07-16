@@ -1,5 +1,3 @@
-// src/components/FilterButtons.jsx
-
 const skills = [
   "All",
   "Plumber",

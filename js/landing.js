@@ -1,13 +1,3 @@
-// ============================================================
-//  landing.js — vanilla version of Person A's React components
-//  (Navbar, WorkerPreview, Footer).
-// ============================================================
-
-// ── Navbar: hamburger toggle ──
-// React used useState(menuOpen) + a ternary to add/remove the "open" class.
-// In vanilla JS there's no state variable — classList.toggle() reads the
-// class that's already on the element and flips it, which is the DOM's
-// own way of storing that same "is it open" boolean.
 const hamburger = document.getElementById("hamburger");
 const navLinks = document.getElementById("nav-links");
 
@@ -16,14 +6,33 @@ hamburger.addEventListener("click", () => {
   hamburger.setAttribute("aria-expanded", isOpen);
 });
 
-// ── Footer: dynamic year ──
 document.getElementById("footer-year").textContent =
   `© ${new Date().getFullYear()} Find My Artisan. Built for the web.`;
 
-// ── Worker preview: fetch + render ──
-// Same intent as WorkerPreview.jsx's useEffect: call the randomuser.me API
-// to demonstrate a real async fetch, but display our own curated
-// Kenyan-context name/photo pairs instead of the fetched (non-Kenyan) ones.
+const heroSearch = document.getElementById("hero-search");
+
+heroSearch.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const location = document.getElementById("hero-search-location").value;
+  const skill = document.getElementById("hero-search-skill").value;
+  const params = new URLSearchParams();
+  if (location) params.set("location", location);
+  if (skill && skill !== "All") params.set("skill", skill);
+  window.location.href = `listings.html?${params.toString()}`;
+});
+
+const CITY_COUNT_IDS = {
+  Nairobi: "location-count-nairobi",
+  Mombasa: "location-count-mombasa",
+  Kisumu: "location-count-kisumu",
+  Nakuru: "location-count-nakuru",
+};
+
+Object.entries(CITY_COUNT_IDS).forEach(([city, id]) => {
+  const count = WORKERS.filter((worker) => worker.location.includes(city)).length;
+  document.getElementById(id).textContent = `${count} artisans`;
+});
+
 const SKILLS = ["Electrician", "Plumber", "Carpenter", "Painter"];
 const LOCATIONS = ["Nairobi", "Mombasa", "Kisumu", "Nakuru"];
 const DISPLAY_WORKERS = [
@@ -62,8 +71,6 @@ fetch("https://randomuser.me/api/?results=3&seed=artisan")
     return res.json();
   })
   .then((data) => {
-    // The fetch succeeded — data.results confirms the API responded,
-    // but we render our own Kenyan-context cards rather than the fetched ones.
     renderPreviewCards(data.results.length);
   })
   .catch(() => {

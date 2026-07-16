@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Find My Artisan — Listings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/listings.css" />
 </head>
@@ -19,15 +22,9 @@
       placeholder="Search artisans..."
     />
 
-    <div class="filter-container" id="filter-container">
-      <!-- filter buttons are rendered by JS so the "active" class
-           logic lives in one place (listings.js), same as FilterButtons.jsx -->
-    </div>
+    <div class="filter-container" id="filter-container"></div>
 
-    <div class="worker-grid" id="worker-grid">
-      <!-- skeleton cards shown first, then replaced by real cards or
-           a "no artisans found" message — mirrors ListingsPage.jsx -->
-    </div>
+    <div class="worker-grid" id="worker-grid"></div>
   </div>
 
   <script src="js/mockData.js"></script>

@@ -1,5 +1,3 @@
-// src/components/SearchBar.jsx
-
 function SearchBar({ searchTerm, setSearchTerm }) {
   return (
     <input

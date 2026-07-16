@@ -1,6 +1,5 @@
-// src/pages/ListingsPage.jsx
-
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import WorkerCard from "../components/WorkerCard";
 import SearchBar from "../components/SearchBar";
@@ -8,9 +7,17 @@ import FilterButtons from "../components/FilterButtons";
 
 import { WORKERS } from "../data/mockData";
 
+const SKILLS = ["All", "Plumber", "Electrician", "Carpenter", "Painter"];
+
 function ListingsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [searchParams] = useSearchParams();
+  const initialLocation = searchParams.get("location") || "";
+  const initialSkill = searchParams.get("skill");
+
+  const [searchTerm, setSearchTerm] = useState(initialLocation);
+  const [activeFilter, setActiveFilter] = useState(
+    SKILLS.includes(initialSkill) ? initialSkill : "All"
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

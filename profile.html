@@ -4,71 +4,127 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Find My Artisan — Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/profile.css" />
 </head>
 <body>
-  <!-- everything from Chunk B and C goes here, before the scripts -->
-
   <main class="profile">
 
-  <!-- PROFILE HEADER: photo on one side, info on the other -->
   <header class="profile-header">
     <img class="profile-photo" id="worker-photo" src="" alt="" />
     <div class="profile-info">
       <h1 class="profile-name" id="worker-name">
-        <!-- name fills in here -->
         <span class="badge" id="worker-badge">✓ Verified</span>
       </h1>
       <p class="profile-skill" id="worker-skill"></p>
       <p class="profile-location" id="worker-location"></p>
-      <p class="profile-price" id="worker-price"></p>
+
+      <div class="profile-header-meta">
+        <span class="profile-rating" id="worker-rating"></span>
+        <span class="profile-success" id="worker-success"></span>
+        <span class="profile-price" id="worker-price"></span>
+      </div>
     </div>
+
+    <a href="#booking" class="btn-primary profile-header-cta">Request this artisan</a>
   </header>
 
-  <!-- BIO -->
-  <section class="bio">
-    <h2>About</h2>
-    <p id="worker-bio"></p>
-  </section>
+  <div class="profile-layout">
+    <aside class="profile-sidebar" id="booking">
+      <section class="booking">
+        <h2>Request this artisan</h2>
 
-  <!-- REVIEWS: JS will fill this list with one card per review -->
-  <section class="reviews">
-    <h2>Reviews</h2>
-    <div id="reviews-list"></div>
-  </section>
+        <form id="booking-form" novalidate>
+          <div class="field">
+            <label for="name">Your name</label>
+            <input type="text" id="name" name="name" />
+            <small class="error" id="name-error"></small>
+          </div>
 
-    <!-- BOOKING INQUIRY FORM -->
-  <section class="booking">
-    <h2>Request this artisan</h2>
+          <div class="field">
+            <label for="contact">Email or phone</label>
+            <input type="text" id="contact" name="contact" />
+            <small class="error" id="contact-error"></small>
+          </div>
 
-    <form id="booking-form" novalidate>
-      <div class="field">
-        <label for="name">Your name</label>
-        <input type="text" id="name" name="name" />
-        <small class="error" id="name-error"></small>
+          <div class="field">
+            <label for="job">Describe the job</label>
+            <textarea id="job" name="job" rows="4"></textarea>
+            <small class="error" id="job-error"></small>
+          </div>
+
+          <button type="submit" class="submit-btn">Send request</button>
+        </form>
+
+        <div class="confirmation hidden" id="confirmation">
+          ✅ Your request has been sent. The artisan will contact you shortly.
+        </div>
+      </section>
+
+      <div class="profile-stats">
+        <h2 class="profile-stats-title">Overview</h2>
+
+        <div class="stats-row">
+          <div class="stats-cell">
+            <span class="stats-value" id="stat-success"></span>
+            <span class="stats-label">Job success</span>
+          </div>
+          <div class="stats-cell">
+            <span class="stats-value" id="stat-jobs"></span>
+            <span class="stats-label">Jobs done</span>
+          </div>
+          <div class="stats-cell">
+            <span class="stats-value" id="stat-hours"></span>
+            <span class="stats-label">Hours</span>
+          </div>
+        </div>
+
+        <dl class="stats-list">
+          <div class="stats-item">
+            <dt>Total earnings</dt>
+            <dd id="stat-earnings"></dd>
+          </div>
+          <div class="stats-item">
+            <dt>Availability</dt>
+            <dd id="stat-availability"></dd>
+          </div>
+          <div class="stats-item">
+            <dt>Languages</dt>
+            <dd id="stat-languages"></dd>
+          </div>
+          <div class="stats-item">
+            <dt>Verification</dt>
+            <dd id="stat-verification"></dd>
+          </div>
+        </dl>
       </div>
+    </aside>
 
-      <div class="field">
-        <label for="contact">Email or phone</label>
-        <input type="text" id="contact" name="contact" />
-        <small class="error" id="contact-error"></small>
-      </div>
+    <div class="profile-main">
+      <section class="bio">
+        <h2>About</h2>
+        <p id="worker-bio"></p>
+      </section>
 
-      <div class="field">
-        <label for="job">Describe the job</label>
-        <textarea id="job" name="job" rows="4"></textarea>
-        <small class="error" id="job-error"></small>
-      </div>
+      <section class="profile-gallery-card">
+        <h2>Recent work</h2>
+        <div class="profile-gallery-grid" id="profile-gallery-grid"></div>
+      </section>
 
-      <button type="submit" class="submit-btn">Send request</button>
-    </form>
+      <section class="profile-history hidden" id="profile-history">
+        <h2>Work history</h2>
+        <ul class="history-list" id="history-list"></ul>
+      </section>
 
-    <!-- hidden until the form succeeds; JS reveals it -->
-    <div class="confirmation hidden" id="confirmation">
-      ✅ Your request has been sent. The artisan will contact you shortly.
+      <section class="reviews">
+        <h2>Reviews</h2>
+        <div id="reviews-list"></div>
+      </section>
     </div>
-  </section>
+  </div>
 </main>
   <script src="js/mockData.js"></script>
   <script src="js/profile.js"></script>

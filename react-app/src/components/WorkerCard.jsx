@@ -22,15 +22,15 @@ function WorkerCard({ worker }) {
         {worker.skill}
       </span>
 
-      <p>⭐ {worker.rating}</p>
-
-      <p>{worker.price}</p>
-
-      <p>{worker.location}</p>
-
-      {worker.verified && (
-        <p>✓ Verified</p>
-      )}
+      <div className="worker-meta">
+        <p className="worker-rating">⭐ {worker.rating}</p>
+        <p className="worker-success">{worker.jobSuccess}% job success</p>
+        <p className="worker-price">{worker.price}</p>
+        <p className="worker-location">{worker.location}</p>
+        {worker.verified && (
+          <p className="worker-verified">✓ Verified</p>
+        )}
+      </div>
     </Link>
   );
 }

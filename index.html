@@ -4,12 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Find My Artisan — Home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/landing.css" />
 </head>
 <body>
 
-  <!-- NAVBAR -->
   <nav class="navbar">
     <a href="index.html" class="navbar-logo">Find My Artisan</a>
 
@@ -27,20 +29,50 @@
   </nav>
 
   <main>
-    <!-- HERO -->
     <section class="hero" id="home">
-      <div class="hero-content">
-        <span class="hero-eyebrow">Trusted artisans, near you</span>
-        <h1 class="hero-heading">Find skilled hands for every job at home</h1>
-        <p class="hero-sub">
-          Connect with verified plumbers, electricians, carpenters, and painters
-          in your neighbourhood. Browse profiles, read reviews, and book in minutes.
-        </p>
-        <div class="hero-actions">
-          <a href="listings.html" class="btn-primary">Browse Artisans</a>
-          <a href="#how-it-works" class="btn-secondary">See how it works</a>
+      <div class="hero-top">
+        <div class="hero-media">
+          <img src="https://picsum.photos/seed/artisan-hero/1600/900" alt="" class="hero-bg" />
+          <div class="hero-overlay"></div>
+        </div>
+
+        <div class="hero-content">
+          <span class="hero-eyebrow">Trusted artisans, near you</span>
+          <h1 class="hero-heading">Find skilled hands for every job at home</h1>
+          <p class="hero-sub">
+            Connect with verified plumbers, electricians, carpenters, and painters
+            in your neighbourhood. Browse profiles, read reviews, and book in minutes.
+          </p>
+          <div class="hero-actions">
+            <a href="listings.html" class="btn-primary">Browse Artisans</a>
+            <a href="#how-it-works" class="btn-secondary">See how it works</a>
+          </div>
         </div>
       </div>
+
+      <form class="hero-search" id="hero-search">
+        <div class="hero-search-field">
+          <label for="hero-search-location">Location</label>
+          <select id="hero-search-location">
+            <option value="">Any location</option>
+            <option>Nairobi</option>
+            <option>Mombasa</option>
+            <option>Kisumu</option>
+            <option>Nakuru</option>
+          </select>
+        </div>
+        <div class="hero-search-field">
+          <label for="hero-search-skill">Skill</label>
+          <select id="hero-search-skill">
+            <option value="All">Any skill</option>
+            <option>Electrician</option>
+            <option>Plumber</option>
+            <option>Carpenter</option>
+            <option>Painter</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary hero-search-btn">Search artisans</button>
+      </form>
 
       <div class="hero-stats">
         <div class="stat">
@@ -58,7 +90,45 @@
       </div>
     </section>
 
-    <!-- HOW IT WORKS -->
+    <section class="locations" id="locations">
+      <div class="section-header">
+        <span class="section-eyebrow">Where we work</span>
+        <h2 class="section-title">Popular locations</h2>
+        <p class="section-sub">Artisans ready to help across Kenya's biggest cities.</p>
+      </div>
+
+      <div class="locations-grid">
+        <a href="listings.html?location=Nairobi" class="location-card">
+          <img src="https://picsum.photos/seed/nairobi-city/500/500" alt="Nairobi" />
+          <span class="location-info">
+            <span class="location-name">Nairobi</span>
+            <span class="location-count" id="location-count-nairobi"></span>
+          </span>
+        </a>
+        <a href="listings.html?location=Mombasa" class="location-card">
+          <img src="https://picsum.photos/seed/mombasa-city/500/500" alt="Mombasa" />
+          <span class="location-info">
+            <span class="location-name">Mombasa</span>
+            <span class="location-count" id="location-count-mombasa"></span>
+          </span>
+        </a>
+        <a href="listings.html?location=Kisumu" class="location-card">
+          <img src="https://picsum.photos/seed/kisumu-city/500/500" alt="Kisumu" />
+          <span class="location-info">
+            <span class="location-name">Kisumu</span>
+            <span class="location-count" id="location-count-kisumu"></span>
+          </span>
+        </a>
+        <a href="listings.html?location=Nakuru" class="location-card">
+          <img src="https://picsum.photos/seed/nakuru-city/500/500" alt="Nakuru" />
+          <span class="location-info">
+            <span class="location-name">Nakuru</span>
+            <span class="location-count" id="location-count-nakuru"></span>
+          </span>
+        </a>
+      </div>
+    </section>
+
     <section class="how-it-works" id="how-it-works">
       <div class="section-header">
         <span class="section-eyebrow">Simple process</span>
@@ -94,7 +164,6 @@
       </div>
     </section>
 
-    <!-- FEATURED ARTISANS (JS fills this in, mirrors React's fetch + render) -->
     <section class="worker-preview-section" id="artisans">
       <div class="section-header">
         <span class="section-eyebrow">Featured artisans</span>
@@ -115,9 +184,72 @@
         <a href="listings.html" class="btn-primary">View all artisans</a>
       </div>
     </section>
+
+    <section class="gallery-section" id="gallery">
+      <div class="section-header">
+        <span class="section-eyebrow">Recent work</span>
+        <h2 class="section-title">A look at finished jobs</h2>
+        <p class="section-sub">Real work, done by artisans on the platform.</p>
+      </div>
+
+      <div class="gallery-grid">
+        <div class="gallery-tile">
+          <img src="https://loremflickr.com/700/700/paintcans/all?lock=406" alt="Interior painting" />
+          <span class="gallery-caption">Interior painting</span>
+        </div>
+        <div class="gallery-tile">
+          <img src="https://loremflickr.com/700/700/woodshop/all?lock=306" alt="Custom carpentry" />
+          <span class="gallery-caption">Custom carpentry</span>
+        </div>
+        <div class="gallery-tile">
+          <img src="https://loremflickr.com/700/700/electrical,panel/all?lock=101" alt="Home wiring" />
+          <span class="gallery-caption">Home wiring</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tips-section" id="tips">
+      <div class="section-header">
+        <span class="section-eyebrow">Before you book</span>
+        <h2 class="section-title">Hire smart</h2>
+        <p class="section-sub">A few things worth checking before you confirm a job.</p>
+      </div>
+
+      <div class="tips-grid">
+        <div class="tip-card">
+          <div class="tip-icon">🛡️</div>
+          <h3 class="tip-title">Check verification</h3>
+          <p class="tip-desc">Prefer artisans with the verified badge — it means their identity has been confirmed.</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">💬</div>
+          <h3 class="tip-title">Compare quotes</h3>
+          <p class="tip-desc">Message two or three artisans before committing, so you know a fair price.</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">⭐</div>
+          <h3 class="tip-title">Read recent reviews</h3>
+          <p class="tip-desc">Reviews from the last few months tell you more than an overall rating alone.</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon">📝</div>
+          <h3 class="tip-title">Agree the scope</h3>
+          <p class="tip-desc">Write down what's included before work starts, so expectations match on both sides.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-banner">
+      <img src="https://picsum.photos/seed/artisan-cta/1600/700" alt="" class="cta-banner-bg" />
+      <div class="cta-banner-overlay"></div>
+      <div class="cta-banner-content">
+        <h2>Got a job that needs doing?</h2>
+        <p>Post what you need and hear back from verified artisans near you.</p>
+        <a href="listings.html" class="btn-primary">Browse artisans</a>
+      </div>
+    </section>
   </main>
 
-  <!-- FOOTER -->
   <footer class="footer">
     <div class="footer-inner">
       <div class="footer-brand">
@@ -137,6 +269,7 @@
     </div>
   </footer>
 
+  <script src="js/mockData.js"></script>
   <script src="js/landing.js"></script>
 </body>
 </html>

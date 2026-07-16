@@ -1,10 +1,3 @@
-// src/components/HowItWorks.jsx
-// Person A owns this component.
-//
-// Three-column grid (collapses to single column on mobile via CSS).
-// Each step is rendered from the `steps` array using .map() — the same
-// pattern Person B uses for WorkerCards.
-
 const steps = [
   {
     icon: "🔍",

@@ -1,6 +1,3 @@
-// src/components/Footer.jsx
-// Person A owns this component.
-
 import { Link } from "react-router-dom";
 
 export default function Footer() {

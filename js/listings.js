@@ -1,24 +1,19 @@
-// ============================================================
-//  listings.js — vanilla version of Person B's React components
-//  (ListingsPage, WorkerCard, SearchBar, FilterButtons).
-//
-//  React kept three pieces of state: searchTerm, activeFilter, isLoading.
-//  Vanilla JS has no state hooks, so we use three plain variables instead
-//  and re-run render() ourselves whenever one of them changes — that's
-//  the manual version of what useState's setter + re-render does for you.
-// ============================================================
-
 const SKILLS = ["All", "Plumber", "Electrician", "Carpenter", "Painter"];
 
-let searchTerm = "";
-let activeFilter = "All";
+const initialParams = new URLSearchParams(window.location.search);
+const initialLocation = initialParams.get("location") || "";
+const initialSkill = initialParams.get("skill");
+
+let searchTerm = initialLocation;
+let activeFilter = SKILLS.includes(initialSkill) ? initialSkill : "All";
 let isLoading = true;
 
 const searchInput = document.getElementById("search-input");
 const filterContainer = document.getElementById("filter-container");
 const workerGrid = document.getElementById("worker-grid");
 
-// ── Filter buttons ──
+searchInput.value = searchTerm;
+
 function renderFilterButtons() {
   filterContainer.innerHTML = "";
   SKILLS.forEach((skill) => {
@@ -34,7 +29,6 @@ function renderFilterButtons() {
   });
 }
 
-// ── Worker grid ──
 function getFilteredWorkers() {
   return WORKERS.filter((worker) => {
     const term = searchTerm.toLowerCase();
@@ -50,16 +44,19 @@ function getFilteredWorkers() {
 }
 
 function workerCardHTML(worker) {
-  const verifiedLine = worker.verified ? "<p>✓ Verified</p>" : "";
+  const verifiedLine = worker.verified ? '<p class="worker-verified">✓ Verified</p>' : "";
   return `
     <a href="profile.html?id=${worker.id}" class="worker-card">
       <img src="${worker.photo}" alt="${worker.name}" class="worker-image" />
       <h3>${worker.name}</h3>
       <span class="skill-badge">${worker.skill}</span>
-      <p>⭐ ${worker.rating}</p>
-      <p>${worker.price}</p>
-      <p>${worker.location}</p>
-      ${verifiedLine}
+      <div class="worker-meta">
+        <p class="worker-rating">⭐ ${worker.rating}</p>
+        <p class="worker-success">${worker.jobSuccess}% job success</p>
+        <p class="worker-price">${worker.price}</p>
+        <p class="worker-location">${worker.location}</p>
+        ${verifiedLine}
+      </div>
     </a>
   `;
 }
@@ -82,13 +79,11 @@ function renderWorkerGrid() {
   workerGrid.innerHTML = filteredWorkers.map(workerCardHTML).join("");
 }
 
-// ── Search input ──
 searchInput.addEventListener("input", (e) => {
   searchTerm = e.target.value;
   renderWorkerGrid();
 });
 
-// ── Initial render: same simulated loading delay as ListingsPage.jsx ──
 renderFilterButtons();
 renderWorkerGrid();
 

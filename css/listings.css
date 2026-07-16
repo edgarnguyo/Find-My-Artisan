@@ -1,100 +1,169 @@
-/* Listings page styles — mirrors Person B's React components
-   (ListingsPage, WorkerCard, SearchBar, FilterButtons).
-   Tokens (colors/spacing) come from base.css. */
-
 .listings-page {
   max-width: 1200px;
-  margin: var(--spacing-xl) auto;
-  padding: 0 var(--spacing-md);
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-md);
 }
 
 .listings-page h1 {
   text-align: center;
+  font-size: 2.1rem;
   margin-bottom: var(--spacing-xl);
 }
 
 .search-input {
   width: 100%;
-  padding: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: 0.9rem 1.1rem 0.9rem 2.7rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
   margin-bottom: var(--spacing-lg);
   font-family: var(--font-base);
   font-size: 1rem;
+  background: var(--color-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23786b60' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 1rem center;
+  background-size: 18px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-light);
 }
 
 .filter-container {
   display: flex;
-  gap: 10px;
+  gap: 0.6rem;
   flex-wrap: wrap;
   margin-bottom: var(--spacing-xl);
 }
 
 .filter-btn {
-  padding: 10px 16px;
-  border: 1px solid var(--color-border);
-  background: white;
-  border-radius: var(--radius-md);
+  padding: 0.6rem 1.2rem;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-full);
   cursor: pointer;
   font-family: var(--font-base);
+  font-weight: 500;
+  color: var(--color-text);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.filter-btn:hover {
+  border-color: var(--color-primary);
 }
 
 .filter-btn.active {
   background: var(--color-primary);
-  color: white;
+  color: #fff;
   border-color: var(--color-primary);
 }
 
 .worker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
 }
 
 .worker-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   text-align: center;
-  transition: transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   text-decoration: none;
   color: inherit;
   display: block;
 }
 
 .worker-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-light);
 }
 
 .worker-image {
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
+  width: 108px;
+  height: 108px;
+  border-radius: var(--radius-full);
   object-fit: cover;
   margin: 0 auto var(--spacing-md);
+  border: 3px solid var(--color-primary-light);
+}
+
+.worker-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.2rem;
 }
 
 .skill-badge {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 0.3rem 0.8rem;
   border-radius: var(--radius-full);
-  background: #eff6ff;
-  color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
   font-weight: 600;
+  font-size: 0.85rem;
   margin: var(--spacing-sm) 0;
 }
 
+.worker-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: var(--spacing-sm);
+}
+
+.worker-rating {
+  color: var(--color-star);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.worker-success {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.worker-price {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.worker-location {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.worker-verified {
+  color: var(--color-verified);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
 .skeleton-card {
-  height: 260px;
-  border-radius: var(--radius-md);
-  background: #e2e8f0;
+  height: 280px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(100deg, var(--color-border) 30%, #f2ebe0 50%, var(--color-border) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
 }
 
 .no-results {
   grid-column: 1 / -1;
   text-align: center;
   color: var(--color-text-muted);
+  padding: var(--spacing-xl) 0;
 }
 
 @media (max-width: 768px) {
