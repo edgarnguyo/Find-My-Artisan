@@ -21,6 +21,49 @@ folder while git is writing to it, which causes locked files, files that
 appear modified for no reason, and occasionally a corrupted index. Somewhere
 like `C:\Users\<you>\Projects\Find-My-Artisan` is safer.
 
+## Starting clean (do this if git is misbehaving)
+
+`main` is the authoritative version of this project. If your local copy has
+diverged — conflicts in dozens of files, "both added" everywhere, or git
+refusing to switch branches — do not resolve them one by one. Reset to match
+main instead.
+
+**This permanently discards local work that is not on GitHub.** Copy the
+folder somewhere else first if you are unsure.
+
+Run these one per line:
+
+```
+git merge --abort
+git fetch origin
+git checkout -B main origin/main
+git reset --hard origin/main
+git clean -fd
+```
+
+`git clean -fd` removes leftover untracked files. It does not touch
+`node_modules` or `.env.local`, which are gitignored.
+
+Then continue from step 2 below (`npm install`).
+
+Check it worked:
+
+```
+git log --oneline -5
+git status
+```
+
+You should see the project's recent commit messages, and "working tree clean".
+
+### Why this happens
+
+If you see `AA` / "both added" on nearly every file, your local repository and
+the GitHub one have no shared history — usually because the folder was set up
+with `git init` and files copied in, rather than with `git clone`. Git then
+treats every file as independently created by both sides, so there is nothing
+sensible to merge. Resetting to `origin/main` is the fix; hand-resolving is
+not.
+
 ## 1. Get the code
 
 ```bash
