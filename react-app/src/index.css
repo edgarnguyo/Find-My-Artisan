@@ -1479,3 +1479,24 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------------------------------------------------------- avatars */
+/* Initials shown in place of a photo. Sizing and borders come from the
+   circle classes these are combined with (.worker-image, .profile-photo,
+   .preview-photo); only the fill and the lettering are defined here. */
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--avatar-hue) 42% 90%);
+  color: hsl(var(--avatar-hue) 45% 27%);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.avatar.profile-photo { font-size: 3.6rem; }
+.avatar.worker-image  { font-size: 2.4rem; }
+.avatar.preview-photo { font-size: 2rem; }
