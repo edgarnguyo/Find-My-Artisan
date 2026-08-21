@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Avatar from "./Avatar";
 
 function WorkerCard({ worker }) {
   return (
@@ -10,11 +11,7 @@ function WorkerCard({ worker }) {
         color: "inherit"
       }}
     >
-      <img
-        src={worker.photo}
-        alt={worker.name}
-        className="worker-image"
-      />
+      <Avatar name={worker.name} className="worker-image" />
 
       <h3>{worker.name}</h3>
 

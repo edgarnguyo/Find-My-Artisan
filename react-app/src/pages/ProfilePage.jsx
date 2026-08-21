@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
-import { WORKERS } from '../data/mockData';
+import { fetchWorkerById } from '../api/workers';
+import { useAsync } from '../hooks/useAsync';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileStats from '../components/ProfileStats';
 import ProfileGallery from '../components/ProfileGallery';
@@ -10,7 +11,27 @@ import AvailabilityCalendar from '../components/AvailabilityCalendar';
 
 export default function ProfilePage() {
   const { id } = useParams();
-  const worker = WORKERS.find(w => w.id === parseInt(id, 10));
+  const { data: worker, error, loading } = useAsync(
+    () => fetchWorkerById(id),
+    [id]
+  );
+
+  if (loading) {
+    return (
+      <main className="profile">
+        <p>Loading artisan…</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="profile">
+        <h1>Something went wrong</h1>
+        <p>Could not load this artisan: {error.message}</p>
+      </main>
+    );
+  }
 
   if (!worker) {
     return (

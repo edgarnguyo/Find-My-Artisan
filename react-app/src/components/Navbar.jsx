@@ -1,11 +1,20 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../lib/authContext";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const isActive = (path) => location.pathname === path;
+
+  async function handleSignOut() {
+    await signOut();
+    setMenuOpen(false);
+    navigate("/");
+  }
 
   return (
     <nav className="navbar">
@@ -43,15 +52,39 @@ export default function Navbar() {
             Find Artisans
           </Link>
         </li>
-        <li>
-          <Link
-            to="/listings"
-            className="nav-cta"
-            onClick={() => setMenuOpen(false)}
-          >
-            Get Started
-          </Link>
-        </li>
+        {user && (
+          <li>
+            <Link
+              to="/bookings"
+              className={`nav-link${isActive("/bookings") ? " active" : ""}`}
+              onClick={() => setMenuOpen(false)}
+            >
+              My bookings
+            </Link>
+          </li>
+        )}
+        {user ? (
+          <>
+            <li className="nav-email" title={user.email}>
+              {user.email}
+            </li>
+            <li>
+              <button type="button" className="nav-cta" onClick={handleSignOut}>
+                Sign out
+              </button>
+            </li>
+          </>
+        ) : (
+          <li>
+            <Link
+              to="/signin"
+              className="nav-cta"
+              onClick={() => setMenuOpen(false)}
+            >
+              Sign in
+            </Link>
+          </li>
+        )}
       </ul>
     </nav>
   );

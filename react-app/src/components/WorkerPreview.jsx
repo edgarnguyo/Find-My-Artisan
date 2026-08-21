@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Avatar from "./Avatar";
 
 const SKILLS = ["Electrician", "Plumber", "Carpenter", "Painter"];
 const LOCATIONS = ["Nairobi", "Mombasa", "Kisumu", "Nakuru"];
-const DISPLAY_WORKERS = [
-  { name: "Achieng Otieno", photo: "https://randomuser.me/api/portraits/women/69.jpg" },
-  { name: "Njoroge Mwangi", photo: "https://randomuser.me/api/portraits/men/91.jpg" },
-  { name: "Akinyi Chebet", photo: "https://randomuser.me/api/portraits/women/92.jpg" },
-];
+const DISPLAY_NAMES = ["Achieng Otieno", "Njoroge Mwangi", "Akinyi Chebet"];
 
 export default function WorkerPreview() {
   const [previewWorkers, setPreviewWorkers] = useState([]);
@@ -28,8 +25,7 @@ export default function WorkerPreview() {
 
         const mapped = data.results.map((_, i) => ({
           id: `preview-${i}`,
-          name: DISPLAY_WORKERS[i].name,
-          photo: DISPLAY_WORKERS[i].photo,
+          name: DISPLAY_NAMES[i],
           skill: SKILLS[i % SKILLS.length],
           location: LOCATIONS[i % LOCATIONS.length],
           rating: (4.3 + i * 0.2).toFixed(1),
@@ -71,11 +67,7 @@ export default function WorkerPreview() {
         <div className="preview-grid">
           {previewWorkers.map((worker) => (
             <div key={worker.id} className="preview-card">
-              <img
-                src={worker.photo}
-                alt={worker.name}
-                className="preview-photo"
-              />
+              <Avatar name={worker.name} className="preview-photo" />
               <div className="preview-info">
                 <h3 className="preview-name">{worker.name}</h3>
                 <span className="skill-badge">{worker.skill}</span>
