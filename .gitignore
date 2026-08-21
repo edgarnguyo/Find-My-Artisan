@@ -2,3 +2,7 @@ node_modules/
 dist/
 .DS_Store
 .claude/
+
+# submission bundles
+FindMyArtisan-submission/
+FindMyArtisan-submission.zip

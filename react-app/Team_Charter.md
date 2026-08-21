@@ -2,6 +2,8 @@
 
 Team Name: Find My Artisan — Group 1
 
+Repository: https://github.com/edgarnguyo/Find-My-Artisan
+
 Team Members and Starting Roles
 Member	Starting Role
 Edgar Nguyo	Team Lead / Project Coordinator
