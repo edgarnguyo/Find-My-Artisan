@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import WorkerCard from "../components/WorkerCard";
 import SearchBar from "../components/SearchBar";
 import FilterButtons from "../components/FilterButtons";
 
-import { WORKERS } from "../data/mockData";
+import { fetchWorkers } from "../api/workers";
+import { useAsync } from "../hooks/useAsync";
 
 const SKILLS = ["All", "Plumber", "Electrician", "Carpenter", "Painter"];
 
@@ -18,17 +19,10 @@ function ListingsPage() {
   const [activeFilter, setActiveFilter] = useState(
     SKILLS.includes(initialSkill) ? initialSkill : "All"
   );
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
+  const { data: workers, error, loading } = useAsync(fetchWorkers);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  const filteredWorkers = WORKERS.filter((worker) => {
+  const filteredWorkers = (workers ?? []).filter((worker) => {
     const matchesSearch =
       worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       worker.skill.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -56,13 +50,15 @@ function ListingsPage() {
       />
 
       <div className="worker-grid">
-        {isLoading ? (
+        {loading ? (
           [...Array(6)].map((_, index) => (
             <div
               key={index}
               className="skeleton-card"
             ></div>
           ))
+        ) : error ? (
+          <p>Could not load artisans: {error.message}</p>
         ) : filteredWorkers.length > 0 ? (
           filteredWorkers.map((worker) => (
             <WorkerCard
