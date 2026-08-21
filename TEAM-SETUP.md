@@ -5,6 +5,22 @@ Everything below is a one-time setup. After this, `npm run dev` is all you need.
 We share **one Supabase project** (Edgar's), so the database is already
 created, seeded, and configured. You do not need a Supabase account.
 
+## 0. If you are on Windows
+
+Run every command on its **own line**. Windows PowerShell 5.1 (the one that
+ships with Windows) does not support `&&`, and chaining with it fails to parse:
+
+```
+The token '&&' is not a valid statement separator in this version.
+```
+
+A `ParserError` means nothing ran at all, not that it half-worked.
+
+Also: **do not keep the repo inside OneDrive.** OneDrive syncs the `.git`
+folder while git is writing to it, which causes locked files, files that
+appear modified for no reason, and occasionally a corrupted index. Somewhere
+like `C:\Users\<you>\Projects\Find-My-Artisan` is safer.
+
 ## 1. Get the code
 
 ```bash
@@ -102,6 +118,15 @@ Most likely in `ListingsPage.jsx`, `ProfilePage.jsx`, `BookingForm.jsx`, or
   the incoming version from main
 >>>>>>> main
 ```
+
+VS Code shows buttons above the conflict: **Accept Current Change** (keep
+yours), **Accept Incoming Change** (keep theirs), **Accept Both Changes**.
+They are shortcuts for editing by hand — check the result is what you
+actually want, especially when both sides added imports and you need both.
+
+Read the whole file afterwards: one file often has several conflicts, and the
+red squiggles everywhere are usually one unresolved marker breaking the
+parser, not many separate bugs.
 
 Edit the file so it contains what you actually want, delete all three marker
 lines, then:
