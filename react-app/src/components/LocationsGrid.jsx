@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { WORKERS } from "../data/mockData";
+import { fetchWorkers } from "../api/workers";
+import { useAsync } from "../hooks/useAsync";
 
 const CITIES = [
   { name: "Nairobi", seed: "nairobi-city" },
@@ -8,12 +9,16 @@ const CITIES = [
   { name: "Nakuru", seed: "nakuru-city" },
 ];
 
-const LOCATIONS = CITIES.map((city) => ({
-  ...city,
-  count: WORKERS.filter((worker) => worker.location.includes(city.name)).length,
-}));
-
 export default function LocationsGrid() {
+  const { data: workers } = useAsync(fetchWorkers);
+
+  const locations = CITIES.map((city) => ({
+    ...city,
+    count: (workers ?? []).filter((worker) =>
+      worker.location.includes(city.name)
+    ).length,
+  }));
+
   return (
     <section className="locations" id="locations">
       <div className="section-header">
@@ -25,7 +30,7 @@ export default function LocationsGrid() {
       </div>
 
       <div className="locations-grid">
-        {LOCATIONS.map((location) => (
+        {locations.map((location) => (
           <Link
             key={location.name}
             to={`/listings?location=${location.name}`}

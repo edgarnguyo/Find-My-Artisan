@@ -1,11 +1,9 @@
+import Avatar from "./Avatar";
+
 export default function ProfileHeader({ worker }) {
   return (
     <header className="profile-header">
-      <img
-        className="profile-photo"
-        src={worker.photo}
-        alt={`Photo of ${worker.name}`}
-      />
+      <Avatar name={worker.name} className="profile-photo" />
       <div className="profile-info">
         <h1 className="profile-name">
           {worker.name}
