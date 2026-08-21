@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-
-function saveBookingRequest(request) {
-  const requests = JSON.parse(localStorage.getItem('bookingRequests') || '[]');
-  requests.push(request);
-  localStorage.setItem('bookingRequests', JSON.stringify(requests));
-}
+import { Link } from 'react-router-dom';
+import { createBooking } from '../api/workers';
+import { useAuth } from '../lib/authContext';
 
 export default function BookingForm({ worker }) {
+  const { user } = useAuth();
   const [name,      setName]      = useState('');
   const [contact,   setContact]   = useState('');
   const [date,      setDate]      = useState('');
@@ -15,6 +13,8 @@ export default function BookingForm({ worker }) {
   const [job,       setJob]       = useState('');
   const [errors,    setErrors]    = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [sending,   setSending]   = useState(false);
+  const [sendError, setSendError] = useState(null);
 
   useEffect(() => {
     if (!submitted) return;
@@ -27,6 +27,7 @@ export default function BookingForm({ worker }) {
       setBudget('');
       setJob('');
       setErrors({});
+      setSendError(null);
       setSubmitted(false);
     }, 3000);
 
@@ -65,25 +66,35 @@ export default function BookingForm({ worker }) {
     return newErrors;
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const newErrors = validate();
 
-    if (Object.keys(newErrors).length === 0) {
-      saveBookingRequest({
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    setSendError(null);
+    setSending(true);
+
+    try {
+      await createBooking({
         workerId: worker.id,
-        workerName: worker.name,
+        userId: user?.id ?? null,
         name,
         contact,
         date,
         time,
         budget,
         job,
-        submittedAt: new Date().toISOString(),
       });
       setSubmitted(true);
-    } else {
-      setErrors(newErrors);
+    } catch (err) {
+      setSendError(err.message);
+    } finally {
+      setSending(false);
     }
   }
 
@@ -93,6 +104,16 @@ export default function BookingForm({ worker }) {
         <div className="confirmation">
           ✅ Your request has been sent. The artisan will contact you shortly.
         </div>
+        {user ? (
+          <p className="booking-note">
+            <Link to="/bookings">Track it under My bookings</Link>
+          </p>
+        ) : (
+          <p className="booking-note">
+            <Link to="/signin">Sign in</Link> before booking next time and you
+            can track your requests here.
+          </p>
+        )}
       </section>
     );
   }
@@ -100,6 +121,13 @@ export default function BookingForm({ worker }) {
   return (
     <section className="booking">
       <h2>Request this artisan</h2>
+
+      {!user && (
+        <p className="booking-note">
+          <Link to="/signin">Sign in</Link> to keep track of this booking
+          afterwards.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
@@ -170,7 +198,15 @@ export default function BookingForm({ worker }) {
           {errors.job && <small className="error">{errors.job}</small>}
         </div>
 
-        <button type="submit" className="submit-btn">Send request</button>
+        {sendError && (
+          <small className="error">
+            Could not send your request: {sendError}
+          </small>
+        )}
+
+        <button type="submit" className="submit-btn" disabled={sending}>
+          {sending ? 'Sending…' : 'Send request'}
+        </button>
       </form>
     </section>
   );
