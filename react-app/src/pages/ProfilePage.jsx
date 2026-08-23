@@ -56,6 +56,14 @@ export default function ProfilePage() {
           <section className="bio">
             <h2>About</h2>
             <p>{worker.bio}</p>
+
+            {worker.skills.length > 0 && (
+              <ul className="skill-tags">
+                {worker.skills.map(skill => (
+                  <li key={skill} className="skill-tag">{skill}</li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <AvailabilityCalendar worker={worker} />

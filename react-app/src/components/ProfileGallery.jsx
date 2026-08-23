@@ -1,3 +1,5 @@
+// Fallback images, used only until an artisan has uploaded their own work.
+// Anything shown from `worker.portfolio` is genuinely theirs.
 const SKILL_PHOTOS = {
   Electrician: [
     { keyword: "electrical,panel", lock: 101 },
@@ -18,19 +20,46 @@ const SKILL_PHOTOS = {
 };
 
 export default function ProfileGallery({ worker }) {
+  const portfolio = worker.portfolio ?? [];
+
+  if (portfolio.length > 0) {
+    return (
+      <section className="profile-gallery-card">
+        <h2>Recent work</h2>
+        <div className="profile-gallery-grid">
+          {portfolio.map((item) => (
+            <figure key={item.id} className="profile-gallery-tile">
+              <img
+                src={item.imageUrl}
+                alt={item.caption ?? `Work by ${worker.name}`}
+                loading="lazy"
+              />
+              {item.caption && <figcaption>{item.caption}</figcaption>}
+            </figure>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   const photos = SKILL_PHOTOS[worker.skill] || SKILL_PHOTOS.Electrician;
 
   return (
     <section className="profile-gallery-card">
       <h2>Recent work</h2>
+      <p className="gallery-placeholder-note">
+        {worker.name} has not uploaded photos yet — these show the kind of work
+        a {worker.skill.toLowerCase()} takes on.
+      </p>
       <div className="profile-gallery-grid">
         {photos.map((photo) => (
-          <div key={photo.lock} className="profile-gallery-tile">
+          <figure key={photo.lock} className="profile-gallery-tile">
             <img
-              src={`https://loremflickr.com/500/500/${photo.keyword}/all?lock=${photo.lock}`}
-              alt={`${worker.skill} work sample`}
+              src={`https://loremflickr.com/700/700/${photo.keyword}/all?lock=${photo.lock}`}
+              alt={`${worker.skill} work`}
+              loading="lazy"
             />
-          </div>
+          </figure>
         ))}
       </div>
     </section>

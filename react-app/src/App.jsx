@@ -8,6 +8,8 @@ import ListingsPage from './pages/ListingsPage';
 import ProfilePage from './pages/ProfilePage';
 import SignInPage from './pages/SignInPage';
 import MyBookingsPage from './pages/MyBookingsPage';
+import AccountPage from './pages/AccountPage';
+import ArtisanDashboardPage from './pages/ArtisanDashboardPage';
 
 export default function App() {
   return (
@@ -24,6 +26,22 @@ export default function App() {
             element={
               <RequireAuth>
                 <MyBookingsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <RequireAuth>
+                <AccountPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/artisan"
+            element={
+              <RequireAuth>
+                <ArtisanDashboardPage />
               </RequireAuth>
             }
           />

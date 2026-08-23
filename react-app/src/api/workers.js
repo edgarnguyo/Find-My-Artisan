@@ -28,9 +28,23 @@ function toWorker(row) {
       priceType: h.price_type,
     })),
     reviews: (row.reviews ?? []).map(r => ({
+      id: r.id,
       author: r.author,
       rating: r.rating,
       comment: r.comment,
+      createdAt: r.created_at,
+    })),
+    // Every skill the artisan offers. The `skill` column above stays the
+    // primary trade that the listings filter works on.
+    skills: (row.worker_skills ?? []).map(s => s.skill),
+    // Real stored availability. Empty means the artisan has not set one.
+    availability: (row.worker_availability ?? [])
+      .map(a => ({ weekday: a.weekday, start: a.start_time, end: a.end_time }))
+      .sort((a, b) => a.weekday - b.weekday),
+    portfolio: (row.portfolio_items ?? []).map(p => ({
+      id: p.id,
+      imageUrl: p.image_url,
+      caption: p.caption,
     })),
   };
 }
@@ -50,7 +64,10 @@ export async function fetchWorkers() {
 export async function fetchWorkerById(id) {
   const { data, error } = await supabase
     .from('workers')
-    .select('*, languages(name, level), work_history(*), reviews(*)')
+    .select(
+      `*, languages(name, level), work_history(*), reviews(*),
+       worker_skills(skill), worker_availability(*), portfolio_items(*)`
+    )
     .eq('id', id)
     .maybeSingle();
 
@@ -69,7 +86,10 @@ export async function fetchWorkerById(id) {
  * We deliberately do not chain .select() — the insert policy allows writing,
  * and asking for the row back would be a separate read.
  */
-export async function createBooking({ workerId, userId = null, name, contact, date, time, budget, job }) {
+export async function createBooking({
+  workerId, userId = null, name, contact, date, time, budget, job,
+  category = null, agreedPrice = null,
+}) {
   const { error } = await supabase.from('bookings').insert({
     worker_id: workerId,
     user_id: userId,
@@ -79,8 +99,15 @@ export async function createBooking({ workerId, userId = null, name, contact, da
     booking_time: time,
     budget: budget || null,
     job,
+    category,
+    agreed_price: agreedPrice === '' || agreedPrice === null ? null : Number(agreedPrice),
   });
 
+  // The unique index only covers slots that are not cancelled, so this means
+  // somebody already holds this artisan at this date and time.
+  if (error?.code === '23505') {
+    throw new Error('That slot is already taken. Please choose another time.');
+  }
   if (error) throw error;
 }
 
@@ -89,11 +116,18 @@ function toBooking(row) {
     id: row.id,
     status: row.status,
     job: row.job,
+    category: row.category,
+    agreedPrice: row.agreed_price === null ? null : Number(row.agreed_price),
+    finalPrice: row.final_price === null ? null : Number(row.final_price),
     budget: row.budget,
+    clientName: row.name,
     contact: row.contact,
     date: row.booking_date,
     time: row.booking_time,
     createdAt: row.created_at,
+    workerId: row.worker_id,
+    userId: row.user_id,
+    reviewed: (row.reviews ?? []).length > 0,
     worker: row.workers
       ? { id: row.workers.id, name: row.workers.name, skill: row.workers.skill, location: row.workers.location }
       : null,
@@ -111,11 +145,16 @@ function toBooking(row) {
 export async function fetchMyBookings() {
   const { data, error } = await supabase
     .from('bookings')
-    .select('*, workers(id, name, skill, location)')
+    .select('*, workers(id, name, skill, location), reviews(id)')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data.map(toBooking);
+  // The select policy also lets an artisan read bookings made against their
+  // own worker profile, so filter to the ones this account placed as a client.
+  const { data: auth } = await supabase.auth.getUser();
+  return data
+    .filter(row => row.user_id === auth.user?.id)
+    .map(toBooking);
 }
 
 /** Cancel one of your own bookings. The policy allows no other status change. */
@@ -127,3 +166,16 @@ export async function cancelBooking(id) {
 
   if (error) throw error;
 }
+
+/** The job categories used by the booking form. */
+export async function fetchJobCategories() {
+  const { data, error } = await supabase
+    .from('job_categories')
+    .select('*')
+    .order('label');
+
+  if (error) throw error;
+  return data.map(c => ({ slug: c.slug, label: c.label }));
+}
+
+export { toBooking };

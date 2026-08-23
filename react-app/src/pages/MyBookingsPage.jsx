@@ -4,6 +4,7 @@ import { fetchMyBookings, cancelBooking } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
+import ReviewForm from '../components/ReviewForm';
 
 const TABS = [
   { key: 'active',    label: 'Upcoming',  match: s => s === 'pending' || s === 'confirmed' },
@@ -22,6 +23,7 @@ export default function MyBookingsPage() {
   const [tab, setTab] = useState('active');
   const [reloadKey, setReloadKey] = useState(0);
   const [cancelling, setCancelling] = useState(null);
+  const [reviewing, setReviewing] = useState(null);
 
   const load = useCallback(() => fetchMyBookings(), []);
   const { data: bookings, error, loading } = useAsync(load, [reloadKey, user?.id]);
@@ -115,7 +117,34 @@ export default function MyBookingsPage() {
                     {cancelling === booking.id ? 'Cancelling…' : 'Cancel'}
                   </button>
                 )}
+
+                {/* Rating is only offered once the artisan has marked the job
+                    completed — the same condition the insert policy enforces. */}
+                {booking.status === 'completed' && !booking.reviewed && (
+                  <button
+                    className="link-button"
+                    onClick={() =>
+                      setReviewing(reviewing === booking.id ? null : booking.id)
+                    }
+                  >
+                    {reviewing === booking.id ? 'Close' : 'Rate this job'}
+                  </button>
+                )}
+
+                {booking.status === 'completed' && booking.reviewed && (
+                  <span className="reviewed-note">Reviewed</span>
+                )}
               </div>
+
+              {reviewing === booking.id && (
+                <ReviewForm
+                  booking={booking}
+                  onDone={() => {
+                    setReviewing(null);
+                    setReloadKey(k => k + 1);
+                  }}
+                />
+              )}
             </article>
           ))}
         </div>

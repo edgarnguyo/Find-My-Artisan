@@ -6,6 +6,9 @@ export default function SignInPage() {
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [contact, setContact] = useState('');
+  const [role, setRole] = useState('client');
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -15,7 +18,10 @@ export default function SignInPage() {
   const location = useLocation();
 
   // Send the user back where they were headed before we interrupted them.
-  const next = location.state?.from ?? '/bookings';
+  // A new artisan has nothing under /bookings, so start them on their own
+  // dashboard instead.
+  const fallback = role === 'artisan' ? '/artisan' : '/bookings';
+  const next = location.state?.from ?? fallback;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -26,13 +32,17 @@ export default function SignInPage() {
       setError('Password must be at least 6 characters.');
       return;
     }
+    if (mode === 'signup' && fullName.trim() === '') {
+      setError('Please enter your name.');
+      return;
+    }
 
     setBusy(true);
     try {
       const { data, error: authError } =
         mode === 'signin'
           ? await signIn(email, password)
-          : await signUp(email, password);
+          : await signUp(email, password, { fullName, contact, role });
 
       if (authError) {
         setError(authError.message);
@@ -62,10 +72,62 @@ export default function SignInPage() {
         <p className="auth-sub">
           {mode === 'signin'
             ? 'Sign in to see the artisans you have booked.'
-            : 'Create an account to keep track of your bookings.'}
+            : 'Book artisans as a client, or list your own trade as an artisan.'}
         </p>
 
         <form onSubmit={handleSubmit} noValidate>
+          {mode === 'signup' && (
+            <>
+              <fieldset className="role-picker">
+                <legend>I am signing up as</legend>
+                <label className={`role-option${role === 'client' ? ' selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="client"
+                    checked={role === 'client'}
+                    onChange={() => setRole('client')}
+                  />
+                  <span className="role-title">A client</span>
+                  <span className="role-hint">I want to hire an artisan</span>
+                </label>
+                <label className={`role-option${role === 'artisan' ? ' selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="artisan"
+                    checked={role === 'artisan'}
+                    onChange={() => setRole('artisan')}
+                  />
+                  <span className="role-title">An artisan</span>
+                  <span className="role-hint">I want to be hired for work</span>
+                </label>
+              </fieldset>
+
+              <div className="field">
+                <label htmlFor="fullName">Full name</label>
+                <input
+                  id="fullName"
+                  type="text"
+                  autoComplete="name"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="contact">Phone (optional)</label>
+                <input
+                  id="contact"
+                  type="text"
+                  autoComplete="tel"
+                  value={contact}
+                  onChange={e => setContact(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
           <div className="field">
             <label htmlFor="email">Email</label>
             <input

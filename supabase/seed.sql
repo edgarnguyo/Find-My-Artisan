@@ -147,3 +147,34 @@ insert into reviews (worker_id, author, rating, comment) values
   (23, 'Ruth M.', 4, 'Did a fair job, took a bit longer than quoted.');
 
 select setval('workers_id_seq', (select max(id) from workers));
+
+-- --------------------------------------------------- tables added in 0003
+-- The truncate at the top cascades into worker_skills and worker_availability,
+-- so if 0003 has already run, put the derived rows back. The guard makes this
+-- file safe to run on a database that is still on 0002.
+--
+-- Note that the reviews inserted above now fire the rating trigger, so
+-- workers.rating ends up as the average of the seeded reviews rather than the
+-- literal value in the insert. That is the point of the trigger.
+
+do $$
+begin
+    if to_regclass('public.worker_skills') is not null then
+        insert into worker_skills (worker_id, skill)
+        select id, skill from workers
+        on conflict do nothing;
+    end if;
+
+    -- Full-timers Mon-Fri 08:00-17:00, part-timers three days 09:00-14:00.
+    if to_regclass('public.worker_availability') is not null then
+        insert into worker_availability (worker_id, weekday, start_time, end_time)
+        select w.id,
+               d.weekday,
+               case when w.hours_per_week = 'More than 30 hrs/week' then time '08:00' else time '09:00' end,
+               case when w.hours_per_week = 'More than 30 hrs/week' then time '17:00' else time '14:00' end
+        from workers w
+        cross join generate_series(0, 6) as d(weekday)
+        where d.weekday < case when w.hours_per_week = 'More than 30 hrs/week' then 5 else 3 end
+        on conflict (worker_id, weekday) do nothing;
+    end if;
+end $$;

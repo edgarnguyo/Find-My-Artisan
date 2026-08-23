@@ -6,7 +6,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isArtisan } = useAuth();
 
   const isActive = (path) => location.pathname === path;
 
@@ -52,7 +52,7 @@ export default function Navbar() {
             Find Artisans
           </Link>
         </li>
-        {user && (
+        {user && !isArtisan && (
           <li>
             <Link
               to="/bookings"
@@ -63,11 +63,31 @@ export default function Navbar() {
             </Link>
           </li>
         )}
+        {user && isArtisan && (
+          <li>
+            <Link
+              to="/artisan"
+              className={`nav-link${isActive("/artisan") ? " active" : ""}`}
+              onClick={() => setMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
+          </li>
+        )}
+        {user && (
+          <li>
+            <Link
+              to="/account"
+              className={`nav-link${isActive("/account") ? " active" : ""}`}
+              onClick={() => setMenuOpen(false)}
+            >
+              Account
+            </Link>
+          </li>
+        )}
         {user ? (
           <>
-            <li className="nav-email" title={user.email}>
-              {user.email}
-            </li>
+
             <li>
               <button type="button" className="nav-cta" onClick={handleSignOut}>
                 Sign out

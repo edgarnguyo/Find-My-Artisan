@@ -1736,3 +1736,393 @@ textarea:focus {
     display: none;
   }
 }
+
+/* ============================================================ new screens
+   Account, artisan dashboard, reviews, listing controls. */
+
+.field-hint {
+  display: block;
+  margin-top: var(--spacing-xs);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+/* ------------------------------------------------------- role picker */
+.role-picker {
+  border: none;
+  margin-bottom: var(--spacing-md);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.role-picker legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+
+.role-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  background: var(--color-surface);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.role-option.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.role-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.role-title {
+  font-weight: 700;
+}
+
+.role-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* --------------------------------------------------- listing controls */
+.listing-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0 var(--spacing-lg);
+}
+
+.listing-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.listing-control select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.listing-count {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* ---------------------------------------------------------- account */
+.account-page,
+.dash-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.account-page {
+  max-width: 640px;
+}
+
+.account-header,
+.dash-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.account-sub,
+.dash-sub {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.account-card,
+.dash-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.account-card h2,
+.dash-card h2 {
+  margin-bottom: var(--spacing-md);
+}
+
+.account-card.danger {
+  border-color: #f0c9c3;
+}
+
+.account-card.danger p {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.danger-btn {
+  background: var(--color-error);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.7rem 1.6rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.danger-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------- artisan dashboard */
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--spacing-lg);
+  align-items: start;
+}
+
+.dash-column {
+  min-width: 0;
+}
+
+.dash-hint,
+.dash-empty {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.dash-empty {
+  margin: var(--spacing-md) 0 0;
+}
+
+.skill-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.skill-check {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  list-style: none;
+  margin-top: var(--spacing-md);
+}
+
+.skill-tag {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-full);
+  padding: 0.2rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* ----------------------------------------------- availability editor */
+.availability-editor {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.availability-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  opacity: 0.55;
+}
+
+.availability-row.is-on {
+  opacity: 1;
+  border-color: var(--color-primary);
+}
+
+.availability-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.availability-row input[type="time"] {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.availability-dash {
+  color: var(--color-text-muted);
+}
+
+.availability-empty {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.availability-hours-list {
+  list-style: none;
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.availability-hours-list li {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.availability-hours-day {
+  min-width: 3rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ---------------------------------------------------------- portfolio */
+.portfolio-upload {
+  margin-bottom: var(--spacing-lg);
+}
+
+.portfolio-grid,
+.profile-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.portfolio-tile,
+.profile-gallery-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.portfolio-tile img,
+.profile-gallery-tile img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.portfolio-tile figcaption,
+.profile-gallery-tile figcaption {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.gallery-placeholder-note {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ------------------------------------------------------ review form */
+.review-form {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.review-form h4 {
+  margin-bottom: var(--spacing-xs);
+}
+
+.star-picker {
+  display: flex;
+  gap: 0.15rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--color-border);
+  padding: 0;
+}
+
+.star.filled {
+  color: var(--color-star);
+}
+
+.reviewed-note {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* --------------------------------------------- artisan booking rows */
+.btn-primary.small {
+  padding: 0.4rem 1rem;
+  font-size: 0.82rem;
+}
+
+.complete-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  align-items: flex-end;
+}
+
+.complete-box label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.complete-box input {
+  width: 9rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+@media (max-width: 860px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-row {
+    flex-wrap: wrap;
+  }
+}
