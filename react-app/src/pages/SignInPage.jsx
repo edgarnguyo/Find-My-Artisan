@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../lib/authContext';
-import { createUser } from '../api/users';
+import { saveUser } from '../api/users';
 
 export default function SignInPage() {
   const [mode, setMode] = useState('signin');
@@ -40,14 +40,20 @@ export default function SignInPage() {
         return;
       }
 
-      // Copy the new account into MySQL. identities is empty when the email was
-      // already registered: Supabase then returns a placeholder user with a fake
-      // id, so there is nothing new to save.
-      if (mode === 'signup' && data.user?.identities?.length) {
+      // Make sure the account is in MySQL. Sign-up adds the new row; sign-in adds
+      // any account whose sign-up happened while the API was down (an existing
+      // row is fine). identities is empty when sign-up hit an already-registered
+      // email: Supabase then returns a placeholder user with a fake id, so skip it.
+      const isRealUser = mode === 'signin' || data.user?.identities?.length > 0;
+      if (data.user && isRealUser) {
         try {
-          await createUser({ id: data.user.id, email: data.user.email });
+          await saveUser({ id: data.user.id, email: data.user.email });
         } catch (saveError) {
-          setError(`Account created, but saving it to MySQL failed: ${saveError.message}`);
+          setError(
+            mode === 'signup'
+              ? `Account created, but saving it to MySQL failed: ${saveError.message}`
+              : `Signed in, but saving your account to MySQL failed: ${saveError.message}`
+          );
           return;
         }
       }
