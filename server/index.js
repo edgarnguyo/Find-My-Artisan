@@ -17,6 +17,9 @@ app.get('/', (req, res) => {
 const artisanRoutes = require('./routes/artisans');
 app.use('/api/artisans', artisanRoutes);
 
+const userRoutes = require('./routes/users');
+app.use('/api/users', userRoutes);
+
 app.listen(PORT, () => {
   // Print only the JSON route as a link: VS Code opens whichever localhost link
   // you click in the terminal, and "/" only says "API is running".

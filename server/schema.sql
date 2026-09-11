@@ -54,3 +54,12 @@ INSERT INTO artisans (id, name, skill, verified, price, photo, location, bio, ra
   (21, 'Peter Kiplagat', 'Electrician', true, 'KES 2,200 – 7,000 / job', 'https://randomuser.me/api/portraits/men/80.jpg', 'Milimani, Nakuru', 'Electrician covering home installations and farmhouse wiring across the Nakuru area.', 4.7, 97, 'More than 30 hrs/week', 'KES 470K+', 24, 860),
   (22, 'Grace Wambui', 'Plumber', true, 'KES 1,900 – 6,000 / job', 'https://loremflickr.com/500/500/nigerian,woman,portrait/all?lock=101', 'Free Area, Nakuru', 'Plumbing repairs, water tank installations, and drainage fixes for homes and small offices.', 4.4, 93, 'Less than 30 hrs/week', 'KES 210K+', 16, 520),
   (23, 'Samuel Kimutai', 'Painter', false, 'KES 2,000 – 7,500 / job', 'https://randomuser.me/api/portraits/men/91.jpg', 'London Estate, Nakuru', 'Painter offering interior and exterior work, with flexible scheduling for weekend jobs.', 4, 87, 'Less than 30 hrs/week', 'KES 120K+', 9, 260);
+
+-- Accounts are created by Supabase Auth; React copies each new one here through
+-- POST /api/users. There is no password column: Supabase keeps the password.
+-- IF NOT EXISTS with no DROP, so re-running this file keeps the users already saved.
+CREATE TABLE IF NOT EXISTS users (
+  id CHAR(36) PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

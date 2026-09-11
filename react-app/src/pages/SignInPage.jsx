@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../lib/authContext';
+import { createUser } from '../api/users';
 
 export default function SignInPage() {
   const [mode, setMode] = useState('signin');
@@ -37,6 +38,18 @@ export default function SignInPage() {
       if (authError) {
         setError(authError.message);
         return;
+      }
+
+      // Copy the new account into MySQL. identities is empty when the email was
+      // already registered: Supabase then returns a placeholder user with a fake
+      // id, so there is nothing new to save.
+      if (mode === 'signup' && data.user?.identities?.length) {
+        try {
+          await createUser({ id: data.user.id, email: data.user.email });
+        } catch (saveError) {
+          setError(`Account created, but saving it to MySQL failed: ${saveError.message}`);
+          return;
+        }
       }
 
       // With email confirmation switched on, signUp returns a user but no
