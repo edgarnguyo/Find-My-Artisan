@@ -8,6 +8,7 @@ import ListingsPage from './pages/ListingsPage';
 import ProfilePage from './pages/ProfilePage';
 import SignInPage from './pages/SignInPage';
 import MyBookingsPage from './pages/MyBookingsPage';
+import StudentsPage from './pages/StudentsPage';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/listings" element={<ListingsPage />} />
           <Route path="/profile/:id" element={<ProfilePage />} />
           <Route path="/signin" element={<SignInPage />} />
+          <Route path="/students" element={<StudentsPage />} />
           <Route
             path="/bookings"
             element={
