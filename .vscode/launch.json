@@ -22,6 +22,19 @@
             "request": "launch",
             "name": "Artisans JSON (API)",
             "url": "http://localhost:5001/api/artisans"
+        },
+        {
+            "type": "editor-browser",
+            "request": "launch",
+            "name": "Sign-up page (React)",
+            "url": "http://localhost:5173/signin",
+            "webRoot": "${workspaceFolder}/react-app"
+        },
+        {
+            "type": "editor-browser",
+            "request": "launch",
+            "name": "Users JSON (API)",
+            "url": "http://localhost:5001/api/users"
         }
     ],
     "compounds": [
@@ -31,6 +44,14 @@
             "name": "Run lab in VS Code",
             "preLaunchTask": "Run lab (API + React)",
             "configurations": ["Artisans JSON (API)", "Artisans page (React)"],
+            "stopAll": true
+        },
+        {
+            // Same servers, but opens the sign-up form and the MySQL users list.
+            // Refresh the Users JSON tab after creating an account to see the new row.
+            "name": "Sign-up test in VS Code",
+            "preLaunchTask": "Run lab (API + React)",
+            "configurations": ["Users JSON (API)", "Sign-up page (React)"],
             "stopAll": true
         }
     ]
