@@ -103,8 +103,7 @@ export default function SignInPage() {
         return;
       }
 
-      // A new artisan goes to the table that lists them; everyone else continues on.
-      navigate(isArtisan ? '/artisans' : next, { replace: true });
+      navigate(next, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
