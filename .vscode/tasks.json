@@ -13,7 +13,7 @@
     },
     {
       "label": "Run lab (API + React)",
-      "detail": "Starts Express on :5001 and Vite on :5173, then opens /artisans",
+      "detail": "Starts Express on :5001 and Vite on :5173",
       "dependsOn": ["API server", "React app"],
       "dependsOrder": "parallel",
       "problemMatcher": []
@@ -42,8 +42,9 @@
       "label": "React app",
       "detail": "Vite dev server on http://localhost:5173",
       "type": "shell",
-      "command": "npm run dev -- --open /artisans",
-      "options": { "cwd": "${workspaceFolder}/react-app" },
+      "command": "npm run dev",
+      // BROWSER=none stops Vite opening Safari; the pages open inside VS Code instead.
+      "options": { "cwd": "${workspaceFolder}/react-app", "env": { "BROWSER": "none" } },
       "isBackground": true,
       "problemMatcher": {
         "owner": "react-app",
