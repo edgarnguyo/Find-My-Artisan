@@ -2,20 +2,20 @@ import { useState, useEffect } from 'react';
 
 const API_URL = 'http://localhost:5001';
 
-export default function StudentsTable() {
-  const [students, setStudents] = useState([]);
+export default function ArtisansTable() {
+  const [artisans, setArtisans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Empty dependency array: fetch once when the component mounts, not on every render.
   useEffect(() => {
-    fetch(`${API_URL}/api/students`)
+    fetch(`${API_URL}/api/artisans`)
       .then((res) => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
       })
       .then((data) => {
-        setStudents(data);
+        setArtisans(data);
         setLoading(false);
       })
       .catch((err) => {
@@ -24,7 +24,7 @@ export default function StudentsTable() {
       });
   }, []);
 
-  if (loading) return <p>Loading students...</p>;
+  if (loading) return <p>Loading artisans...</p>;
   if (error) return <p>Error: {error}</p>;
 
   return (
@@ -33,17 +33,24 @@ export default function StudentsTable() {
         <tr>
           <th>ID</th>
           <th>Name</th>
-          <th>Email</th>
-          <th>Course</th>
+          <th>Skill</th>
+          <th>Location</th>
+          <th>Price</th>
+          <th>Rating</th>
+          <th>Verified</th>
         </tr>
       </thead>
       <tbody>
-        {students.map((student) => (
-          <tr key={student.id}>
-            <td>{student.id}</td>
-            <td>{student.name}</td>
-            <td>{student.email}</td>
-            <td>{student.course}</td>
+        {artisans.map((artisan) => (
+          <tr key={artisan.id}>
+            <td>{artisan.id}</td>
+            <td>{artisan.name}</td>
+            <td>{artisan.skill}</td>
+            <td>{artisan.location}</td>
+            <td>{artisan.price}</td>
+            <td>{artisan.rating}</td>
+            {/* MySQL stores BOOLEAN as TINYINT(1), so this arrives as 1 or 0. */}
+            <td>{artisan.verified ? 'Yes' : 'No'}</td>
           </tr>
         ))}
       </tbody>
