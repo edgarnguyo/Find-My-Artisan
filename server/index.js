@@ -18,5 +18,8 @@ const artisanRoutes = require('./routes/artisans');
 app.use('/api/artisans', artisanRoutes);
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  // Print only the JSON route as a link: VS Code opens whichever localhost link
+  // you click in the terminal, and "/" only says "API is running".
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Artisans JSON: http://localhost:${PORT}/api/artisans`);
 });
