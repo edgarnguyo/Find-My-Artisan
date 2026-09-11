@@ -1,3 +1,7 @@
+// Artisans who just signed up have no job success, earnings, availability or
+// languages yet, so those show a dash instead of an empty value.
+const EMPTY = "—";
+
 export default function ProfileStats({ worker }) {
   return (
     <div className="profile-stats">
@@ -5,7 +9,9 @@ export default function ProfileStats({ worker }) {
 
       <div className="stats-row">
         <div className="stats-cell">
-          <span className="stats-value">{worker.jobSuccess}%</span>
+          <span className="stats-value">
+            {worker.jobSuccess != null ? `${worker.jobSuccess}%` : EMPTY}
+          </span>
           <span className="stats-label">Job success</span>
         </div>
         <div className="stats-cell">
@@ -21,16 +27,18 @@ export default function ProfileStats({ worker }) {
       <dl className="stats-list">
         <div className="stats-item">
           <dt>Total earnings</dt>
-          <dd>{worker.totalEarnings}</dd>
+          <dd>{worker.totalEarnings ?? EMPTY}</dd>
         </div>
         <div className="stats-item">
           <dt>Availability</dt>
-          <dd>{worker.hoursPerWeek}</dd>
+          <dd>{worker.hoursPerWeek ?? EMPTY}</dd>
         </div>
         <div className="stats-item">
           <dt>Languages</dt>
           <dd>
-            {worker.languages.map((lang) => `${lang.name} (${lang.level})`).join(", ")}
+            {worker.languages.length > 0
+              ? worker.languages.map((lang) => `${lang.name} (${lang.level})`).join(", ")
+              : EMPTY}
           </dd>
         </div>
         <div className="stats-item">

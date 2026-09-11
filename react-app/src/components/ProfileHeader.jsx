@@ -15,8 +15,13 @@ export default function ProfileHeader({ worker }) {
         <p className="profile-location">📍 {worker.location}</p>
 
         <div className="profile-header-meta">
-          <span className="profile-rating">⭐ {worker.rating} rating</span>
-          <span className="profile-success">{worker.jobSuccess}% job success</span>
+          {/* Artisans who just signed up have no rating or job success yet (null). */}
+          <span className="profile-rating">
+            ⭐ {worker.rating != null ? `${worker.rating} rating` : "New artisan"}
+          </span>
+          {worker.jobSuccess != null && (
+            <span className="profile-success">{worker.jobSuccess}% job success</span>
+          )}
           <span className="profile-price">{worker.price}</span>
         </div>
       </div>

@@ -1,18 +1,22 @@
-import { supabase } from '../lib/supabaseClient';
+import { request } from './client';
 
-// The database uses snake_case column names; the components were written against
-// the camelCase shape of the old mockData.js. These mappers keep the components
-// unchanged by translating at the edge.
+// Artisan and booking data comes from the Express API (MySQL). Sign-in still
+// uses Supabase. MySQL columns are snake_case; the components were written
+// against the camelCase shape of the old mockData.js. These mappers keep the
+// components unchanged by translating at the edge.
 function toWorker(row) {
   return {
     id: row.id,
     name: row.name,
     skill: row.skill,
-    verified: row.verified,
+    // MySQL has no true/false type: BOOLEAN arrives as 1 or 0, and React would
+    // print a bare 0 for `worker.verified && ...`.
+    verified: Boolean(row.verified),
     price: row.price,
     photo: row.photo,
     location: row.location,
     bio: row.bio,
+    // DECIMAL arrives as a string ("4.8") so no precision is lost; convert it.
     rating: row.rating === null ? null : Number(row.rating),
     jobSuccess: row.job_success,
     hoursPerWeek: row.hours_per_week,
@@ -35,53 +39,34 @@ function toWorker(row) {
   };
 }
 
-/** All workers, without their nested languages/history/reviews. */
+/** All artisans, without their languages/history/reviews. */
 export async function fetchWorkers() {
-  const { data, error } = await supabase
-    .from('workers')
-    .select('*')
-    .order('id');
-
-  if (error) throw error;
-  return data.map(toWorker);
+  const rows = await request('/api/artisans');
+  return rows.map(toWorker);
 }
 
-/** One worker with everything attached, or null if that id does not exist. */
+/** One artisan with everything attached, or null if that id does not exist. */
 export async function fetchWorkerById(id) {
-  const { data, error } = await supabase
-    .from('workers')
-    .select('*, languages(name, level), work_history(*), reviews(*)')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data ? toWorker(data) : null;
+  try {
+    return toWorker(await request(`/api/artisans/${encodeURIComponent(id)}`));
+  } catch (err) {
+    if (err.status === 404) return null;
+    throw err;
+  }
 }
 
 /**
- * Insert a booking request.
+ * Create a booking request.
  *
- * `userId` stamps the booking with the signed-in account so it can be read
- * back later on /bookings. Null means a guest booking: it is still stored,
- * but nobody can ever read it from the browser, because the select policy
- * compares auth.uid() against user_id and null never matches.
- *
- * We deliberately do not chain .select() — the insert policy allows writing,
- * and asking for the row back would be a separate read.
+ * There is no user id in the body on purpose: when someone is signed in,
+ * request() sends their token and the server reads the id from it, so a
+ * booking can't be filed under another account. Signed out = guest booking.
  */
-export async function createBooking({ workerId, userId = null, name, contact, date, time, budget, job }) {
-  const { error } = await supabase.from('bookings').insert({
-    worker_id: workerId,
-    user_id: userId,
-    name,
-    contact,
-    booking_date: date,
-    booking_time: time,
-    budget: budget || null,
-    job,
+export async function createBooking({ workerId, name, contact, date, time, budget, job }) {
+  await request('/api/bookings', {
+    method: 'POST',
+    body: { artisanId: workerId, name, contact, date, time, budget: budget || null, job },
   });
-
-  if (error) throw error;
 }
 
 function toBooking(row) {
@@ -94,36 +79,22 @@ function toBooking(row) {
     date: row.booking_date,
     time: row.booking_time,
     createdAt: row.created_at,
-    worker: row.workers
-      ? { id: row.workers.id, name: row.workers.name, skill: row.workers.skill, location: row.workers.location }
-      : null,
+    worker: {
+      id: row.artisan_id,
+      name: row.artisan_name,
+      skill: row.artisan_skill,
+      location: row.artisan_location,
+    },
   };
 }
 
-/**
- * Every booking belonging to the signed-in user, newest first.
- *
- * There is no `.eq('user_id', ...)` here on purpose. The RLS select policy
- * already restricts rows to auth.uid(), so this returns only your own
- * bookings even though the query asks for all of them. Filtering in the
- * client would be cosmetic; the database is what actually enforces it.
- */
+/** Every booking belonging to the signed-in user, newest first. */
 export async function fetchMyBookings() {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select('*, workers(id, name, skill, location)')
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data.map(toBooking);
+  const rows = await request('/api/bookings/mine');
+  return rows.map(toBooking);
 }
 
-/** Cancel one of your own bookings. The policy allows no other status change. */
+/** Cancel one of your own bookings. The server allows no other status change. */
 export async function cancelBooking(id) {
-  const { error } = await supabase
-    .from('bookings')
-    .update({ status: 'cancelled' })
-    .eq('id', id);
-
-  if (error) throw error;
+  await request(`/api/bookings/${encodeURIComponent(id)}/cancel`, { method: 'PATCH' });
 }
