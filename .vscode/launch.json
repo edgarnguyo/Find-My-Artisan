@@ -9,6 +9,29 @@
             "request": "launch",
             "name": "Open profile.html",
             "url": "file:///Users/edgarnguyo/Code/FInd%20My%20Artisan/Find%20My%20Artisan/profile.html"
+        },
+        {
+            "type": "editor-browser",
+            "request": "launch",
+            "name": "Artisans page (React)",
+            "url": "http://localhost:5173/artisans",
+            "webRoot": "${workspaceFolder}/react-app"
+        },
+        {
+            "type": "editor-browser",
+            "request": "launch",
+            "name": "Artisans JSON (API)",
+            "url": "http://localhost:5001/api/artisans"
+        }
+    ],
+    "compounds": [
+        {
+            // F5 with this selected: start both servers, wait until each prints
+            // its "ready" line, then open both pages in VS Code's browser.
+            "name": "Run lab in VS Code",
+            "preLaunchTask": "Run lab (API + React)",
+            "configurations": ["Artisans JSON (API)", "Artisans page (React)"],
+            "stopAll": true
         }
     ]
 }
