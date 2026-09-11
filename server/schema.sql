@@ -1,7 +1,8 @@
--- Creates the Find My Artisan database and fills it with the artisan catalogue.
--- Rows are copied from supabase/seed.sql so both databases hold the same artisans.
+-- Creates the Find My Artisan database: users (filled by sign-up) and artisans.
 -- Run from the server/ folder:  mysql -u root < schema.sql
--- Safe to re-run: it drops and recreates the artisans table each time.
+-- Safe to re-run: tables are only created if missing, and REPLACE puts the 23
+-- sample artisans (ids 1-23, copied from supabase/seed.sql) back to their original
+-- values. Users, and artisans who signed up through the site, are kept.
 
 -- The mysql CLI may send this file as latin1, which turns the – in prices into â€“.
 -- This tells the server the bytes that follow are UTF-8.
@@ -10,10 +11,22 @@ SET NAMES utf8mb4;
 CREATE DATABASE IF NOT EXISTS find_my_artisan;
 USE find_my_artisan;
 
-DROP TABLE IF EXISTS artisans;
+-- Accounts are created by Supabase Auth; React copies each new one here through
+-- POST /api/users. There is no password column: Supabase keeps the password.
+-- Created before artisans, because artisans.user_id points at users.id.
+CREATE TABLE IF NOT EXISTS users (
+  id CHAR(36) PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  name VARCHAR(100),
+  role ENUM('client', 'artisan') NOT NULL DEFAULT 'client',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-CREATE TABLE artisans (
+CREATE TABLE IF NOT EXISTS artisans (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  -- NULL for the sample artisans; set for artisans who signed up on the site.
+  -- UNIQUE: one artisan profile per account. CASCADE: deleting the user deletes it.
+  user_id CHAR(36) NULL UNIQUE,
   name VARCHAR(100) NOT NULL,
   skill VARCHAR(50) NOT NULL,
   verified BOOLEAN NOT NULL DEFAULT FALSE,
@@ -27,10 +40,12 @@ CREATE TABLE artisans (
   total_earnings VARCHAR(50),
   jobs_completed INT DEFAULT 0,
   hours_worked INT DEFAULT 0,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT artisans_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-INSERT INTO artisans (id, name, skill, verified, price, photo, location, bio, rating, job_success, hours_per_week, total_earnings, jobs_completed, hours_worked) values
+-- REPLACE = delete the row with the same id (if any), then insert it fresh.
+REPLACE INTO artisans (id, name, skill, verified, price, photo, location, bio, rating, job_success, hours_per_week, total_earnings, jobs_completed, hours_worked) values
   (1, 'Wanjiru Kamau', 'Electrician', true, 'KES 2,500 – 7,000 / job', 'https://randomuser.me/api/portraits/women/16.jpg', 'Westlands, Nairobi', 'Certified electrician with 8 years of experience wiring homes and small offices. I handle installations, fault-finding, and safety inspections. No job too small.', 4.8, 100, 'More than 30 hrs/week', 'KES 900K+', 36, 1492),
   (2, 'Kiptoo Ruto', 'Electrician', true, 'KES 2,200 – 6,800 / job', 'https://randomuser.me/api/portraits/men/16.jpg', 'Kasarani, Nairobi', 'Residential and commercial electrician focused on clean, code-compliant wiring and quick fault diagnosis.', 4.6, 96, 'More than 30 hrs/week', 'KES 500K+', 24, 980),
   (3, 'Achieng Nyambura', 'Plumber', true, 'KES 1,800 – 6,000 / job', 'https://randomuser.me/api/portraits/women/6.jpg', 'Embakasi, Nairobi', 'Plumber handling leak repairs, borehole connections, and bathroom installations across Nairobi''s eastlands.', 4.7, 98, 'More than 30 hrs/week', 'KES 650K+', 31, 1120),
@@ -54,12 +69,3 @@ INSERT INTO artisans (id, name, skill, verified, price, photo, location, bio, ra
   (21, 'Peter Kiplagat', 'Electrician', true, 'KES 2,200 – 7,000 / job', 'https://randomuser.me/api/portraits/men/80.jpg', 'Milimani, Nakuru', 'Electrician covering home installations and farmhouse wiring across the Nakuru area.', 4.7, 97, 'More than 30 hrs/week', 'KES 470K+', 24, 860),
   (22, 'Grace Wambui', 'Plumber', true, 'KES 1,900 – 6,000 / job', 'https://loremflickr.com/500/500/nigerian,woman,portrait/all?lock=101', 'Free Area, Nakuru', 'Plumbing repairs, water tank installations, and drainage fixes for homes and small offices.', 4.4, 93, 'Less than 30 hrs/week', 'KES 210K+', 16, 520),
   (23, 'Samuel Kimutai', 'Painter', false, 'KES 2,000 – 7,500 / job', 'https://randomuser.me/api/portraits/men/91.jpg', 'London Estate, Nakuru', 'Painter offering interior and exterior work, with flexible scheduling for weekend jobs.', 4, 87, 'Less than 30 hrs/week', 'KES 120K+', 9, 260);
-
--- Accounts are created by Supabase Auth; React copies each new one here through
--- POST /api/users. There is no password column: Supabase keeps the password.
--- IF NOT EXISTS with no DROP, so re-running this file keeps the users already saved.
-CREATE TABLE IF NOT EXISTS users (
-  id CHAR(36) PRIMARY KEY,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);

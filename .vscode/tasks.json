@@ -59,7 +59,7 @@
     },
     {
       "label": "Reset artisan database",
-      "detail": "Drops and reloads the artisans table from server/schema.sql",
+      "detail": "Creates missing tables and restores the 23 sample artisans; keeps users",
       "type": "shell",
       "command": "mysql -u root < schema.sql",
       "options": { "cwd": "${workspaceFolder}/server" },

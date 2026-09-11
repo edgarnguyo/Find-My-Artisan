@@ -1557,6 +1557,73 @@ textarea:focus {
   cursor: default;
 }
 
+/* Sign-up: client/artisan choice and the artisan-only fields. */
+.auth-card fieldset {
+  border: none;
+  padding: 0;
+  min-width: 0;
+}
+
+.auth-card legend {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.role-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+/* Undo the uppercase field-label style: these labels are the clickable choices. */
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  background: var(--color-bg);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: inherit;
+  cursor: pointer;
+}
+
+.role-option:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* The global input rule sets width: 100% and padding, which would stretch the radio. */
+.role-option input {
+  width: auto;
+  padding: 0;
+  accent-color: var(--color-primary);
+}
+
+.auth-card select {
+  width: 100%;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  font-size: 1rem;
+  font-family: var(--font-base);
+  background: var(--color-bg);
+  outline: none;
+}
+
+.auth-card select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-light);
+}
+
 .nav-email {
   color: var(--color-text-muted);
   font-size: 0.85rem;
