@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// GET all students
+// GET all artisans
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM students');
+    const [rows] = await db.query('SELECT * FROM artisans ORDER BY id');
     res.json(rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch students' });
+    res.status(500).json({ error: 'Failed to fetch artisans' });
   }
 });
 

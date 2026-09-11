@@ -14,8 +14,8 @@ app.get('/', (req, res) => {
   res.send('API is running');
 });
 
-const studentRoutes = require('./routes/students');
-app.use('/api/students', studentRoutes);
+const artisanRoutes = require('./routes/artisans');
+app.use('/api/artisans', artisanRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
