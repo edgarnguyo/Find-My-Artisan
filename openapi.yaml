@@ -1,0 +1,436 @@
+openapi: 3.0.0
+info:
+  title: Find My Artisan API
+  version: 1.0.0
+  description: >
+    Read and write access to worker (artisan) profiles and bookings.
+    Consumed by Meditrac (Team 2) to source, vet, schedule, and book artisans
+    for maintenance work at their pharmacies.
+
+servers:
+  - url: https://api.findmyartisan.app
+
+paths:
+  /workers:
+    get:
+      summary: List workers, optionally filtered by skill and location
+      parameters:
+        - name: skill
+          in: query
+          required: false
+          description: Filter to workers practicing this skill.
+          schema:
+            type: string
+            example: Plumber
+        - name: location
+          in: query
+          required: false
+          description: Filter to workers whose location contains this text.
+          schema:
+            type: string
+            example: Nairobi
+      responses:
+        '200':
+          description: A list of workers matching the filters (empty list if none match).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkerSummary'
+              example:
+                - id: 1
+                  name: "Wanjiru Kamau"
+                  skill: "Electrician"
+                  location: "Westlands, Nairobi"
+                  verified: true
+                  price: "KES 2,500 – 7,000 / job"
+                  rating: 4.8
+                - id: 4
+                  name: "Kevin Mwangi"
+                  skill: "Plumber"
+                  location: "Ngong Road, Nairobi"
+                  verified: false
+                  price: "KES 2,000 – 6,500 / job"
+                  rating: 4.3
+        '400':
+          description: A query parameter has an invalid value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_query"
+                message: "skill must be one of Plumber, Electrician, Carpenter, Painter."
+
+  /workers/{id}:
+    get:
+      summary: Get one worker's full profile, including languages, work history, and reviews
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The worker's id.
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: The worker's full profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Worker'
+              example:
+                id: 1
+                name: "Wanjiru Kamau"
+                skill: "Electrician"
+                location: "Westlands, Nairobi"
+                verified: true
+                price: "KES 2,500 – 7,000 / job"
+                photo: "https://randomuser.me/api/portraits/women/16.jpg"
+                bio: "Certified electrician with 8 years of experience wiring homes and small offices."
+                rating: 4.8
+                jobSuccess: 100
+                hoursPerWeek: "More than 30 hrs/week"
+                totalEarnings: "KES 900K+"
+                jobsCompleted: 36
+                hoursWorked: 1492
+                languages:
+                  - name: "English"
+                    level: "Fluent"
+                  - name: "Swahili"
+                    level: "Native"
+                workHistory:
+                  - title: "Full rewire of 3-bedroom bungalow"
+                    rating: 5
+                    dateRange: "Jan 2025 - Feb 2025"
+                    price: "KES 18,000"
+                    priceType: "Fixed price"
+                reviews:
+                  - author: "Kevin O."
+                    rating: 5
+                    comment: "Fixed my fuse box same day. Very professional."
+        '404':
+          description: No worker exists with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No worker with id 1."
+
+  /bookings:
+    post:
+      summary: Create a booking request for a worker
+      description: >
+        Creates a booking with status "pending". Bookings are not checked
+        against the worker's other bookings for a scheduling conflict, so
+        this always succeeds once the request body is valid.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreate'
+            example:
+              workerId: 1
+              name: "Kevin Otieno"
+              contact: "kevin.otieno@example.com"
+              date: "2026-09-14"
+              time: "09:00"
+              budget: "KES 6,000"
+              job: "Fix leaking kitchen sink at pharmacy branch, Westlands."
+      responses:
+        '201':
+          description: The booking was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+              example:
+                id: 101
+                workerId: 1
+                status: "pending"
+                name: "Kevin Otieno"
+                contact: "kevin.otieno@example.com"
+                date: "2026-09-14"
+                time: "09:00"
+                budget: "KES 6,000"
+                job: "Fix leaking kitchen sink at pharmacy branch, Westlands."
+                createdAt: "2026-09-07T10:15:00Z"
+        '400':
+          description: The request body is missing a required field or has an invalid value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_body"
+                message: "date must not be in the past."
+
+  /bookings/{id}:
+    get:
+      summary: Get the current state of one booking
+      description: >
+        Only the bookings created through this contract (guest bookings, not
+        stamped with a Find My Artisan user account) are readable this way —
+        row-level security in the underlying database restricts any other
+        booking to its owning account.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 101
+      responses:
+        '200':
+          description: The booking's current state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+              example:
+                id: 101
+                workerId: 1
+                status: "confirmed"
+                name: "Kevin Otieno"
+                contact: "kevin.otieno@example.com"
+                date: "2026-09-14"
+                time: "09:00"
+                budget: "KES 6,000"
+                job: "Fix leaking kitchen sink at pharmacy branch, Westlands."
+                createdAt: "2026-09-07T10:15:00Z"
+        '404':
+          description: No booking exists with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No booking with id 101."
+
+    delete:
+      summary: Cancel a booking
+      description: >
+        Sets the booking's status to "cancelled". This is the only change a
+        booking can undergo after creation — the database's row-level
+        security policy rejects any update that does not result in status
+        "cancelled", so there is no endpoint to edit a booking's date, time,
+        or job details.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 101
+      responses:
+        '204':
+          description: The booking was cancelled. No content is returned.
+        '404':
+          description: No booking exists with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No booking with id 101."
+
+components:
+  schemas:
+    WorkerSummary:
+      type: object
+      required: [id, name, skill, location, verified]
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+        skill:
+          type: string
+          example: Plumber
+        location:
+          type: string
+          description: Free-text neighbourhood and city/county, e.g. "Westlands, Nairobi".
+          example: "Westlands, Nairobi"
+        verified:
+          type: boolean
+        price:
+          type: string
+          nullable: true
+          description: Free-text price range, not a fixed hourly rate.
+          example: "KES 2,500 – 7,000 / job"
+        rating:
+          type: number
+          nullable: true
+          example: 4.8
+
+    Worker:
+      allOf:
+        - $ref: '#/components/schemas/WorkerSummary'
+        - type: object
+          properties:
+            photo:
+              type: string
+              nullable: true
+              example: "https://randomuser.me/api/portraits/women/16.jpg"
+            bio:
+              type: string
+              nullable: true
+            jobSuccess:
+              type: integer
+              nullable: true
+              description: Percentage of past jobs completed successfully.
+              example: 100
+            hoursPerWeek:
+              type: string
+              nullable: true
+              example: "More than 30 hrs/week"
+            totalEarnings:
+              type: string
+              nullable: true
+              example: "KES 900K+"
+            jobsCompleted:
+              type: integer
+              example: 36
+            hoursWorked:
+              type: integer
+              example: 1492
+            languages:
+              type: array
+              items:
+                $ref: '#/components/schemas/Language'
+            workHistory:
+              type: array
+              items:
+                $ref: '#/components/schemas/WorkHistoryEntry'
+            reviews:
+              type: array
+              items:
+                $ref: '#/components/schemas/Review'
+
+    Language:
+      type: object
+      required: [name, level]
+      properties:
+        name:
+          type: string
+          example: Swahili
+        level:
+          type: string
+          example: Native
+
+    WorkHistoryEntry:
+      type: object
+      properties:
+        title:
+          type: string
+        rating:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 5
+        dateRange:
+          type: string
+          nullable: true
+          example: "Jan 2025 - Feb 2025"
+        price:
+          type: string
+          nullable: true
+        priceType:
+          type: string
+          nullable: true
+          example: "Fixed price"
+
+    Review:
+      type: object
+      required: [author, rating]
+      properties:
+        author:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          nullable: true
+
+    BookingCreate:
+      type: object
+      required: [workerId, name, contact, date, time, job]
+      properties:
+        workerId:
+          type: integer
+          example: 1
+        name:
+          type: string
+          description: Name of the person requesting the booking.
+        contact:
+          type: string
+          description: Email or phone number.
+          example: "kevin.otieno@example.com"
+        date:
+          type: string
+          format: date
+          example: "2026-09-14"
+        time:
+          type: string
+          format: time
+          example: "09:00"
+        budget:
+          type: string
+          nullable: true
+          example: "KES 6,000"
+        job:
+          type: string
+          description: Description of the job.
+          example: "Fix leaking kitchen sink at pharmacy branch, Westlands."
+
+    Booking:
+      type: object
+      required: [id, workerId, status, name, contact, date, time, job, createdAt]
+      properties:
+        id:
+          type: integer
+        workerId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled]
+          example: confirmed
+        name:
+          type: string
+        contact:
+          type: string
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+          format: time
+        budget:
+          type: string
+          nullable: true
+        job:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: "not_found"
+        message:
+          type: string
+          example: "No booking with id 101."
