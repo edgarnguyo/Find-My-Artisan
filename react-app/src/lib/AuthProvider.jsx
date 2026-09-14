@@ -1,35 +1,58 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './supabaseClient';
 import { AuthContext } from './authContext';
+import { getToken, setToken, clearToken } from '../api/client';
+import * as authApi from '../api/auth';
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  // Only wait when there is a saved token to check; with none, nobody is signed in.
+  const [loading, setLoading] = useState(() => getToken() !== null);
 
   useEffect(() => {
-    // There may already be a session in localStorage from a previous visit,
-    // so ask for it once on mount before trusting the "signed out" state.
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    if (getToken() === null) return;
 
-    // Then keep in step with sign in, sign out, and token refresh.
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
-    });
+    // A token saved on a previous visit may have expired, so ask the server who
+    // it belongs to before treating the user as signed in.
+    let cancelled = false;
+    authApi.fetchMe()
+      .then(me => {
+        if (!cancelled) setUser(me);
+      })
+      .catch(err => {
+        // 401 means the token is no longer valid. Any other failure (for example
+        // the API being off) keeps the token so a later reload can try again.
+        if (err.status === 401) clearToken();
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const value = {
-    session,
-    user: session?.user ?? null,
-    loading,
-    signUp: (email, password) => supabase.auth.signUp({ email, password }),
-    signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
-    signOut: () => supabase.auth.signOut(),
-  };
+  async function signUp(details) {
+    const { token, user: newUser } = await authApi.signUp(details);
+    setToken(token);
+    setUser(newUser);
+    return newUser;
+  }
+
+  async function signIn(email, password) {
+    const { token, user: signedIn } = await authApi.signIn(email, password);
+    setToken(token);
+    setUser(signedIn);
+    return signedIn;
+  }
+
+  // The server keeps no session, so signing out is just forgetting the token.
+  function signOut() {
+    clearToken();
+    setUser(null);
+  }
+
+  const value = { user, loading, signUp, signIn, signOut };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

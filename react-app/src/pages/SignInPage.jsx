@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../lib/authContext';
-import { saveUser } from '../api/users';
 
 // Same trades as the listings filter.
 const SKILLS = ['Plumber', 'Electrician', 'Carpenter', 'Painter'];
@@ -12,12 +11,12 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('client');
+  const [phone, setPhone] = useState('');
   const [skill, setSkill] = useState('');
   const [workLocation, setWorkLocation] = useState('');
   const [price, setPrice] = useState('');
   const [bio, setBio] = useState('');
   const [error, setError] = useState(null);
-  const [notice, setNotice] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const { signIn, signUp } = useAuth();
@@ -27,11 +26,13 @@ export default function SignInPage() {
   // Send the user back where they were headed before we interrupted them.
   const next = location.state?.from ?? '/bookings';
   const isSignup = mode === 'signup';
+  const isClient = isSignup && role === 'client';
   const isArtisan = isSignup && role === 'artisan';
 
-  // Runs before Supabase creates the account, so a missing detail can never
-  // leave an account in Supabase with nothing saved in MySQL.
+  // Quick checks in the browser for a faster message. The server checks the
+  // same things again, because anyone can send a request without this form.
   function validate() {
+    if (!email.trim()) return 'Please enter your email.';
     if (password.length < 6) return 'Password must be at least 6 characters.';
     if (!isSignup) return null;
     if (!name.trim()) return 'Please enter your name.';
@@ -43,7 +44,6 @@ export default function SignInPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
-    setNotice(null);
 
     const problem = validate();
     if (problem) {
@@ -53,56 +53,19 @@ export default function SignInPage() {
 
     setBusy(true);
     try {
-      const { data, error: authError } = isSignup
-        ? await signUp(email, password)
-        : await signIn(email, password);
-
-      if (authError) {
-        setError(authError.message);
-        return;
-      }
-
-      // Make sure the account is in MySQL. Sign-up saves the new row with its
-      // details; sign-in adds any account whose sign-up happened while the API was
-      // down (an existing row is fine). identities is empty when sign-up hit an
-      // already-registered email: Supabase then returns a placeholder user with a
-      // fake id, so skip it.
-      const isRealUser = !isSignup || data.user?.identities?.length > 0;
-      if (data.user && isRealUser) {
-        const account = { id: data.user.id, email: data.user.email };
-        if (isSignup) {
-          account.name = name.trim();
-          account.role = role;
-          if (isArtisan) {
-            account.artisan = {
-              skill,
-              location: workLocation.trim(),
-              price: price.trim(),
-              bio: bio.trim(),
-            };
-          }
+      if (isSignup) {
+        const details = { email, password, role, name, location: workLocation };
+        if (isClient) {
+          details.phone = phone;
+        } else {
+          details.skill = skill;
+          details.price = price;
+          details.bio = bio;
         }
-
-        try {
-          await saveUser(account);
-        } catch (saveError) {
-          setError(
-            isSignup
-              ? `Account created, but saving it to MySQL failed: ${saveError.message}`
-              : `Signed in, but saving your account to MySQL failed: ${saveError.message}`
-          );
-          return;
-        }
+        await signUp(details);
+      } else {
+        await signIn(email, password);
       }
-
-      // With email confirmation switched on, signUp returns a user but no
-      // session — there is nothing to redirect to until they confirm.
-      if (isSignup && !data.session) {
-        setNotice('Account created. Check your email to confirm, then sign in.');
-        setMode('signin');
-        return;
-      }
-
       navigate(next, { replace: true });
     } catch (err) {
       setError(err.message);
@@ -110,6 +73,22 @@ export default function SignInPage() {
       setBusy(false);
     }
   }
+
+  const locationField = (
+    <div className="field">
+      <label htmlFor="work-location">
+        {isArtisan ? 'Location' : 'Location (optional)'}
+      </label>
+      <input
+        id="work-location"
+        type="text"
+        placeholder="e.g. Westlands, Nairobi"
+        maxLength={100}
+        value={workLocation}
+        onChange={e => setWorkLocation(e.target.value)}
+      />
+    </div>
+  );
 
   return (
     <main className="auth-page">
@@ -186,6 +165,24 @@ export default function SignInPage() {
             />
           </div>
 
+          {isClient && (
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="phone">Phone (optional)</label>
+                <input
+                  id="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="e.g. 0712 345 678"
+                  maxLength={30}
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                />
+              </div>
+              {locationField}
+            </div>
+          )}
+
           {isArtisan && (
             <>
               <div className="field-row">
@@ -198,18 +195,7 @@ export default function SignInPage() {
                     ))}
                   </select>
                 </div>
-
-                <div className="field">
-                  <label htmlFor="work-location">Location</label>
-                  <input
-                    id="work-location"
-                    type="text"
-                    placeholder="e.g. Westlands, Nairobi"
-                    maxLength={100}
-                    value={workLocation}
-                    onChange={e => setWorkLocation(e.target.value)}
-                  />
-                </div>
+                {locationField}
               </div>
 
               <div className="field">
@@ -237,7 +223,6 @@ export default function SignInPage() {
           )}
 
           {error && <small className="error">{error}</small>}
-          {notice && <div className="confirmation">{notice}</div>}
 
           <button type="submit" className="submit-btn" disabled={busy}>
             {busy ? 'Please wait…' : isSignup ? 'Create account' : 'Sign in'}
@@ -252,7 +237,6 @@ export default function SignInPage() {
             onClick={() => {
               setMode(isSignup ? 'signin' : 'signup');
               setError(null);
-              setNotice(null);
             }}
           >
             {isSignup ? 'Sign in' : 'Create one'}

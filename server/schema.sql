@@ -1,9 +1,13 @@
--- Creates the Find My Artisan database: users, artisans (with languages, work
--- history and reviews) and bookings.
+-- Creates the Find My Artisan database.
 -- Run from the server/ folder:  mysql -u root < schema.sql
--- Safe to re-run: tables are only created if missing, the 23 sample artisans
--- (ids 1-23, copied from supabase/seed.sql) are reset to their original values,
--- and users, bookings and artisans who signed up through the site are kept.
+-- Safe to re-run: tables are only created if missing, the stored procedures are
+-- recreated, the 23 sample artisans are reset to their original values, and
+-- accounts, clients, bookings and artisans who signed up on the site are kept.
+--
+-- Where data from the front end goes in:
+--   sign-up  -> register_client / register_artisan procedures (below), called by
+--               server/routes/auth.js
+--   bookings -> INSERT INTO bookings in server/routes/bookings.js
 
 -- The mysql CLI may send this file as latin1, which turns the – in prices into â€“.
 -- This tells the server the bytes that follow are UTF-8.
@@ -15,21 +19,32 @@ USE find_my_artisan;
 -- Tables are created parents first: a FOREIGN KEY can only point at a table
 -- that already exists.
 
--- Accounts are created by Supabase Auth; React copies each new one here through
--- POST /api/users. There is no password column: Supabase keeps the password.
+-- One row per login. The profile details live in clients or artisans.
 CREATE TABLE IF NOT EXISTS users (
-  id CHAR(36) PRIMARY KEY,
+  id INT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
-  name VARCHAR(100),
-  role ENUM('client', 'artisan') NOT NULL DEFAULT 'client',
+  -- A bcrypt hash made by Express. The password itself is never stored.
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('client', 'artisan') NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- People who book artisans. UNIQUE user_id: one client profile per account.
+CREATE TABLE IF NOT EXISTS clients (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  phone VARCHAR(30),
+  location VARCHAR(100),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT clients_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS artisans (
   id INT AUTO_INCREMENT PRIMARY KEY,
   -- NULL for the sample artisans; set for artisans who signed up on the site.
   -- UNIQUE: one artisan profile per account. CASCADE: deleting the user deletes it.
-  user_id CHAR(36) NULL UNIQUE,
+  user_id INT NULL UNIQUE,
   name VARCHAR(100) NOT NULL,
   skill VARCHAR(50) NOT NULL,
   verified BOOLEAN NOT NULL DEFAULT FALSE,
@@ -81,7 +96,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS bookings (
   id INT AUTO_INCREMENT PRIMARY KEY,
   artisan_id INT NOT NULL,
-  user_id CHAR(36) NULL,
+  user_id INT NULL,
   name VARCHAR(100) NOT NULL,
   contact VARCHAR(255) NOT NULL,
   booking_date DATE NOT NULL,
@@ -94,6 +109,83 @@ CREATE TABLE IF NOT EXISTS bookings (
   CONSTRAINT bookings_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- ---------------------------------------------------------------- sign-up
+-- A stored procedure is a named block of SQL saved inside MySQL. These two hold
+-- the INSERTs that save the sign-up form. This file only creates them; Express
+-- runs them for every new account, for example:
+--   CALL register_client('amina@example.com', '<bcrypt hash>', 'Amina', '0712345678', 'Kilimani, Nairobi');
+-- Each one inserts the login (users) and the profile (clients or artisans) in a
+-- single transaction, then returns the new ids.
+
+DROP PROCEDURE IF EXISTS register_client;
+DROP PROCEDURE IF EXISTS register_artisan;
+
+-- A procedure body contains ; so the CLI's statement separator is switched to //
+-- while the procedures are defined, then switched back.
+DELIMITER //
+
+CREATE PROCEDURE register_client(
+  IN p_email         VARCHAR(255),
+  IN p_password_hash VARCHAR(255),
+  IN p_name          VARCHAR(100),
+  IN p_phone         VARCHAR(30),
+  IN p_location      VARCHAR(100)
+)
+BEGIN
+  DECLARE new_user_id INT;
+
+  -- If either INSERT fails (for example the email is already taken), undo
+  -- both and pass the original error on to Express.
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  START TRANSACTION;
+  INSERT INTO users (email, password_hash, role)
+    VALUES (p_email, p_password_hash, 'client');
+  -- LAST_INSERT_ID() is the AUTO_INCREMENT id the INSERT above just created.
+  SET new_user_id = LAST_INSERT_ID();
+  INSERT INTO clients (user_id, name, phone, location)
+    VALUES (new_user_id, p_name, p_phone, p_location);
+  COMMIT;
+
+  SELECT new_user_id AS user_id, LAST_INSERT_ID() AS client_id;
+END //
+
+CREATE PROCEDURE register_artisan(
+  IN p_email         VARCHAR(255),
+  IN p_password_hash VARCHAR(255),
+  IN p_name          VARCHAR(100),
+  IN p_skill         VARCHAR(50),
+  IN p_location      VARCHAR(100),
+  IN p_price         VARCHAR(50),
+  IN p_bio           TEXT
+)
+BEGIN
+  DECLARE new_user_id INT;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  START TRANSACTION;
+  INSERT INTO users (email, password_hash, role)
+    VALUES (p_email, p_password_hash, 'artisan');
+  SET new_user_id = LAST_INSERT_ID();
+  INSERT INTO artisans (user_id, name, skill, location, price, bio)
+    VALUES (new_user_id, p_name, p_skill, p_location, p_price, p_bio);
+  COMMIT;
+
+  SELECT new_user_id AS user_id, LAST_INSERT_ID() AS artisan_id;
+END //
+
+DELIMITER ;
+
+-- ------------------------------------------------------------ sample data
 -- Sample artisans. ON DUPLICATE KEY UPDATE changes an existing row in place.
 -- (REPLACE would delete and re-insert it, and the CASCADE rules above would then
 -- delete that artisan's bookings too.)

@@ -1,47 +1,69 @@
+const fs = require('fs');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
-// Fallback for the Supabase settings: React already has them in its .env.local.
-// dotenv never overwrites a variable that is already set, so server/.env wins.
-require('dotenv').config({
-  path: path.join(__dirname, '..', 'react-app', '.env.local'),
-  quiet: true,
-});
 
-const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const key = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+// The secret signs sign-in tokens. Anyone who has it could forge a token for any
+// account, so it never leaves the server. JWT_SECRET in .env wins; otherwise a
+// random secret is created once and kept in server/.jwt-secret (gitignored), so
+// restarting the server doesn't sign everybody out.
+function loadSecret() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
 
-// Sessions live in the browser; the server only checks tokens it is sent.
-const supabase = url && key
-  ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
-  : null;
+  const file = path.join(__dirname, '.jwt-secret');
+  try {
+    const saved = fs.readFileSync(file, 'utf8').trim();
+    if (saved) return saved;
+  } catch {
+    // No file yet: fall through and create one.
+  }
+  const secret = crypto.randomBytes(32).toString('hex');
+  fs.writeFileSync(file, `${secret}\n`, { mode: 0o600 });
+  return secret;
+}
 
-// Signing in gives the browser an access token. React sends it as
-// "Authorization: Bearer <token>", and Supabase tells us which user it belongs to.
-// Returns undefined when no token was sent, null when the token is not valid.
-async function userFromRequest(req) {
+const SECRET = loadSecret();
+
+// A JWT is three base64 parts: header.payload.signature. The payload is readable
+// by anyone, so it only holds the id, email and role, never the password. The
+// signature is what stops anyone from editing it.
+function signToken(user) {
+  return jwt.sign(
+    { sub: String(user.id), email: user.email, role: user.role },
+    SECRET,
+    { expiresIn: '7d' }
+  );
+}
+
+// Returns undefined when no token was sent, null when the token is invalid or
+// expired, and { id, email, role } when it checks out.
+function userFromRequest(req) {
   const header = req.get('Authorization') || '';
   if (!header.startsWith('Bearer ')) return undefined;
-  if (!supabase) throw new Error('Supabase URL/key missing: cannot check sign-in tokens');
 
-  const { data, error } = await supabase.auth.getUser(header.slice('Bearer '.length));
-  return error ? null : data.user;
+  try {
+    const payload = jwt.verify(header.slice('Bearer '.length), SECRET, { algorithms: ['HS256'] });
+    return { id: Number(payload.sub), email: payload.email, role: payload.role };
+  } catch {
+    return null;
+  }
 }
 
 // For routes anyone may use: a signed-in caller gets req.user, a guest gets null.
-async function optionalAuth(req, res, next) {
-  const user = await userFromRequest(req);
+function optionalAuth(req, res, next) {
+  const user = userFromRequest(req);
   if (user === null) return res.status(401).json({ error: 'Your session has expired. Sign in again.' });
   req.user = user ?? null;
   next();
 }
 
 // For routes that only make sense for a signed-in user.
-async function requireAuth(req, res, next) {
-  const user = await userFromRequest(req);
+function requireAuth(req, res, next) {
+  const user = userFromRequest(req);
   if (!user) return res.status(401).json({ error: 'Sign in first' });
   req.user = user;
   next();
 }
 
-module.exports = { optionalAuth, requireAuth };
+module.exports = { signToken, optionalAuth, requireAuth };
