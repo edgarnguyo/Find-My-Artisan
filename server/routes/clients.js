@@ -1,9 +1,8 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const router = express.Router();
 const db = require('../db');
 
-// GET all clients (without password_hash, which must never be sent to the browser)
+// GET all clients (without the password, which must never be sent to the browser)
 router.get('/', async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -37,14 +36,11 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'An account with that email already exists' });
     }
 
-    // Store a bcrypt hash, never the password itself.
-    const passwordHash = await bcrypt.hash(password, 10);
-
     // The ? placeholders keep the typed values separate from the SQL,
     // so nothing typed into the form can run as SQL.
     const [result] = await db.query(
-      'INSERT INTO clients (name, email, password_hash, phone, location) VALUES (?, ?, ?, ?, ?)',
-      [name, email, passwordHash, phone || null, location || null]
+      'INSERT INTO clients (name, email, password, phone, location) VALUES (?, ?, ?, ?, ?)',
+      [name, email, password, phone || null, location || null]
     );
 
     res.status(201).json({ id: result.insertId, name, email, role: 'client' });

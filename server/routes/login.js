@@ -1,5 +1,4 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const router = express.Router();
 const db = require('../db');
 
@@ -14,11 +13,11 @@ router.post('/', async (req, res) => {
   try {
     // The account could be in either table, so look in both.
     const [clients] = await db.query(
-      'SELECT id, name, email, password_hash FROM clients WHERE email = ?',
+      'SELECT id, name, email, password FROM clients WHERE email = ?',
       [email]
     );
     const [artisans] = await db.query(
-      'SELECT id, name, email, password_hash FROM artisans WHERE email = ?',
+      'SELECT id, name, email, password FROM artisans WHERE email = ?',
       [email]
     );
 
@@ -29,10 +28,10 @@ router.post('/', async (req, res) => {
       account = { ...artisans[0], role: 'artisan' };
     }
 
-    // bcrypt.compare hashes the typed password the same way and checks it
-    // matches the stored hash. The same message is used for a wrong email and a
+    // Compare in JavaScript: === is case-sensitive, while MySQL's = would treat
+    // "Secret1" and "secret1" as the same. One message covers a wrong email and a
     // wrong password, so the form doesn't reveal which emails have accounts.
-    if (!account || !(await bcrypt.compare(password, account.password_hash))) {
+    if (!account || account.password !== password) {
       return res.status(401).json({ error: 'Wrong email or password' });
     }
 

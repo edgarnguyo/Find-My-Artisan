@@ -6,6 +6,7 @@ all you need.
 The app runs entirely on your own computer, the same way as the "Connecting a
 React Frontend to a Database" lab: a React front end, an Express API, and a
 MySQL database. Accounts and bookings you create exist only on your machine.
+`LAB-EXPLAINED.md` explains what each part does and how they connect.
 
 ## 0. If you are on Windows
 
@@ -85,8 +86,8 @@ See "If you get merge conflicts" below.
 ## 2. Install dependencies
 
 The front end and the API each have their own packages, so install both. Run
-this even if you have run the app before: Supabase was removed and the API uses
-`bcryptjs` to hash passwords.
+this even if you have run the app before: Supabase was removed and the API now
+has its own `server/` packages.
 
 ```bash
 cd server
@@ -165,9 +166,11 @@ React (5173)  --fetch-->  Express (5001)  --SQL-->  MySQL
 - **Every request goes through `src/api/`.** `workers.js` has artisans and
   bookings, `auth.js` has sign-up and sign-in. Add new calls there rather than
   calling `fetch` from a component.
-- **Sign-up** hashes the password with bcrypt and inserts a row into `clients`
-  or `artisans`. **Sign-in** (`POST /api/login`) checks the password with
-  `bcrypt.compare` and returns the user, which React keeps in `localStorage`.
+- **Sign-up** inserts a row into `clients` or `artisans`. **Sign-in**
+  (`POST /api/login`) looks the email up and checks the password, then returns
+  the user, which React keeps in `localStorage`.
+- Passwords are saved as typed, to keep the lab simple. Don't reuse a real
+  password when testing.
 - To see what was saved: http://localhost:5001/api/clients and
   http://localhost:5001/api/artisans.
 
@@ -246,6 +249,7 @@ The data was loaded with the wrong character encoding. Run step 3's
 
 ## Reference
 
+- `LAB-EXPLAINED.md` — what the lab teaches: each part, then how they work together
 - `server/schema.sql` — every table and the sample data
 - `server/routes/` — the API endpoints (`artisans`, `clients`, `login`, `bookings`)
 - `GIT-NOTES.md` — git commands and workflow

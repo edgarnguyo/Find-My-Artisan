@@ -20,8 +20,9 @@ CREATE TABLE IF NOT EXISTS clients (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
-  -- A bcrypt hash made by Express. The password itself is never stored.
-  password_hash VARCHAR(255) NOT NULL,
+  -- Saved exactly as typed, to keep the lab simple. A real site would store a
+  -- hash of the password instead.
+  password VARCHAR(255) NOT NULL,
   phone VARCHAR(30),
   location VARCHAR(100),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -30,9 +31,9 @@ CREATE TABLE IF NOT EXISTS clients (
 CREATE TABLE IF NOT EXISTS artisans (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
-  -- email and password_hash are NULL for the sample artisans, which have no login.
+  -- email and password are NULL for the sample artisans, which have no login.
   email VARCHAR(255) UNIQUE,
-  password_hash VARCHAR(255),
+  password VARCHAR(255),
   skill VARCHAR(50) NOT NULL,
   verified BOOLEAN DEFAULT FALSE,
   price VARCHAR(50),
