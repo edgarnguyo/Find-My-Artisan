@@ -12,54 +12,28 @@
       "presentation": { "reveal": "silent" }
     },
     {
-      "label": "Run lab (API + React)",
-      "detail": "Starts Express on :5001 and Vite on :5173",
-      "dependsOn": ["API server", "React app"],
-      "dependsOrder": "parallel",
-      "problemMatcher": []
-    },
-    {
-      "label": "API server",
-      "detail": "Express + MySQL on http://localhost:5001",
+      "label": "Run app (one server)",
+      "detail": "Express on http://localhost:5001: the API plus the React site, rebuilt on save",
       "type": "shell",
       "command": "npm run dev",
       "options": { "cwd": "${workspaceFolder}/server" },
-      // Servers never exit, so VS Code needs these two lines of output
-      // to know when the task has started and is ready.
+      // The server never exits, so VS Code watches its output instead: the task
+      // counts as ready once Vite prints "built in" after building the React site.
       "isBackground": true,
       "problemMatcher": {
-        "owner": "api-server",
+        "owner": "app-server",
         "pattern": { "regexp": "^never-match-(.*)$", "file": 1, "message": 1 },
         "background": {
           "activeBegins": true,
-          "beginsPattern": "starting `node",
-          "endsPattern": "Server running on"
+          "beginsPattern": "build started|watching for file changes",
+          "endsPattern": "built in"
         }
       },
-      "presentation": { "reveal": "always", "group": "lab" }
-    },
-    {
-      "label": "React app",
-      "detail": "Vite dev server on http://localhost:5173",
-      "type": "shell",
-      "command": "npm run dev",
-      // BROWSER=none stops Vite opening Safari; the pages open inside VS Code instead.
-      "options": { "cwd": "${workspaceFolder}/react-app", "env": { "BROWSER": "none" } },
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "react-app",
-        "pattern": { "regexp": "^never-match-(.*)$", "file": 1, "message": 1 },
-        "background": {
-          "activeBegins": true,
-          "beginsPattern": "VITE",
-          "endsPattern": "ready in"
-        }
-      },
-      "presentation": { "reveal": "always", "group": "lab" }
+      "presentation": { "reveal": "always" }
     },
     {
       "label": "Reset artisan database",
-      "detail": "Creates missing tables and restores the 23 sample artisans; keeps users",
+      "detail": "Creates missing tables and restores the 23 sample artisans; keeps sign-ups",
       "type": "shell",
       "command": "mysql -u root < schema.sql",
       "options": { "cwd": "${workspaceFolder}/server" },
