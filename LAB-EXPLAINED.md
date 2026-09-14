@@ -1,11 +1,11 @@
 # What the React + Express + MySQL lab teaches
 
 The lab builds one feature: a web page that shows rows stored in a database.
-That takes three separate programs, and the lesson is what each one does and
-how they pass data to each other.
+That takes three separate parts, and the lesson is what each one does and how
+they pass data to each other.
 
 In this project the lab's `students` table became `artisans`. The lab's page is
-http://localhost:5173/artisans, built by
+http://localhost:5001/artisans, built by
 `react-app/src/components/ArtisansTable.jsx`.
 
 - [Part 1: The components](#part-1-the-components)
@@ -67,7 +67,8 @@ not run when someone uses the website; that data arrives through Express.
 on a **port** for **HTTP requests** and sends back a response.
 
 - A **port** is a number that tells the computer which program a request is
-  for. This project's API uses port 5001, React uses 5173, MySQL uses 3306.
+  for. This project's server uses port 5001 and MySQL uses 3306. (The lab uses
+  5000 for Express and 3000 for React.)
 - An **HTTP request** is a message with a **method** and a **URL path**, for
   example `GET /api/artisans`.
 - A **route** is a method + path, plus the function that runs when a request
@@ -117,13 +118,14 @@ router.get('/', async (req, res) => {
 
 | Piece | What it does | Why it's there |
 |---|---|---|
-| `server/index.js` | Creates the app, adds `cors()` and `express.json()`, attaches each route file to a path (`app.use('/api/artisans', artisanRoutes)`), starts listening on the port | It's the program `npm run dev` starts |
+| `server/index.js` | Creates the app, adds `cors()` and `express.json()`, attaches each route file to a path (`app.use('/api/artisans', artisanRoutes)`), serves the React site, starts listening on the port | It's the program `npm run dev` starts |
 | `server/routes/*.js` | One file per table, each with its routes | Keeps each table's code in one place |
 | `server/db.js` + **mysql2** | Creates a **connection pool**: up to 10 open connections to MySQL that routes take turns using | Opening a new connection for every request is slow |
 | `server/.env` + **dotenv** | Keeps settings like `DB_PASSWORD` outside the code; the code reads `process.env.DB_PASSWORD` | `.env` is in `.gitignore`, so the password never reaches GitHub |
-| **cors** | Adds a response header saying other origins may read the reply | The browser blocks the reply otherwise (see Part 2) |
+| **cors** | Adds a response header saying other origins may read the reply | Needed when the page and the API are on different ports (see Part 2) |
 | `express.json()` | Turns the JSON text of a POST body into the object `req.body` | Without it, `req.body` is `undefined` |
-| **nodemon** | Restarts the server whenever you save a `.js` file | You don't have to stop and start it by hand |
+| `express.static(folder)` | Sends back files from a folder when their path is requested | Lets the same server hand out the built React site |
+| **nodemon** | Restarts the server whenever you save a server `.js` file | You don't have to stop and start it by hand |
 | `?` placeholders | `db.query('... WHERE id = ?', [id])` sends the values separately from the SQL | Text typed into a form can't run as SQL (SQL injection) |
 
 ---
@@ -133,6 +135,10 @@ router.get('/', async (req, res) => {
 **React** is a JavaScript library for building a page out of **components**. A
 component is a function that returns what should appear on screen. React runs
 in the browser.
+
+The browser can't run React's JSX (`<table>` inside JavaScript) directly.
+**Vite** is the build tool that turns the code in `react-app/src` into plain
+HTML, JavaScript and CSS files the browser can run.
 
 The lab's component, as used in `ArtisansTable.jsx` (shortened):
 
@@ -188,7 +194,7 @@ sign-up and sign-in), so components don't repeat `fetch` code.
 
 ## Part 2: How they work together
 
-### Why three programs, not two
+### Why Express sits between the browser and MySQL
 
 The browser can't talk to MySQL directly:
 
@@ -199,38 +205,63 @@ The browser can't talk to MySQL directly:
 Express sits in between. It holds the password (in `.env`), decides which
 queries are allowed, and gives the browser only the results.
 
+### The lab's two servers, and this project's one
+
+**In the lab**, React and Express are two programs in two terminals: React's
+development server on port 3000 sends the page, and Express on port 5000 sends
+the data.
+
+**In this project**, one Express server on port 5001 sends both:
+
 ```
-Browser                         Node.js                        MySQL
-┌─────────────────────┐  HTTP   ┌──────────────────────┐  SQL  ┌──────────────────┐
-│ React               │ ──────▶ │ Express API          │ ────▶ │ find_my_artisan  │
-│ localhost:5173      │ ◀────── │ localhost:5001       │ ◀──── │ localhost:3306   │
-│ ArtisansTable.jsx   │  JSON   │ routes/artisans.js   │ rows  │ artisans table   │
-└─────────────────────┘         └──────────────────────┘       └──────────────────┘
+                     ┌───────────────── Express, localhost:5001 ─────────────────┐
+Browser  ── GET / ─▶ │ express.static → react-app/dist/index.html + JS + CSS     │
+         ◀─ page ─── │                                                           │
+                     │                                                           │  SQL   ┌────────────────┐
+         ── GET ───▶ │ /api/artisans → routes/artisans.js → db.query(...)  ──────┼──────▶ │ MySQL :3306    │
+         /api/...    │                                                           │ ◀───── │ find_my_artisan│
+         ◀─ JSON ─── │ res.json(rows)                                            │  rows  └────────────────┘
+                     └───────────────────────────────────────────────────────────┘
 ```
 
-This is also why the lab needs **two terminals**: React (`npm run dev` in
-`react-app/`) and Express (`npm run dev` in `server/`) are two separate programs,
-and both must be running. MySQL runs in the background as a service.
+How it does that, in `server/index.js`:
 
-### Why `cors()` is needed
+1. The `/api/...` routes are attached first, so data requests reach them.
+2. `express.static(reactBuild)` sends any real file from `react-app/dist`,
+   such as `/assets/index-abc123.js`.
+3. For any other `GET`, such as `/listings` or `/profile/3`, it sends
+   `index.html`. Those addresses aren't files; React Router reads the address in
+   the browser and shows the right page.
+
+`npm run dev` in `server/` runs two things side by side: `nodemon index.js` (the
+server) and `vite build --watch`, which rebuilds `react-app/dist` each time a
+React file is saved. That's why the terminal lines start with `[api]` or
+`[react]`, and why you refresh the browser to see a React change.
+
+### Why `cors()` is in the lab
 
 An **origin** is the protocol + host + port of a page, e.g.
-`http://localhost:5173`. The browser treats `localhost:5173` and
-`localhost:5001` as different origins. By default it won't let a page read a
+`http://localhost:3000`. The browser treats `localhost:3000` and
+`localhost:5000` as different origins. By default it won't let a page read a
 reply from a different origin, a rule called the **same-origin policy**.
 
-`app.use(cors())` makes Express add the header
-`Access-Control-Allow-Origin: *`, which tells the browser the reply may be read.
-Without it, the request reaches Express, but React gets a CORS error instead of
-the data.
+In the lab, the page comes from port 3000 and the data from 5000, so
+`app.use(cors())` is required: it adds the header
+`Access-Control-Allow-Origin: *`, telling the browser the reply may be read.
+
+In this project the page and the data both come from port 5001, the same
+origin, so the browser wouldn't block anything. `cors()` stays in `index.js`
+so the lab's two-server setup (`npm run dev` inside `react-app/`, on port 5173)
+still works.
 
 ### Reading data (GET): the lab's data flow
 
-What happens when you open http://localhost:5173/artisans, and what the data
+What happens when you open http://localhost:5001/artisans, and what the data
 looks like at each step:
 
 | # | Where | What happens | The data |
 |---|---|---|---|
+| 0 | Express | Sends `index.html` and the built JavaScript; the browser starts React, and React Router shows the `/artisans` page | The page's files |
 | 1 | React | `ArtisansTable` draws for the first time; `loading` is `true` | "Loading artisans..." |
 | 2 | React | `useEffect` runs and calls `fetch('http://localhost:5001/api/artisans')` | An HTTP request: `GET /api/artisans` |
 | 3 | Express | `index.js` sees the path starts with `/api/artisans` and hands the request to `routes/artisans.js` | |
@@ -256,7 +287,7 @@ as a client:
 |---|---|---|---|
 | 1 | React | `SignInPage.jsx` keeps each field in state and, on submit, checks the required fields are filled | |
 | 2 | React | `api/auth.js` sends the form with `fetch(..., { method: 'POST', body: JSON.stringify(details) })` | `POST /api/clients` with `{"name":"Amina","email":"amina@example.com","password":"secret1",...}` |
-| 3 | Express | `cors()` allows it; `express.json()` turns the body into `req.body` | `req.body.name === "Amina"` |
+| 3 | Express | `express.json()` turns the body into `req.body` | `req.body.name === "Amina"` |
 | 4 | Express | `routes/clients.js` checks the fields, then checks the email isn't already used | `400` or `409` if not |
 | 5 | MySQL | The route runs the insert with `?` placeholders | `INSERT INTO clients (name, email, password, phone, location) VALUES (?, ?, ?, ?, ?)` |
 | 6 | Express | Replies with the new row's id (`result.insertId`) | `201` + `{"id":1,"name":"Amina","role":"client"}` |
@@ -276,23 +307,25 @@ applied to this project:
 
 | You see | Broken link | Check |
 |---|---|---|
-| `Error: Failed to fetch` / `could not reach the API` | React → Express | Is `npm run dev` running in `server/`? Does the URL use port 5001? |
-| `CORS policy` error in the browser console | React → Express | Is `app.use(cors())` in `index.js`, above the routes? |
+| The browser can't open `localhost:5001` at all | The server | Is `npm run dev` running in `server/`? |
+| "The React site is not built yet" | Express → React build | Wait for `[react] ... built in`, then refresh |
+| `Error: Failed to fetch` / `could not reach the API` | React → Express | Is the server running? Does the URL use port 5001? |
+| `CORS policy` error in the browser console | React → Express | Only happens when the page comes from another port: is `app.use(cors())` above the routes? |
 | `Cannot GET /api/...` | Inside Express | Does the path match `app.use(...)` in `index.js` plus the route in the route file? |
-| `ECONNREFUSED` or `Access denied` in the server terminal | Express → MySQL | Is MySQL running? Are the values in `server/.env` right? |
-| Status 500 in the browser, error in the server terminal | Express → MySQL | Read the SQL error the route printed: wrong table or column name? |
+| `ECONNREFUSED` or `Access denied` in the terminal | Express → MySQL | Is MySQL running? Are the values in `server/.env` right? |
+| Status 500 in the browser, error in the terminal | Express → MySQL | Read the SQL error the route printed: wrong table or column name? |
 | Table shows but is empty | MySQL | Does the table have rows? `SELECT * FROM artisans;` |
 
 ### Why the lab tests the backend on its own first
 
-Step 6 opens http://localhost:5001/api/artisans in the browser before writing
-any React. That URL uses only Express and MySQL.
+Step 6 opens the API's URL (here http://localhost:5001/api/artisans) in the
+browser before writing any React. That URL uses only Express and MySQL.
 
 - If the JSON appears, Express and MySQL work, so any later problem is in React.
 - If it doesn't, the problem is in Express or MySQL, and React can't be the cause.
 
 Testing one link at a time tells you where to look instead of guessing across
-all three programs.
+all three parts.
 
 ---
 
@@ -305,4 +338,6 @@ all three programs.
 - Why `useEffect` has `[]`, and why a component tracks `loading` and `error`.
 - The steps data takes from a MySQL row to a table row on screen, and back
   again when a form is submitted.
+- How one Express server can send both the React site and the data, and why the
+  lab needs `cors()` when they're on two ports.
 - How to tell which part is broken from the error you see.

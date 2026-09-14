@@ -14,7 +14,7 @@
             "type": "editor-browser",
             "request": "launch",
             "name": "Artisans page (React)",
-            "url": "http://localhost:5173/artisans",
+            "url": "http://localhost:5001/artisans",
             "webRoot": "${workspaceFolder}/react-app"
         },
         {
@@ -27,7 +27,7 @@
             "type": "editor-browser",
             "request": "launch",
             "name": "Sign-up page (React)",
-            "url": "http://localhost:5173/signin",
+            "url": "http://localhost:5001/signin",
             "webRoot": "${workspaceFolder}/react-app"
         },
         {
@@ -39,18 +39,18 @@
     ],
     "compounds": [
         {
-            // F5 with this selected: start both servers, wait until each prints
-            // its "ready" line, then open both pages in VS Code's browser.
+            // F5 with this selected: start the server, wait until the React site
+            // is built, then open the page and its JSON in VS Code's browser.
             "name": "Run lab in VS Code",
-            "preLaunchTask": "Run lab (API + React)",
+            "preLaunchTask": "Run app (one server)",
             "configurations": ["Artisans JSON (API)", "Artisans page (React)"],
             "stopAll": true
         },
         {
-            // Same servers, but opens the sign-up form and the clients table as JSON.
+            // Same server, but opens the sign-up form and the clients table as JSON.
             // Refresh the Clients JSON tab after signing up to see the new row.
             "name": "Sign-up test in VS Code",
-            "preLaunchTask": "Run lab (API + React)",
+            "preLaunchTask": "Run app (one server)",
             "configurations": ["Clients JSON (API)", "Sign-up page (React)"],
             "stopAll": true
         }
