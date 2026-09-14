@@ -323,18 +323,19 @@ Three categories belong here:
 - **Regenerable** — `node_modules` (rebuild with `npm install`), `dist`.
   Committing them makes the repo enormous and creates constant conflicts.
 - **Machine-specific** — `.DS_Store`, editor config.
-- **Secret** — `.env.local`.
+- **Secret** — `server/.env`, `server/.jwt-secret`.
 
-That last one is why this matters. `.env.local` holds your Supabase URL and
-anon key. `.env.example` is committed instead, with placeholder values, so a
-teammate knows what variables to set without receiving your credentials.
+That last one is why this matters. `server/.env` holds your MySQL password, and
+`server/.jwt-secret` signs sign-in tokens. `server/.env.example` is committed
+instead, with placeholder values, so a teammate knows what variables to set
+without receiving your credentials.
 
 **A `.gitignore` does not untrack a file that is already committed.** If you
 commit a secret and then add it to `.gitignore`, it stays in the repo and in
 every clone of the history. To stop tracking it going forward:
 
 ```bash
-git rm --cached react-app/.env.local
+git rm --cached server/.env
 ```
 
 But the value remains in past commits — so treat any pushed secret as

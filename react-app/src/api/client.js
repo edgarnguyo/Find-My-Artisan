@@ -1,17 +1,43 @@
-import { supabase } from '../lib/supabaseClient';
-
 export const API_URL = 'http://localhost:5001';
+
+// The sign-in token (a JWT from the server) is kept in localStorage so a page
+// reload keeps you signed in. localStorage can throw when site data is blocked;
+// that is treated as "no token".
+const TOKEN_KEY = 'fma_token';
+
+export function getToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setToken(token) {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // Storage blocked: the sign-in still works until the page is reloaded.
+  }
+}
+
+export function clearToken() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // Storage blocked: nothing was saved, so there is nothing to remove.
+  }
+}
 
 /**
  * Call the Express API and return the parsed JSON body.
  *
- * When someone is signed in, their Supabase access token goes along as
+ * When someone is signed in, their token goes along as
  * "Authorization: Bearer <token>" so the server can tell who is asking.
  * Throws an Error with the server's message and the HTTP status on `err.status`.
  */
 export async function request(path, { method = 'GET', body } = {}) {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+  const token = getToken();
 
   const headers = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';

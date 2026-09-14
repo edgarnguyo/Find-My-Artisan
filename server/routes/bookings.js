@@ -15,11 +15,6 @@ router.post('/', optionalAuth, async (req, res) => {
     // The user id comes from the verified token, never from the request body,
     // so nobody can create a booking under someone else's account.
     const userId = req.user?.id ?? null;
-    if (userId) {
-      // An account that signed in before it was saved to MySQL would break the
-      // bookings -> users foreign key, so make sure its row exists first.
-      await db.query('INSERT IGNORE INTO users (id, email) VALUES (?, ?)', [userId, req.user.email]);
-    }
 
     const [result] = await db.query(
       `INSERT INTO bookings (artisan_id, user_id, name, contact, booking_date, booking_time, budget, job)
@@ -29,7 +24,10 @@ router.post('/', optionalAuth, async (req, res) => {
     res.status(201).json({ id: result.insertId, status: 'pending' });
   } catch (err) {
     if (err.code === 'ER_NO_REFERENCED_ROW_2') {
-      return res.status(404).json({ error: 'No artisan with that id' });
+      // Two foreign keys can fail here; the constraint name in the message says which.
+      return err.message.includes('bookings_user_fk')
+        ? res.status(401).json({ error: 'This account no longer exists. Sign in again.' })
+        : res.status(404).json({ error: 'No artisan with that id' });
     }
     if (err.code === 'ER_TRUNCATED_WRONG_VALUE' || err.code === 'ER_DATA_TOO_LONG') {
       return res.status(400).json({ error: 'Check the date, time and field lengths' });

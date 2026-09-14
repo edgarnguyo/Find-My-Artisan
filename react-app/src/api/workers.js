@@ -1,7 +1,7 @@
 import { request } from './client';
 
-// Artisan and booking data comes from the Express API (MySQL). Sign-in still
-// uses Supabase. MySQL columns are snake_case; the components were written
+// Artisan and booking data comes from the Express API (MySQL); sign-in is in
+// auth.js. MySQL columns are snake_case; the components were written
 // against the camelCase shape of the old mockData.js. These mappers keep the
 // components unchanged by translating at the edge.
 function toWorker(row) {

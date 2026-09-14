@@ -1,9 +1,11 @@
 # Getting the app running
 
-Everything below is a one-time setup. After this, `npm run dev` is all you need.
+Everything below is a one-time setup. After this, starting the two servers is
+all you need.
 
-We share **one Supabase project** (Edgar's), so the database is already
-created, seeded, and configured. You do not need a Supabase account.
+The app runs entirely on your own computer: a React front end, an Express API,
+and a MySQL database. There is no shared online database any more, so accounts
+and bookings you create exist only on your machine.
 
 ## 0. If you are on Windows
 
@@ -42,7 +44,7 @@ git clean -fd
 ```
 
 `git clean -fd` removes leftover untracked files. It does not touch
-`node_modules` or `.env.local`, which are gitignored.
+`node_modules` or `server/.env`, which are gitignored.
 
 Then continue from step 2 below (`npm install`).
 
@@ -82,59 +84,88 @@ See "If you get merge conflicts" below.
 
 ## 2. Install dependencies
 
-There is a new package (`@supabase/supabase-js`), so this step is required
-even if you have run the app before.
+The front end and the API each have their own packages. Supabase was removed
+and the API gained new packages (`bcryptjs`, `jsonwebtoken`), so run both even
+if you have run the app before.
 
 ```bash
-cd react-app
+cd server
+npm install
+cd ../react-app
 npm install
 ```
 
-## 3. Create your environment file
+## 3. Set up MySQL
 
-From inside `react-app/`:
+You need MySQL 8 or newer, installed and running.
+
+- macOS: `brew install mysql`, then `brew services start mysql`
+- Windows: install it with the MySQL Installer and let it run as a service
+
+From inside `server/`, create your environment file:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Open `react-app/.env.local` and paste in the two values Edgar sends you:
+(PowerShell: `Copy-Item .env.example .env`)
 
+Open `server/.env` and set `DB_PASSWORD` to your MySQL root password. Leave it
+blank if root has no password. Never commit `.env`; it is gitignored.
+
+Then, still inside `server/`, create the database, its tables, the sign-up
+procedures and the 23 sample artisans:
+
+```bash
+mysql -u root -p -e "source schema.sql"
 ```
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
-```
 
-Three things people get wrong here:
-
-- It must be `react-app/.env.local`, **not** the repo root. Vite only reads
-  env files from the directory it runs in.
-- Edit `.env.local`, **not** `.env.example`. `.env.example` is a committed
-  template with placeholder values; real values there would be published.
-- Never commit `.env.local`. It is gitignored — keep it that way.
+Press Enter at the password prompt if root has no password. It is safe to run
+again later: accounts, clients, bookings and sign-ups are kept.
 
 ## 4. Run it
 
+Two terminals, both left running:
+
 ```bash
+cd server
 npm run dev
 ```
 
-Open http://localhost:5173.
+```bash
+cd react-app
+npm run dev
+```
+
+Wait for `Server running on port 5001` and `ready in ... ms`, then open
+http://localhost:5173.
+
+In VS Code you can do both at once instead: Run and Debug → **Run lab in VS
+Code** → F5.
 
 ## What changed in this version
 
-Worker data no longer comes from `src/data/mockData.js`. It comes from a
-PostgreSQL database through Supabase.
+Supabase is gone. Accounts, artisans, reviews and bookings all live in MySQL,
+and React reaches them only through the Express API in `server/`:
 
-The practical consequence for your code: **data now arrives asynchronously.**
-Anything that used to be
-
-```js
-import { WORKERS } from '../data/mockData';
-const worker = WORKERS.find(w => w.id === id);
+```
+React (5173)  --fetch-->  Express (5001)  --SQL-->  MySQL
 ```
 
-is now a request with loading, error, and not-found states:
+- **Every request goes through `src/api/`.** `workers.js` has artisans and
+  bookings, `auth.js` has sign-up and sign-in. Add new calls there rather than
+  calling `fetch` from a component.
+- **Sign-up** sends the form to `POST /api/auth/signup`. Express hashes the
+  password with bcrypt, then calls the `register_client` or `register_artisan`
+  stored procedure in `server/schema.sql`. That procedure inserts the login into
+  `users` and the profile into `clients` or `artisans`, in one transaction.
+- **Sign-in** returns a token (a JWT). React keeps it in `localStorage` and sends
+  it as `Authorization: Bearer <token>`; the API uses it to know who you are.
+- To see what was saved: http://localhost:5001/api/users,
+  http://localhost:5001/api/clients and http://localhost:5001/api/artisans.
+
+Data still arrives asynchronously, so a lookup has loading, error, and
+not-found states:
 
 ```js
 import { fetchWorkerById } from '../api/workers';
@@ -143,16 +174,10 @@ import { useAsync } from '../hooks/useAsync';
 const { data: worker, error, loading } = useAsync(() => fetchWorkerById(id), [id]);
 ```
 
-Every query the app makes lives in `src/api/workers.js`. Add new ones there
-rather than calling `supabase` directly from a component.
-
-Bookings are stored in the database instead of `localStorage`, and there are
-now user accounts — sign up, then `/bookings` shows the artisans you booked.
-
 ## If you get merge conflicts
 
-Most likely in `ListingsPage.jsx`, `ProfilePage.jsx`, `BookingForm.jsx`, or
-`Navbar.jsx` — those changed the most.
+Most likely in `ListingsPage.jsx`, `ProfilePage.jsx`, `BookingForm.jsx`,
+`SignInPage.jsx` or `Navbar.jsx` — those changed the most.
 
 ```
 <<<<<<< HEAD
@@ -191,24 +216,29 @@ To start over: `git merge --abort`.
 
 ## Troubleshooting
 
-**`Failed to resolve import "@supabase/supabase-js"`**
-You skipped step 2. Run `npm install` inside `react-app/`.
+**`could not reach the API at http://localhost:5001`**
+The API isn't running. Start it (step 4, first terminal).
 
-**`Missing Supabase credentials`**
-Step 3 went wrong, or you created the file while the dev server was running.
-Vite reads env vars only at startup — stop it with Ctrl-C and run
-`npm run dev` again.
+**`ECONNREFUSED` or `Access denied for user 'root'` in the API terminal**
+MySQL isn't running, or `DB_PASSWORD` in `server/.env` is wrong. Fix it, then
+stop the API with Ctrl-C and run `npm run dev` again; `.env` is only read at
+startup.
 
-**Artisans do not load, console shows a network error**
-Check the URL and key in `.env.local` for stray spaces or quotes. The values
-go in bare, with no quotation marks.
+**`Table 'find_my_artisan.users' doesn't exist` or `PROCEDURE ... does not exist`**
+The database hasn't been set up. Run step 3's `source schema.sql` command.
 
-**Signup says the email address is invalid**
-Tell Edgar. It means email confirmation got switched back on in the Supabase
-dashboard.
+**`EADDRINUSE: address already in use :::5001`**
+Another copy of the API is still running. Stop it first.
+
+**`Failed to resolve import` or `Cannot find module`**
+You skipped step 2 for that folder. Run `npm install` inside it.
+
+**Prices show `â€“` instead of `–`**
+The data was loaded with the wrong character encoding. Run step 3's
+`source schema.sql` command again.
 
 ## Reference
 
-- `supabase/README.md` — how the database is set up
-- `supabase/TECHNICAL-NOTES.md` — why the schema looks the way it does
+- `server/schema.sql` — every table, the sign-up procedures, and the sample data
+- `server/routes/` — the API endpoints (`auth`, `artisans`, `bookings`, `users`, `clients`)
 - `GIT-NOTES.md` — git commands and workflow
