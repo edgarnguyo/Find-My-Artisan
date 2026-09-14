@@ -1,58 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AuthContext } from './authContext';
-import { getToken, setToken, clearToken } from '../api/client';
-import * as authApi from '../api/auth';
+import { register, login } from '../api/auth';
+
+// The signed-in user ({ id, name, email, role }) is kept in localStorage,
+// so reloading the page keeps you signed in.
+const STORAGE_KEY = 'fma_user';
+
+function loadUser() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+function storeUser(user) {
+  try {
+    if (user) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    // Storage blocked: you stay signed in until the page is reloaded.
+  }
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  // Only wait when there is a saved token to check; with none, nobody is signed in.
-  const [loading, setLoading] = useState(() => getToken() !== null);
-
-  useEffect(() => {
-    if (getToken() === null) return;
-
-    // A token saved on a previous visit may have expired, so ask the server who
-    // it belongs to before treating the user as signed in.
-    let cancelled = false;
-    authApi.fetchMe()
-      .then(me => {
-        if (!cancelled) setUser(me);
-      })
-      .catch(err => {
-        // 401 means the token is no longer valid. Any other failure (for example
-        // the API being off) keeps the token so a later reload can try again.
-        if (err.status === 401) clearToken();
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [user, setUser] = useState(loadUser);
 
   async function signUp(details) {
-    const { token, user: newUser } = await authApi.signUp(details);
-    setToken(token);
+    const newUser = await register(details);
+    storeUser(newUser);
     setUser(newUser);
     return newUser;
   }
 
   async function signIn(email, password) {
-    const { token, user: signedIn } = await authApi.signIn(email, password);
-    setToken(token);
+    const signedIn = await login(email, password);
+    storeUser(signedIn);
     setUser(signedIn);
     return signedIn;
   }
 
-  // The server keeps no session, so signing out is just forgetting the token.
   function signOut() {
-    clearToken();
+    storeUser(null);
     setUser(null);
   }
 
-  const value = { user, loading, signUp, signIn, signOut };
+  const value = { user, signUp, signIn, signOut };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,9 +1,8 @@
 import { request } from './client';
 
-// Artisan and booking data comes from the Express API (MySQL); sign-in is in
-// auth.js. MySQL columns are snake_case; the components were written
-// against the camelCase shape of the old mockData.js. These mappers keep the
-// components unchanged by translating at the edge.
+// Artisan and booking data comes from the Express API (MySQL). MySQL columns are
+// snake_case; the components were written against the camelCase shape of the old
+// mockData.js. These mappers keep the components unchanged by translating here.
 function toWorker(row) {
   return {
     id: row.id,
@@ -16,7 +15,7 @@ function toWorker(row) {
     photo: row.photo,
     location: row.location,
     bio: row.bio,
-    // DECIMAL arrives as a string ("4.8") so no precision is lost; convert it.
+    // DECIMAL arrives as a string ("4.8"), so convert it to a number.
     rating: row.rating === null ? null : Number(row.rating),
     jobSuccess: row.job_success,
     hoursPerWeek: row.hours_per_week,
@@ -48,24 +47,18 @@ export async function fetchWorkers() {
 /** One artisan with everything attached, or null if that id does not exist. */
 export async function fetchWorkerById(id) {
   try {
-    return toWorker(await request(`/api/artisans/${encodeURIComponent(id)}`));
+    return toWorker(await request(`/api/artisans/${id}`));
   } catch (err) {
     if (err.status === 404) return null;
     throw err;
   }
 }
 
-/**
- * Create a booking request.
- *
- * There is no user id in the body on purpose: when someone is signed in,
- * request() sends their token and the server reads the id from it, so a
- * booking can't be filed under another account. Signed out = guest booking.
- */
-export async function createBooking({ workerId, name, contact, date, time, budget, job }) {
+/** Save a booking request. clientId is null when nobody is signed in. */
+export async function createBooking({ workerId, clientId, name, contact, date, time, budget, job }) {
   await request('/api/bookings', {
     method: 'POST',
-    body: { artisanId: workerId, name, contact, date, time, budget: budget || null, job },
+    body: { artisanId: workerId, clientId, name, contact, date, time, budget, job },
   });
 }
 
@@ -88,13 +81,13 @@ function toBooking(row) {
   };
 }
 
-/** Every booking belonging to the signed-in user, newest first. */
-export async function fetchMyBookings() {
-  const rows = await request('/api/bookings/mine');
+/** Every booking made by this client, newest first. */
+export async function fetchMyBookings(clientId) {
+  const rows = await request(`/api/bookings?clientId=${clientId}`);
   return rows.map(toBooking);
 }
 
-/** Cancel one of your own bookings. The server allows no other status change. */
-export async function cancelBooking(id) {
-  await request(`/api/bookings/${encodeURIComponent(id)}/cancel`, { method: 'PATCH' });
+/** Cancel one of this client's bookings. */
+export async function cancelBooking(id, clientId) {
+  await request(`/api/bookings/${id}/cancel`, { method: 'PATCH', body: { clientId } });
 }

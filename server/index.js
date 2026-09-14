@@ -17,14 +17,11 @@ app.get('/', (req, res) => {
 const artisanRoutes = require('./routes/artisans');
 app.use('/api/artisans', artisanRoutes);
 
-const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
-
-const userRoutes = require('./routes/users');
-app.use('/api/users', userRoutes);
-
 const clientRoutes = require('./routes/clients');
 app.use('/api/clients', clientRoutes);
+
+const loginRoutes = require('./routes/login');
+app.use('/api/login', loginRoutes);
 
 const bookingRoutes = require('./routes/bookings');
 app.use('/api/bookings', bookingRoutes);

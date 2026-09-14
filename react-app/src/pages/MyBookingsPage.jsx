@@ -23,19 +23,38 @@ export default function MyBookingsPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [cancelling, setCancelling] = useState(null);
 
-  const load = useCallback(() => fetchMyBookings(), []);
-  const { data: bookings, error, loading } = useAsync(load, [reloadKey, user?.id]);
+  // Bookings belong to clients. An artisan's id could match some client's id,
+  // so only ask for bookings when the signed-in user really is a client.
+  const isClient = user.role === 'client';
+  const load = useCallback(
+    () => (isClient ? fetchMyBookings(user.id) : Promise.resolve([])),
+    [isClient, user.id]
+  );
+  const { data: bookings, error, loading } = useAsync(load, [reloadKey, user.id]);
 
   async function handleCancel(id) {
     setCancelling(id);
     try {
-      await cancelBooking(id);
+      await cancelBooking(id, user.id);
       setReloadKey(k => k + 1);
     } catch (err) {
       alert(`Could not cancel: ${err.message}`);
     } finally {
       setCancelling(null);
     }
+  }
+
+  if (!isClient) {
+    return (
+      <main className="bookings-page">
+        <header className="bookings-header">
+          <h1>My bookings</h1>
+          <p className="bookings-sub">
+            Bookings are made by clients. You are signed in as an artisan ({user.email}).
+          </p>
+        </header>
+      </main>
+    );
   }
 
   const active = TABS.find(t => t.key === tab);
@@ -50,7 +69,7 @@ export default function MyBookingsPage() {
     <main className="bookings-page">
       <header className="bookings-header">
         <h1>My bookings</h1>
-        <p className="bookings-sub">Signed in as {user?.email}</p>
+        <p className="bookings-sub">Signed in as {user.email}</p>
       </header>
 
       <div className="bookings-tabs">

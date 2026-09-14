@@ -1,24 +1,15 @@
 import { request } from './client';
 
 /**
- * Create an account. The server hashes the password and saves the login plus
- * the client or artisan profile. Resolves to { token, user }.
- *
- * details = { email, password, role: 'client' | 'artisan', name,
- *             phone, location              (client)
- *             skill, location, price, bio  (artisan) }
+ * Sign up. A client is saved by POST /api/clients, an artisan by POST /api/artisans.
+ * Returns the new user: { id, name, email, role }.
  */
-export function signUp(details) {
-  return request('/api/auth/signup', { method: 'POST', body: details });
+export function register(details) {
+  const path = details.role === 'artisan' ? '/api/artisans' : '/api/clients';
+  return request(path, { method: 'POST', body: details });
 }
 
-/** Check an email and password. Resolves to { token, user }. */
-export function signIn(email, password) {
-  return request('/api/auth/signin', { method: 'POST', body: { email, password } });
-}
-
-/** The user the stored token belongs to. Rejects with status 401 if it's no longer valid. */
-export async function fetchMe() {
-  const { user } = await request('/api/auth/me');
-  return user;
+/** Check an email and password. Returns { id, name, email, role }. */
+export function login(email, password) {
+  return request('/api/login', { method: 'POST', body: { email, password } });
 }

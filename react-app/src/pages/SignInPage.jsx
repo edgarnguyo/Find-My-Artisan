@@ -53,6 +53,7 @@ export default function SignInPage() {
 
     setBusy(true);
     try {
+      let signedIn;
       if (isSignup) {
         const details = { email, password, role, name, location: workLocation };
         if (isClient) {
@@ -62,11 +63,12 @@ export default function SignInPage() {
           details.price = price;
           details.bio = bio;
         }
-        await signUp(details);
+        signedIn = await signUp(details);
       } else {
-        await signIn(email, password);
+        signedIn = await signIn(email, password);
       }
-      navigate(next, { replace: true });
+      // Clients go on to their bookings. Artisans don't book, so they go home.
+      navigate(signedIn.role === 'client' ? next : (location.state?.from ?? '/'), { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
