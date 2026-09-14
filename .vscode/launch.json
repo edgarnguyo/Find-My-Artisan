@@ -33,8 +33,8 @@
         {
             "type": "editor-browser",
             "request": "launch",
-            "name": "Users JSON (API)",
-            "url": "http://localhost:5001/api/users"
+            "name": "Clients JSON (API)",
+            "url": "http://localhost:5001/api/clients"
         }
     ],
     "compounds": [
@@ -47,11 +47,11 @@
             "stopAll": true
         },
         {
-            // Same servers, but opens the sign-up form and the MySQL users list.
-            // Refresh the Users JSON tab after creating an account to see the new row.
+            // Same servers, but opens the sign-up form and the clients table as JSON.
+            // Refresh the Clients JSON tab after signing up to see the new row.
             "name": "Sign-up test in VS Code",
             "preLaunchTask": "Run lab (API + React)",
-            "configurations": ["Users JSON (API)", "Sign-up page (React)"],
+            "configurations": ["Clients JSON (API)", "Sign-up page (React)"],
             "stopAll": true
         }
     ]

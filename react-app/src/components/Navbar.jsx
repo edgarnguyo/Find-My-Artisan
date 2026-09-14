@@ -52,7 +52,7 @@ export default function Navbar() {
             Find Artisans
           </Link>
         </li>
-        {user && (
+        {user?.role === "client" && (
           <li>
             <Link
               to="/bookings"

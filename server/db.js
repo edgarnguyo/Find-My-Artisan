@@ -11,6 +11,9 @@ const pool = mysql.createPool({
   port: process.env.DB_PORT,
   waitForConnections: true,
   connectionLimit: 10,
+  // Return dates as text like '2026-10-01'. Otherwise they become JavaScript
+  // Date objects, which can shift to the day before when turned into JSON.
+  dateStrings: true,
 });
 
 module.exports = pool.promise();

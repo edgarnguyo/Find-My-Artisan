@@ -1,13 +1,12 @@
--- Creates the Find My Artisan database.
--- Run from the server/ folder:  mysql -u root < schema.sql
--- Safe to re-run: tables are only created if missing, the stored procedures are
--- recreated, the 23 sample artisans are reset to their original values, and
--- accounts, clients, bookings and artisans who signed up on the site are kept.
+-- Find My Artisan database (lab Step 3).
+-- Run it from the server/ folder:  mysql -u root < schema.sql
+-- It creates the tables and adds the 23 sample artisans. Running it again is
+-- safe: existing tables and rows, including people who signed up, are kept.
 --
--- Where data from the front end goes in:
---   sign-up  -> register_client / register_artisan procedures (below), called by
---               server/routes/auth.js
---   bookings -> INSERT INTO bookings in server/routes/bookings.js
+-- Rows typed into the website are added by the POST routes, not by this file:
+--   sign up as a client   -> INSERT INTO clients   in server/routes/clients.js
+--   sign up as an artisan -> INSERT INTO artisans  in server/routes/artisans.js
+--   booking request       -> INSERT INTO bookings  in server/routes/bookings.js
 
 -- The mysql CLI may send this file as latin1, which turns the – in prices into â€“.
 -- This tells the server the bytes that follow are UTF-8.
@@ -16,38 +15,26 @@ SET NAMES utf8mb4;
 CREATE DATABASE IF NOT EXISTS find_my_artisan;
 USE find_my_artisan;
 
--- Tables are created parents first: a FOREIGN KEY can only point at a table
--- that already exists.
-
--- One row per login. The profile details live in clients or artisans.
-CREATE TABLE IF NOT EXISTS users (
+-- People who book artisans.
+CREATE TABLE IF NOT EXISTS clients (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   -- A bcrypt hash made by Express. The password itself is never stored.
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('client', 'artisan') NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- People who book artisans. UNIQUE user_id: one client profile per account.
-CREATE TABLE IF NOT EXISTS clients (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL UNIQUE,
-  name VARCHAR(100) NOT NULL,
   phone VARCHAR(30),
   location VARCHAR(100),
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT clients_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS artisans (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  -- NULL for the sample artisans; set for artisans who signed up on the site.
-  -- UNIQUE: one artisan profile per account. CASCADE: deleting the user deletes it.
-  user_id INT NULL UNIQUE,
   name VARCHAR(100) NOT NULL,
+  -- email and password_hash are NULL for the sample artisans, which have no login.
+  email VARCHAR(255) UNIQUE,
+  password_hash VARCHAR(255),
   skill VARCHAR(50) NOT NULL,
-  verified BOOLEAN NOT NULL DEFAULT FALSE,
+  verified BOOLEAN DEFAULT FALSE,
   price VARCHAR(50),
   photo VARCHAR(255),
   location VARCHAR(100) NOT NULL,
@@ -58,138 +45,59 @@ CREATE TABLE IF NOT EXISTS artisans (
   total_earnings VARCHAR(50),
   jobs_completed INT DEFAULT 0,
   hours_worked INT DEFAULT 0,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT artisans_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- The next three tables belong to an artisan: artisan_id must match an artisans.id.
 CREATE TABLE IF NOT EXISTS languages (
   id INT AUTO_INCREMENT PRIMARY KEY,
   artisan_id INT NOT NULL,
   name VARCHAR(50) NOT NULL,
   level VARCHAR(50) NOT NULL,
-  CONSTRAINT languages_artisan_fk FOREIGN KEY (artisan_id) REFERENCES artisans(id) ON DELETE CASCADE
+  FOREIGN KEY (artisan_id) REFERENCES artisans(id)
 );
 
 CREATE TABLE IF NOT EXISTS work_history (
   id INT AUTO_INCREMENT PRIMARY KEY,
   artisan_id INT NOT NULL,
   title VARCHAR(255) NOT NULL,
-  rating TINYINT CHECK (rating BETWEEN 1 AND 5),
+  rating INT,
   date_range VARCHAR(50),
   price VARCHAR(50),
   price_type VARCHAR(50),
-  CONSTRAINT work_history_artisan_fk FOREIGN KEY (artisan_id) REFERENCES artisans(id) ON DELETE CASCADE
+  FOREIGN KEY (artisan_id) REFERENCES artisans(id)
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
   id INT AUTO_INCREMENT PRIMARY KEY,
   artisan_id INT NOT NULL,
   author VARCHAR(100) NOT NULL,
-  rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  rating INT NOT NULL,
   comment TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT reviews_artisan_fk FOREIGN KEY (artisan_id) REFERENCES artisans(id) ON DELETE CASCADE
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (artisan_id) REFERENCES artisans(id)
 );
 
--- user_id is NULL for a guest booking. SET NULL: deleting an account keeps its
--- bookings for the artisan, just no longer linked to anyone.
 CREATE TABLE IF NOT EXISTS bookings (
   id INT AUTO_INCREMENT PRIMARY KEY,
   artisan_id INT NOT NULL,
-  user_id INT NULL,
+  -- NULL when someone books without signing in.
+  client_id INT,
   name VARCHAR(100) NOT NULL,
   contact VARCHAR(255) NOT NULL,
   booking_date DATE NOT NULL,
   booking_time TIME NOT NULL,
   budget VARCHAR(100),
   job TEXT NOT NULL,
-  status ENUM('pending', 'confirmed', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT bookings_artisan_fk FOREIGN KEY (artisan_id) REFERENCES artisans(id) ON DELETE CASCADE,
-  CONSTRAINT bookings_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (artisan_id) REFERENCES artisans(id),
+  FOREIGN KEY (client_id) REFERENCES clients(id)
 );
 
--- ---------------------------------------------------------------- sign-up
--- A stored procedure is a named block of SQL saved inside MySQL. These two hold
--- the INSERTs that save the sign-up form. This file only creates them; Express
--- runs them for every new account, for example:
---   CALL register_client('amina@example.com', '<bcrypt hash>', 'Amina', '0712345678', 'Kilimani, Nairobi');
--- Each one inserts the login (users) and the profile (clients or artisans) in a
--- single transaction, then returns the new ids.
-
-DROP PROCEDURE IF EXISTS register_client;
-DROP PROCEDURE IF EXISTS register_artisan;
-
--- A procedure body contains ; so the CLI's statement separator is switched to //
--- while the procedures are defined, then switched back.
-DELIMITER //
-
-CREATE PROCEDURE register_client(
-  IN p_email         VARCHAR(255),
-  IN p_password_hash VARCHAR(255),
-  IN p_name          VARCHAR(100),
-  IN p_phone         VARCHAR(30),
-  IN p_location      VARCHAR(100)
-)
-BEGIN
-  DECLARE new_user_id INT;
-
-  -- If either INSERT fails (for example the email is already taken), undo
-  -- both and pass the original error on to Express.
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
-
-  START TRANSACTION;
-  INSERT INTO users (email, password_hash, role)
-    VALUES (p_email, p_password_hash, 'client');
-  -- LAST_INSERT_ID() is the AUTO_INCREMENT id the INSERT above just created.
-  SET new_user_id = LAST_INSERT_ID();
-  INSERT INTO clients (user_id, name, phone, location)
-    VALUES (new_user_id, p_name, p_phone, p_location);
-  COMMIT;
-
-  SELECT new_user_id AS user_id, LAST_INSERT_ID() AS client_id;
-END //
-
-CREATE PROCEDURE register_artisan(
-  IN p_email         VARCHAR(255),
-  IN p_password_hash VARCHAR(255),
-  IN p_name          VARCHAR(100),
-  IN p_skill         VARCHAR(50),
-  IN p_location      VARCHAR(100),
-  IN p_price         VARCHAR(50),
-  IN p_bio           TEXT
-)
-BEGIN
-  DECLARE new_user_id INT;
-
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
-
-  START TRANSACTION;
-  INSERT INTO users (email, password_hash, role)
-    VALUES (p_email, p_password_hash, 'artisan');
-  SET new_user_id = LAST_INSERT_ID();
-  INSERT INTO artisans (user_id, name, skill, location, price, bio)
-    VALUES (new_user_id, p_name, p_skill, p_location, p_price, p_bio);
-  COMMIT;
-
-  SELECT new_user_id AS user_id, LAST_INSERT_ID() AS artisan_id;
-END //
-
-DELIMITER ;
-
--- ------------------------------------------------------------ sample data
--- Sample artisans. ON DUPLICATE KEY UPDATE changes an existing row in place.
--- (REPLACE would delete and re-insert it, and the CASCADE rules above would then
--- delete that artisan's bookings too.)
-INSERT INTO artisans (id, name, skill, verified, price, photo, location, bio, rating, job_success, hours_per_week, total_earnings, jobs_completed, hours_worked) values
+-- Sample artisans (ids 1-23). INSERT IGNORE skips a row whose id already
+-- exists, so running this file again doesn't add them twice.
+INSERT IGNORE INTO artisans (id, name, skill, verified, price, photo, location, bio, rating, job_success, hours_per_week, total_earnings, jobs_completed, hours_worked) values
   (1, 'Wanjiru Kamau', 'Electrician', true, 'KES 2,500 – 7,000 / job', 'https://randomuser.me/api/portraits/women/16.jpg', 'Westlands, Nairobi', 'Certified electrician with 8 years of experience wiring homes and small offices. I handle installations, fault-finding, and safety inspections. No job too small.', 4.8, 100, 'More than 30 hrs/week', 'KES 900K+', 36, 1492),
   (2, 'Kiptoo Ruto', 'Electrician', true, 'KES 2,200 – 6,800 / job', 'https://randomuser.me/api/portraits/men/16.jpg', 'Kasarani, Nairobi', 'Residential and commercial electrician focused on clean, code-compliant wiring and quick fault diagnosis.', 4.6, 96, 'More than 30 hrs/week', 'KES 500K+', 24, 980),
   (3, 'Achieng Nyambura', 'Plumber', true, 'KES 1,800 – 6,000 / job', 'https://randomuser.me/api/portraits/women/6.jpg', 'Embakasi, Nairobi', 'Plumber handling leak repairs, borehole connections, and bathroom installations across Nairobi''s eastlands.', 4.7, 98, 'More than 30 hrs/week', 'KES 650K+', 31, 1120),
@@ -212,16 +120,10 @@ INSERT INTO artisans (id, name, skill, verified, price, photo, location, bio, ra
   (20, 'Naliaka Wafula', 'Carpenter', false, 'KES 4,000 – 12,000 / job', 'https://randomuser.me/api/portraits/women/36.jpg', 'Section 58, Nakuru', 'Furniture maker and finish carpenter. I build custom shelves, wardrobes, and doors. I bring samples of past work to every first meeting.', 4.3, 90, 'More than 30 hrs/week', 'KES 310K+', 18, 650),
   (21, 'Peter Kiplagat', 'Electrician', true, 'KES 2,200 – 7,000 / job', 'https://randomuser.me/api/portraits/men/80.jpg', 'Milimani, Nakuru', 'Electrician covering home installations and farmhouse wiring across the Nakuru area.', 4.7, 97, 'More than 30 hrs/week', 'KES 470K+', 24, 860),
   (22, 'Grace Wambui', 'Plumber', true, 'KES 1,900 – 6,000 / job', 'https://loremflickr.com/500/500/nigerian,woman,portrait/all?lock=101', 'Free Area, Nakuru', 'Plumbing repairs, water tank installations, and drainage fixes for homes and small offices.', 4.4, 93, 'Less than 30 hrs/week', 'KES 210K+', 16, 520),
-  (23, 'Samuel Kimutai', 'Painter', false, 'KES 2,000 – 7,500 / job', 'https://randomuser.me/api/portraits/men/91.jpg', 'London Estate, Nakuru', 'Painter offering interior and exterior work, with flexible scheduling for weekend jobs.', 4, 87, 'Less than 30 hrs/week', 'KES 120K+', 9, 260)
-AS new ON DUPLICATE KEY UPDATE
-  name = new.name, skill = new.skill, verified = new.verified, price = new.price,
-  photo = new.photo, location = new.location, bio = new.bio, rating = new.rating,
-  job_success = new.job_success, hours_per_week = new.hours_per_week,
-  total_earnings = new.total_earnings, jobs_completed = new.jobs_completed,
-  hours_worked = new.hours_worked;
+  (23, 'Samuel Kimutai', 'Painter', false, 'KES 2,000 – 7,500 / job', 'https://randomuser.me/api/portraits/men/91.jpg', 'London Estate, Nakuru', 'Painter offering interior and exterior work, with flexible scheduling for weekend jobs.', 4, 87, 'Less than 30 hrs/week', 'KES 120K+', 9, 260);
 
--- The sample artisans' languages, work history and reviews have no fixed ids,
--- so clear them and insert them again to avoid duplicates on every re-run.
+-- Their languages, work history and reviews have no fixed ids, so the old copies
+-- are removed first; otherwise every re-run would add them again.
 DELETE FROM languages    WHERE artisan_id BETWEEN 1 AND 23;
 DELETE FROM work_history WHERE artisan_id BETWEEN 1 AND 23;
 DELETE FROM reviews      WHERE artisan_id BETWEEN 1 AND 23;

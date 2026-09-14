@@ -3,9 +3,9 @@
 Everything below is a one-time setup. After this, starting the two servers is
 all you need.
 
-The app runs entirely on your own computer: a React front end, an Express API,
-and a MySQL database. There is no shared online database any more, so accounts
-and bookings you create exist only on your machine.
+The app runs entirely on your own computer, the same way as the "Connecting a
+React Frontend to a Database" lab: a React front end, an Express API, and a
+MySQL database. Accounts and bookings you create exist only on your machine.
 
 ## 0. If you are on Windows
 
@@ -84,9 +84,9 @@ See "If you get merge conflicts" below.
 
 ## 2. Install dependencies
 
-The front end and the API each have their own packages. Supabase was removed
-and the API gained new packages (`bcryptjs`, `jsonwebtoken`), so run both even
-if you have run the app before.
+The front end and the API each have their own packages, so install both. Run
+this even if you have run the app before: Supabase was removed and the API uses
+`bcryptjs` to hash passwords.
 
 ```bash
 cd server
@@ -113,15 +113,15 @@ cp .env.example .env
 Open `server/.env` and set `DB_PASSWORD` to your MySQL root password. Leave it
 blank if root has no password. Never commit `.env`; it is gitignored.
 
-Then, still inside `server/`, create the database, its tables, the sign-up
-procedures and the 23 sample artisans:
+Then, still inside `server/`, create the database, its tables and the 23 sample
+artisans:
 
 ```bash
 mysql -u root -p -e "source schema.sql"
 ```
 
 Press Enter at the password prompt if root has no password. It is safe to run
-again later: accounts, clients, bookings and sign-ups are kept.
+again later: people who signed up and their bookings are kept.
 
 ## 4. Run it
 
@@ -145,24 +145,31 @@ Code** → F5.
 
 ## What changed in this version
 
-Supabase is gone. Accounts, artisans, reviews and bookings all live in MySQL,
-and React reaches them only through the Express API in `server/`:
+Supabase is gone. Everything lives in MySQL, and React reaches it only through
+the Express API in `server/`, exactly as in the lab:
 
 ```
 React (5173)  --fetch-->  Express (5001)  --SQL-->  MySQL
 ```
 
+| Lab step | In this project |
+|---|---|
+| Step 1–2: server folder, `.env`, `.gitignore` | `server/` |
+| Step 3: `db.js` and the SQL | `server/db.js`, `server/schema.sql` |
+| Step 4: `index.js` | `server/index.js` |
+| Step 5: route files | `server/routes/artisans.js`, `clients.js`, `bookings.js`, `login.js` |
+| Step 7: React component that fetches | `react-app/src/components/ArtisansTable.jsx` (page `/artisans`) |
+| Exercise 3: a second table and route | `clients` table, `/api/clients` |
+| Exercise 4: POST route + form that inserts | sign-up form → `POST /api/clients` or `POST /api/artisans`; booking form → `POST /api/bookings` |
+
 - **Every request goes through `src/api/`.** `workers.js` has artisans and
   bookings, `auth.js` has sign-up and sign-in. Add new calls there rather than
   calling `fetch` from a component.
-- **Sign-up** sends the form to `POST /api/auth/signup`. Express hashes the
-  password with bcrypt, then calls the `register_client` or `register_artisan`
-  stored procedure in `server/schema.sql`. That procedure inserts the login into
-  `users` and the profile into `clients` or `artisans`, in one transaction.
-- **Sign-in** returns a token (a JWT). React keeps it in `localStorage` and sends
-  it as `Authorization: Bearer <token>`; the API uses it to know who you are.
-- To see what was saved: http://localhost:5001/api/users,
-  http://localhost:5001/api/clients and http://localhost:5001/api/artisans.
+- **Sign-up** hashes the password with bcrypt and inserts a row into `clients`
+  or `artisans`. **Sign-in** (`POST /api/login`) checks the password with
+  `bcrypt.compare` and returns the user, which React keeps in `localStorage`.
+- To see what was saved: http://localhost:5001/api/clients and
+  http://localhost:5001/api/artisans.
 
 Data still arrives asynchronously, so a lookup has loading, error, and
 not-found states:
@@ -224,7 +231,7 @@ MySQL isn't running, or `DB_PASSWORD` in `server/.env` is wrong. Fix it, then
 stop the API with Ctrl-C and run `npm run dev` again; `.env` is only read at
 startup.
 
-**`Table 'find_my_artisan.users' doesn't exist` or `PROCEDURE ... does not exist`**
+**`Table 'find_my_artisan.clients' doesn't exist`**
 The database hasn't been set up. Run step 3's `source schema.sql` command.
 
 **`EADDRINUSE: address already in use :::5001`**
@@ -239,6 +246,6 @@ The data was loaded with the wrong character encoding. Run step 3's
 
 ## Reference
 
-- `server/schema.sql` — every table, the sign-up procedures, and the sample data
-- `server/routes/` — the API endpoints (`auth`, `artisans`, `bookings`, `users`, `clients`)
+- `server/schema.sql` — every table and the sample data
+- `server/routes/` — the API endpoints (`artisans`, `clients`, `login`, `bookings`)
 - `GIT-NOTES.md` — git commands and workflow

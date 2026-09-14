@@ -1,54 +1,16 @@
 export const API_URL = 'http://localhost:5001';
 
-// The sign-in token (a JWT from the server) is kept in localStorage so a page
-// reload keeps you signed in. localStorage can throw when site data is blocked;
-// that is treated as "no token".
-const TOKEN_KEY = 'fma_token';
-
-export function getToken() {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function setToken(token) {
-  try {
-    localStorage.setItem(TOKEN_KEY, token);
-  } catch {
-    // Storage blocked: the sign-in still works until the page is reloaded.
-  }
-}
-
-export function clearToken() {
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // Storage blocked: nothing was saved, so there is nothing to remove.
-  }
-}
-
 /**
- * Call the Express API and return the parsed JSON body.
- *
- * When someone is signed in, their token goes along as
- * "Authorization: Bearer <token>" so the server can tell who is asking.
- * Throws an Error with the server's message and the HTTP status on `err.status`.
+ * Send a request to the Express API and return the JSON it sends back.
+ * If the server answers with an error, throw it with the server's message.
  */
-export async function request(path, { method = 'GET', body } = {}) {
-  const token = getToken();
-
-  const headers = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (token) headers.Authorization = `Bearer ${token}`;
-
+export async function request(path, options = {}) {
   let res;
   try {
     res = await fetch(`${API_URL}${path}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      method: options.method || 'GET',
+      headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
+      body: options.body ? JSON.stringify(options.body) : undefined,
     });
   } catch {
     // fetch only throws when no response came back at all, e.g. the server is off.
@@ -56,11 +18,11 @@ export async function request(path, { method = 'GET', body } = {}) {
     throw new Error(`could not reach the API at ${API_URL}. Is the server running?`);
   }
 
-  const payload = await res.json().catch(() => null);
+  const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const error = new Error(payload?.error ?? `Request failed with status ${res.status}`);
+    const error = new Error(data?.error || `Request failed with status ${res.status}`);
     error.status = res.status;
     throw error;
   }
-  return payload;
+  return data;
 }

@@ -82,7 +82,8 @@ export default function BookingForm({ worker }) {
     try {
       await createBooking({
         workerId: worker.id,
-        userId: user?.id ?? null,
+        // Link the booking to the signed-in client, if any (artisans don't book).
+        clientId: user?.role === 'client' ? user.id : null,
         name,
         contact,
         date,
