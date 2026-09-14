@@ -1,9 +1,8 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const router = express.Router();
 const db = require('../db');
 
-// Every column except email and password_hash, which must never be sent to the browser.
+// Every column except email and password, which must never be sent to the browser.
 const COLUMNS = `id, name, skill, verified, price, photo, location, bio, rating,
   job_success, hours_per_week, total_earnings, jobs_completed, hours_worked`;
 
@@ -68,14 +67,11 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'An account with that email already exists' });
     }
 
-    // Store a bcrypt hash, never the password itself.
-    const passwordHash = await bcrypt.hash(password, 10);
-
     // The ? placeholders keep the typed values separate from the SQL,
     // so nothing typed into the form can run as SQL.
     const [result] = await db.query(
-      'INSERT INTO artisans (name, email, password_hash, skill, location, price, bio) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, email, passwordHash, skill, location, price || null, bio || null]
+      'INSERT INTO artisans (name, email, password, skill, location, price, bio) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, email, password, skill, location, price || null, bio || null]
     );
 
     res.status(201).json({ id: result.insertId, name, email, role: 'artisan' });
