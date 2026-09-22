@@ -117,7 +117,18 @@ router.get('/:id', async (req, res) => {
     if (rows.length === 0) {
       return sendError(res, 404, 'not_found', `No artisan with id ${req.params.id}.`);
     }
-    res.status(200).json(toArtisan(rows[0]));
+    // Busy windows from now to 14 days ahead. A window that started earlier but
+    // hasn't ended yet still counts, hence end_at > now rather than start_at > now.
+    const [blocks] = await db.query(
+      `SELECT start_at, end_at FROM availability_blocks
+       WHERE artisan_id = ? AND end_at > UTC_TIMESTAMP()
+         AND start_at < UTC_TIMESTAMP() + INTERVAL 14 DAY
+       ORDER BY start_at`,
+      [req.params.id]
+    );
+    const artisan = toArtisan(rows[0]);
+    artisan.busy = blocks.map(b => ({ start: fromDbTime(b.start_at), end: fromDbTime(b.end_at) }));
+    res.status(200).json(artisan);
   } catch (err) {
     console.error(err);
     sendError(res, 500, 'server_error', 'Failed to fetch artisan.');

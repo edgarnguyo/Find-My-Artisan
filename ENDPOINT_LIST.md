@@ -84,6 +84,13 @@ PATCH and DELETE cover different cases, not the same one twice: PATCH means the 
 happening but the time moved; DELETE means the job isn't happening at all, so the block itself
 should never have existed.
 
+## Busy windows for the next 14 days (added in Week 6)
+
+`GET /artisans/{id}` also returns `busy`: the windows the artisan is booked over the next 14
+days. `availableToday` alone only answers "free right now?", which covers a same-day failure but
+not maintenance planned a week ahead (need #4). It's read from the same availability blocks, so
+no new endpoint was needed.
+
 ## Reviews — the one write Meditrac uses (added in Week 6)
 
 Find My Artisan added `POST /artisans/{id}/reviews` so that Meditrac can rate an artisan after a

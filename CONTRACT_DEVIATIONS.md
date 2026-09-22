@@ -24,6 +24,7 @@ must now enter a phone number, because the contract marks `phone` as required.
 | 7 | PATCH `/artisans/{id}/availability/{blockId}` gained a `400` response. | The contract only listed 200 and 404, but a PATCH can send a bad date, an empty body, or move `end` before `start`. Those have to be rejected. |
 | 8 | `info.description` no longer says "this contract has no write endpoints". | It contradicted the three write endpoints in the same file. Meditrac's side is still read-only; the writes are for our artisans. |
 | 9 | New endpoint `POST /artisans/{id}/reviews` (201 / 400 / 404) with schemas `ReviewCreate` and `Review`. `info.version` raised to 1.1.0. | Find My Artisan found that the contract gave Meditrac no way to report back on an artisan after a job, which left vetting (need #3) with no data from real jobs. The new endpoint is an addition, so nothing Meditrac already built against stops working. |
+| 10 | `GET /artisans/{id}` now also returns `busy`: the artisan's booked windows for the next 14 days, each `{ start, end }`, earliest first. New schema `BusyWindow`. `info.version` raised to 1.3.0. | `availableToday` only answers "is this artisan free right now?". Meditrac also schedules maintenance ahead of time (need #4), so it needs to see when an artisan is booked over the coming two weeks. This adds a field; nothing Meditrac already reads changes. |
 
 Not a contract change: a body that isn't valid JSON now gets the contract's
 `{ code, message }` error with 400, instead of Express's HTML error page.

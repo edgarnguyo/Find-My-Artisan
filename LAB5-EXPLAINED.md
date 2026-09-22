@@ -65,6 +65,15 @@ NOT EXISTS (SELECT 1 FROM availability_blocks b
               AND b.start_at <= UTC_TIMESTAMP() AND b.end_at > UTC_TIMESTAMP())
 ```
 
+**`busy` (added later) looks ahead 14 days.** A block is listed if it hasn't ended yet and starts within 14 days:
+
+```sql
+WHERE artisan_id = ? AND end_at > UTC_TIMESTAMP()
+  AND start_at < UTC_TIMESTAMP() + INTERVAL 14 DAY
+```
+
+`end_at > now`, not `start_at > now`, so a job already under way is still shown.
+
 ## 4. Status codes
 
 | Request | Status | Why |

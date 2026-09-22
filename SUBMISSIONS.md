@@ -137,6 +137,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 | 7 | PATCH availability can return 400 |
 | 8 | Description no longer says "no write endpoints" |
 | 9 | New `POST /artisans/{id}/reviews`; version 1.1.0 |
+| 10 | `GET /artisans/{id}` returns `busy` (next 14 days); version 1.3.0 |
 
 **Open:** tell Meditrac about these changes directly. The handout requires it.
 
@@ -154,5 +155,5 @@ One section per week: the file each handout asks for, what it contains now, and 
 - [ ] A teammate pushes `CONTRIBUTORS.md`
 - [ ] Write `CONTRACT_QUESTIONS.md` once you have Team 13's contract
 - [ ] `openapi.yaml` shows zero errors in editor.swagger.io
-- [ ] Send Meditrac `openapi.yaml` (v1.1.0) and `CHANGES_FOR_MEDITRAC.md`
+- [ ] Send Meditrac `openapi.yaml` (v1.3.0) and `CHANGES_FOR_MEDITRAC.md`
 - [ ] Merge this branch to `main` and push (the handouts grade what's on GitHub)
