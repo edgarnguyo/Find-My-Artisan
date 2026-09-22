@@ -2,7 +2,7 @@
 
 **To:** Meditrac (Team 2)
 **From:** Find My Artisan (Team 1)
-**Contract version:** 1.2.0 (attached `openapi.yaml`). This replaces 1.0.0 and any 1.1.0 copy Meditrac may have received.
+**Contract version:** 1.3.0 (attached `openapi.yaml`). This replaces every earlier copy Meditrac may have received (1.0.0 to 1.2.0).
 
 Find My Artisan has built the API and, in doing so, changed the contract Meditrac
 received in Week 4. The changes below are listed in order of how likely they are to
@@ -34,12 +34,23 @@ affect Meditrac's code.
      -d '{"author":"Meditrac — Westlands branch","rating":5,"comment":"Fixed the sink the same day."}'
    ```
 
+4. **`busy` on `GET /artisans/{id}`**: the times the artisan is booked over the next 14 days.
+   - A list of `{ "start": "...", "end": "..." }` in UTC, earliest first. Any time not listed is free.
+   - An empty list means nothing is booked in the next two weeks.
+   - This lets Meditrac plan maintenance ahead, not just find someone free right now.
+
+   ```json
+   "busy": [
+     { "start": "2026-09-24T06:00:00Z", "end": "2026-09-24T10:00:00Z" }
+   ]
+   ```
+
 ## Clarifications (no code change needed)
 
-4. **`availableToday`** means "free right now": no job is booked over the current time. As a query parameter it only accepts `true` or `false`; anything else returns 400.
-5. **`county`** must be one of Kenya's 47 county names, case-insensitive. An unknown county returns 400.
-6. **Every error has the same body**: `{ "code": "...", "message": "..." }`. The codes are `invalid_query`, `invalid_body` and `not_found`.
-7. **The examples** in the contract are now real records from Find My Artisan's database.
+5. **`availableToday`** means "free right now": no job is booked over the current time. For later times, use `busy` (item 4). As a query parameter it only accepts `true` or `false`; anything else returns 400.
+6. **`county`** must be one of Kenya's 47 county names, case-insensitive. An unknown county returns 400.
+7. **Every error has the same body**: `{ "code": "...", "message": "..." }`. The codes are `invalid_query`, `invalid_body` and `not_found`.
+8. **The examples** in the contract are now real records from Find My Artisan's database.
 
 ## Not for Meditrac
 
