@@ -36,7 +36,7 @@ export default function ArtisansTable() {
           <th>Trade</th>
           <th>County</th>
           <th>Verified</th>
-          <th>Available today</th>
+          <th>Bookings (next 14 days)</th>
         </tr>
       </thead>
       <tbody>
@@ -47,7 +47,7 @@ export default function ArtisansTable() {
             <td>{artisan.trade}</td>
             <td>{artisan.county}</td>
             <td>{artisan.verified ? 'Yes' : 'No'}</td>
-            <td>{artisan.availableToday ? 'Yes' : 'No'}</td>
+            <td>{artisan.busy.length}</td>
           </tr>
         ))}
       </tbody>

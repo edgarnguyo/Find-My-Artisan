@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API
-  version: 1.4.0
+  version: 2.0.0
   description: >
     Access to artisan profiles. Meditrac (Team 2) uses the two GET
     endpoints to find and vet artisans, and POST /artisans/{id}/reviews to
@@ -19,7 +19,7 @@ servers:
 paths:
   /artisans:
     get:
-      summary: List artisans, optionally filtered by trade, county, and same-day availability
+      summary: List artisans, optionally filtered by trade and county, with when each is booked
       parameters:
         - name: trade
           in: query
@@ -35,13 +35,6 @@ paths:
           schema:
             type: string
             example: Nairobi
-        - name: availableToday
-          in: query
-          required: false
-          description: Filter to artisans who are free right now (no availability block covers the current time). Must be true or false.
-          schema:
-            type: boolean
-            example: true
       responses:
         '200':
           description: A list of artisans matching the filters (empty list if none match).
@@ -58,14 +51,16 @@ paths:
                   area: "Westlands"
                   county: "Nairobi"
                   verified: true
-                  availableToday: true
+                  busy: []
                 - id: 3
                   name: "Achieng Nyambura"
                   trade: "plumbing"
                   area: "Embakasi"
                   county: "Nairobi"
                   verified: true
-                  availableToday: false
+                  busy:
+                    - start: "2026-09-24T06:00:00Z"
+                      end: "2026-09-24T10:00:00Z"
         '400':
           description: A query parameter has an invalid value.
           content:
@@ -101,7 +96,6 @@ paths:
                 area: "Westlands"
                 county: "Nairobi"
                 verified: true
-                availableToday: true
                 phone: "+254712000001"
                 hourlyRateKes: 900
                 verification:
@@ -329,7 +323,7 @@ components:
   schemas:
     ArtisanSummary:
       type: object
-      required: [id, name, trade, area, county, verified, availableToday]
+      required: [id, name, trade, area, county, verified, busy]
       properties:
         id:
           type: integer
@@ -348,15 +342,20 @@ components:
           example: Nairobi
         verified:
           type: boolean
-        availableToday:
-          type: boolean
-          description: Computed — true unless the artisan has an availability block (see AvailabilityBlock) covering the current time. Not stored as a raw flag.
+        busy:
+          type: array
+          description: >
+            The times the artisan is booked in the next 14 days (from now),
+            earliest first. Any time not listed is free. Empty array if the
+            artisan has nothing booked. A window already under way is included.
+          items:
+            $ref: '#/components/schemas/BusyWindow'
 
     Artisan:
       allOf:
         - $ref: '#/components/schemas/ArtisanSummary'
         - type: object
-          required: [phone, busy]
+          required: [phone]
           properties:
             phone:
               type: string
@@ -379,14 +378,6 @@ components:
                   type: string
                   format: date
                   example: "2027-03-01"
-            busy:
-              type: array
-              description: >
-                The times the artisan is booked in the next 14 days (from now),
-                earliest first. Any time not listed is free. Empty array if the
-                artisan has nothing booked. A window already under way is included.
-              items:
-                $ref: '#/components/schemas/BusyWindow'
 
     BusyWindow:
       type: object

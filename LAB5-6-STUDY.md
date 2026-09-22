@@ -200,4 +200,4 @@ The full table of tests we ran is in `LAB6-EXPLAINED.md`, section 6.
 2. 404. That block doesn't exist for artisan 4, and a caller must not be able to change another artisan's blocks through the wrong URL.
 3. Check 3 (usable). `Date.parse` quietly rolls it over to 2 March, so the day has to be checked separately.
 4. No. Idempotency is about the end state (no block), not the response code.
-5. A GET, e.g. `GET /artisans/3`, which shows `availableToday: false` while the new block covers the current time.
+5. A GET, e.g. `GET /artisans/3`, whose `busy` list now includes the new block's start and end.
