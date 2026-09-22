@@ -1,10 +1,11 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API
-  version: 1.0.0
+  version: 1.1.0
   description: >
-    Access to artisan profiles. Meditrac (Team 2) uses only the two GET
-    endpoints, to find and vet artisans, then contacts them directly for
+    Access to artisan profiles. Meditrac (Team 2) uses the two GET
+    endpoints to find and vet artisans, and POST /artisans/{id}/reviews to
+    rate them after a job. Meditrac contacts artisans directly for
     maintenance work at their pharmacies — the booking itself is a phone
     call using the contact details this API exposes, not an API call.
     Meditrac never creates, edits, or holds a booking record on our side.
@@ -113,6 +114,63 @@ paths:
               example:
                 code: "not_found"
                 message: "No artisan with id 1."
+
+  /artisans/{id}/reviews:
+    post:
+      summary: Leave a review of an artisan after a job
+      description: >
+        Called by Meditrac after a job agreed by phone is finished. The review
+        appears on the artisan's public profile and helps later vetting. This
+        records feedback only; it does not create or change a booking.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+            example:
+              author: "Meditrac — Westlands branch"
+              rating: 5
+              comment: "Fixed the leaking sink the same afternoon."
+      responses:
+        '201':
+          description: The review was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+              example:
+                id: 58
+                artisanId: 3
+                author: "Meditrac — Westlands branch"
+                rating: 5
+                comment: "Fixed the leaking sink the same afternoon."
+                createdAt: "2026-09-22T10:30:00Z"
+        '400':
+          description: A required field is missing, or a value has the wrong type or is out of range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_body"
+                message: "rating must be a whole number from 1 to 5."
+        '404':
+          description: No artisan exists with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No artisan with id 999."
 
   /artisans/{id}/availability:
     post:
@@ -311,6 +369,50 @@ components:
                   type: string
                   format: date
                   example: "2027-03-01"
+
+    ReviewCreate:
+      type: object
+      required: [author, rating]
+      properties:
+        author:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Who is leaving the review, e.g. the pharmacy branch.
+          example: "Meditrac — Westlands branch"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: "Fixed the leaking sink the same afternoon."
+
+    Review:
+      type: object
+      required: [id, artisanId, author, rating, comment, createdAt]
+      properties:
+        id:
+          type: integer
+          example: 58
+        artisanId:
+          type: integer
+          example: 3
+        author:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
 
     AvailabilityBlockCreate:
       type: object

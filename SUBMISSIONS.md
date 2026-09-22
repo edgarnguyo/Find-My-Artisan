@@ -68,6 +68,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 |---|---|---|
 | GET | `/artisans?trade=&county=&availableToday=` | Meditrac: needs 1 and 4 |
 | GET | `/artisans/{id}` | Meditrac: needs 2 and 3 (phone + verification) |
+| POST | `/artisans/{id}/reviews` | Meditrac: need 3 (rate after a job) |
 | POST | `/artisans/{id}/availability` | Our artisans only |
 | PATCH | `/artisans/{id}/availability/{blockId}` | Our artisans only |
 | DELETE | `/artisans/{id}/availability/{blockId}` | Our artisans only |
@@ -89,7 +90,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 
 **What's in `openapi.yaml`:**
 
-- All 5 endpoints.
+- All 6 endpoints (reviews added in Week 6, version 1.1.0).
 - **Schemas:** `ArtisanSummary`, `Artisan` (adds `phone`, `hourlyRateKes`, `verification`), `AvailabilityBlockCreate`, `AvailabilityBlockUpdate`, `AvailabilityBlock`, and `Error { code, message }`.
 - Examples are real rows from your database.
 - **Server:** `http://localhost:5001/api`.
@@ -114,7 +115,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 
 - **`server/routes/artisans.js`:**
   - The 2 GETs with the mapping step.
-  - The 3 writes with validation first.
+  - The 3 availability writes and the reviews write, each validating first.
 - **`server/schema.sql` (bottom):**
   - New columns: `county`, `phone`, `hourly_rate_kes`.
   - New tables: `verifications` and `availability_blocks`.
@@ -135,6 +136,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 | 6 | POST availability can return 404 |
 | 7 | PATCH availability can return 400 |
 | 8 | Description no longer says "no write endpoints" |
+| 9 | New `POST /artisans/{id}/reviews`; version 1.1.0 |
 
 **Open:** tell Meditrac about these changes directly. The handout requires it.
 
@@ -152,5 +154,5 @@ One section per week: the file each handout asks for, what it contains now, and 
 - [ ] A teammate pushes `CONTRIBUTORS.md`
 - [ ] Write `CONTRACT_QUESTIONS.md` once you have Team 13's contract
 - [ ] `openapi.yaml` shows zero errors in editor.swagger.io
-- [ ] Message Meditrac about `CONTRACT_DEVIATIONS.md`
+- [ ] Send Meditrac `openapi.yaml` (v1.1.0) and `CHANGES_FOR_MEDITRAC.md`
 - [ ] Merge this branch to `main` and push (the handouts grade what's on GitHub)

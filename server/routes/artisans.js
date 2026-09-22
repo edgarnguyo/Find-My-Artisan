@@ -287,4 +287,56 @@ router.delete('/:id/availability/:blockId', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Reviews: the one write Meditrac calls, to rate an artisan after a job.
+// ---------------------------------------------------------------------------
+
+// The mapping step for Review.
+function toReview(row) {
+  return {
+    id: row.id,
+    artisanId: row.artisan_id,
+    author: row.author,
+    rating: row.rating,
+    comment: row.comment,
+    createdAt: fromDbTime(row.created_at),
+  };
+}
+
+// POST /api/artisans/1/reviews   body: { "author": "...", "rating": 5, "comment": "..." }
+router.post('/:id/reviews', async (req, res) => {
+  const artisanId = req.params.id;
+  const { author, rating, comment } = req.body ?? {};
+
+  if (author === undefined || rating === undefined) {
+    return sendError(res, 400, 'invalid_body', 'author and rating are required.');
+  }
+  if (typeof author !== 'string' || author.trim() === '' || author.length > 100) {
+    return sendError(res, 400, 'invalid_body', 'author must be a non-empty string of at most 100 characters.');
+  }
+  // Number.isInteger rejects "5" (a string) and 4.5, not just values out of range.
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return sendError(res, 400, 'invalid_body', 'rating must be a whole number from 1 to 5.');
+  }
+  if (comment !== undefined && comment !== null && (typeof comment !== 'string' || comment.length > 1000)) {
+    return sendError(res, 400, 'invalid_body', 'comment must be a string of at most 1000 characters.');
+  }
+
+  try {
+    if (!isId(artisanId) || !(await artisanExists(artisanId))) {
+      return sendError(res, 404, 'not_found', `No artisan with id ${artisanId}.`);
+    }
+
+    const [result] = await db.query(
+      'INSERT INTO reviews (artisan_id, author, rating, comment, created_at) VALUES (?, ?, ?, ?, ?)',
+      [artisanId, author.trim(), rating, comment?.trim() || null, toDbTime(new Date())]
+    );
+    const [rows] = await db.query('SELECT * FROM reviews WHERE id = ?', [result.insertId]);
+    res.status(201).json(toReview(rows[0]));
+  } catch (err) {
+    console.error(err);
+    sendError(res, 500, 'server_error', 'Failed to create review.');
+  }
+});
+
 module.exports = router;
