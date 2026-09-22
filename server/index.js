@@ -25,9 +25,11 @@ app.get('/api', (req, res) => {
   res.send('API is running');
 });
 
-// The API promised to Meditrac in openapi.yaml.
+// The API promised to Meditrac in openapi.yaml. It sits at /artisans, not under
+// /api, because that's the path the contract gives. The React page that used to
+// live at /artisans moved to /artisans-table so the two don't collide.
 const artisanRoutes = require('./routes/artisans');
-app.use('/api/artisans', artisanRoutes);
+app.use('/artisans', artisanRoutes);
 
 // Website-only: the extra profile data (photos, reviews...) and artisan sign-up.
 const profileRoutes = require('./routes/profiles');
@@ -50,7 +52,7 @@ app.use(express.static(reactBuild));
 // reads the address and picks the page. So for any other GET, send index.html.
 // /api addresses are skipped, so a mistyped API URL still gets "Cannot GET".
 app.use((req, res, next) => {
-  if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/docs')) return next();
+  if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/docs') || /^\/artisans(\/|$)/.test(req.path)) return next();
 
   if (!fs.existsSync(path.join(reactBuild, 'index.html'))) {
     return res
@@ -74,6 +76,6 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Website:       http://localhost:${PORT}`);
-  console.log(`Artisans JSON: http://localhost:${PORT}/api/artisans`);
+  console.log(`Artisans JSON: http://localhost:${PORT}/artisans`);
   console.log(`Swagger UI:    http://localhost:${PORT}/docs`);
 });

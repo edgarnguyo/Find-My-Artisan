@@ -9,7 +9,7 @@ export default function ArtisansTable() {
 
   // Empty dependency array: fetch once when the component mounts, not on every render.
   useEffect(() => {
-    fetch(`${API_URL}/api/artisans`)
+    fetch(`${API_URL}/artisans`)
       .then((res) => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
@@ -33,11 +33,10 @@ export default function ArtisansTable() {
         <tr>
           <th>ID</th>
           <th>Name</th>
-          <th>Skill</th>
-          <th>Location</th>
-          <th>Price</th>
-          <th>Rating</th>
+          <th>Trade</th>
+          <th>County</th>
           <th>Verified</th>
+          <th>Available today</th>
         </tr>
       </thead>
       <tbody>
@@ -45,12 +44,10 @@ export default function ArtisansTable() {
           <tr key={artisan.id}>
             <td>{artisan.id}</td>
             <td>{artisan.name}</td>
-            <td>{artisan.skill}</td>
-            <td>{artisan.location}</td>
-            <td>{artisan.price}</td>
-            <td>{artisan.rating}</td>
-            {/* MySQL stores BOOLEAN as TINYINT(1), so this arrives as 1 or 0. */}
+            <td>{artisan.trade}</td>
+            <td>{artisan.county}</td>
             <td>{artisan.verified ? 'Yes' : 'No'}</td>
+            <td>{artisan.availableToday ? 'Yes' : 'No'}</td>
           </tr>
         ))}
       </tbody>

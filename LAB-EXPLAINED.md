@@ -5,7 +5,7 @@ That takes three separate parts, and the lesson is what each one does and how
 they pass data to each other.
 
 In this project the lab's `students` table became `artisans`. The lab's page is
-http://localhost:5001/artisans, built by
+http://localhost:5001/artisans-table, built by
 `react-app/src/components/ArtisansTable.jsx`.
 
 - [Part 1: The components](#part-1-the-components)
@@ -70,7 +70,7 @@ on a **port** for **HTTP requests** and sends back a response.
   for. This project's server uses port 5001 and MySQL uses 3306. (The lab uses
   5000 for Express and 3000 for React.)
 - An **HTTP request** is a message with a **method** and a **URL path**, for
-  example `GET /api/artisans`.
+  example `GET /artisans`.
 - A **route** is a method + path, plus the function that runs when a request
   matches them.
 - An **API** (Application Programming Interface) is the set of routes other
@@ -80,7 +80,7 @@ on a **port** for **HTTP requests** and sends back a response.
 
 | Method | Used to | Example in this project |
 |---|---|---|
-| `GET` | Read data | `GET /api/artisans` |
+| `GET` | Read data | `GET /artisans` |
 | `POST` | Create something new | `POST /api/clients` (sign-up) |
 | `PATCH` | Change part of something | `PATCH /api/bookings/7/cancel` |
 
@@ -118,7 +118,7 @@ router.get('/', async (req, res) => {
 
 | Piece | What it does | Why it's there |
 |---|---|---|
-| `server/index.js` | Creates the app, adds `cors()` and `express.json()`, attaches each route file to a path (`app.use('/api/artisans', artisanRoutes)`), serves the React site, starts listening on the port | It's the program `npm run dev` starts |
+| `server/index.js` | Creates the app, adds `cors()` and `express.json()`, attaches each route file to a path (`app.use('/artisans', artisanRoutes)`), serves the React site, starts listening on the port | It's the program `npm run dev` starts |
 | `server/routes/*.js` | One file per table, each with its routes | Keeps each table's code in one place |
 | `server/db.js` + **mysql2** | Creates a **connection pool**: up to 10 open connections to MySQL that routes take turns using | Opening a new connection for every request is slow |
 | `server/.env` + **dotenv** | Keeps settings like `DB_PASSWORD` outside the code; the code reads `process.env.DB_PASSWORD` | `.env` is in `.gitignore`, so the password never reaches GitHub |
@@ -149,7 +149,7 @@ export default function ArtisansTable() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5001/api/artisans')
+    fetch('http://localhost:5001/artisans')
       .then((res) => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
@@ -218,7 +218,7 @@ the data.
 Browser  ── GET / ─▶ │ express.static → react-app/dist/index.html + JS + CSS     │
          ◀─ page ─── │                                                           │
                      │                                                           │  SQL   ┌────────────────┐
-         ── GET ───▶ │ /api/artisans → routes/artisans.js → db.query(...)  ──────┼──────▶ │ MySQL :3306    │
+         ── GET ───▶ │ /artisans → routes/artisans.js → db.query(...)  ──────┼──────▶ │ MySQL :3306    │
          /api/...    │                                                           │ ◀───── │ find_my_artisan│
          ◀─ JSON ─── │ res.json(rows)                                            │  rows  └────────────────┘
                      └───────────────────────────────────────────────────────────┘
@@ -256,15 +256,15 @@ still works.
 
 ### Reading data (GET): the lab's data flow
 
-What happens when you open http://localhost:5001/artisans, and what the data
+What happens when you open http://localhost:5001/artisans-table, and what the data
 looks like at each step:
 
 | # | Where | What happens | The data |
 |---|---|---|---|
-| 0 | Express | Sends `index.html` and the built JavaScript; the browser starts React, and React Router shows the `/artisans` page | The page's files |
+| 0 | Express | Sends `index.html` and the built JavaScript; the browser starts React, and React Router shows the `/artisans-table` page | The page's files |
 | 1 | React | `ArtisansTable` draws for the first time; `loading` is `true` | "Loading artisans..." |
-| 2 | React | `useEffect` runs and calls `fetch('http://localhost:5001/api/artisans')` | An HTTP request: `GET /api/artisans` |
-| 3 | Express | `index.js` sees the path starts with `/api/artisans` and hands the request to `routes/artisans.js` | |
+| 2 | React | `useEffect` runs and calls `fetch('http://localhost:5001/artisans')` | An HTTP request: `GET /artisans` |
+| 3 | Express | `index.js` sees the path starts with `/artisans` and hands the request to `routes/artisans.js` | |
 | 4 | Express | The route borrows a connection from the pool and runs the query | `SELECT ... FROM artisans ORDER BY id` |
 | 5 | MySQL | Finds the rows and sends them back | 23 rows |
 | 6 | Express | `res.json(rows)` turns the rows into JSON text and sends it with status 200 | `[{"id":1,"name":"Wanjiru Kamau",...}, ...]` |
@@ -293,7 +293,7 @@ as a client:
 | 6 | Express | Replies with the new row's id (`result.insertId`) | `201` + `{"id":1,"name":"Amina","role":"client"}` |
 | 7 | React | `AuthProvider.jsx` saves that user in `localStorage` and in state, so the navbar shows you signed in | |
 
-To confirm the row was saved, open http://localhost:5001/api/clients. That's a
+To confirm the row was saved, open http://localhost:5001/clients. That's a
 `GET` route reading the same table the `POST` just wrote to.
 
 In this lab version passwords are saved exactly as typed, to keep it simple. A
@@ -318,7 +318,7 @@ applied to this project:
 
 ### Why the lab tests the backend on its own first
 
-Step 6 opens the API's URL (here http://localhost:5001/api/artisans) in the
+Step 6 opens the API's URL (here http://localhost:5001/artisans) in the
 browser before writing any React. That URL uses only Express and MySQL.
 
 - If the JSON appears, Express and MySQL work, so any later problem is in React.

@@ -69,7 +69,7 @@ function sendError(res, status, code, message) {
   res.status(status).json({ code, message });
 }
 
-// GET /api/artisans?trade=plumbing&county=Nairobi&availableToday=true
+// GET /artisans?trade=plumbing&county=Nairobi&availableToday=true
 router.get('/', async (req, res) => {
   const { trade, county, availableToday } = req.query;
 
@@ -106,7 +106,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/artisans/5
+// GET /artisans/5
 router.get('/:id', async (req, res) => {
   // MySQL would read '5abc' as 5, so only plain whole numbers are real ids.
   if (!/^\d+$/.test(req.params.id)) {
@@ -180,7 +180,7 @@ async function overlapsExistingBlock(artisanId, start, end, skipBlockId = null) 
   return rows.length > 0;
 }
 
-// POST /api/artisans/1/availability   body: { "start": "...", "end": "..." }
+// POST /artisans/1/availability   body: { "start": "...", "end": "..." }
 router.post('/:id/availability', async (req, res) => {
   const artisanId = req.params.id;
   const { start, end } = req.body ?? {};
@@ -228,7 +228,7 @@ async function findBlock(artisanId, blockId) {
   return rows[0] ?? null;
 }
 
-// PATCH /api/artisans/1/availability/7   body: { "end": "..." } (either or both fields)
+// PATCH /artisans/1/availability/7   body: { "end": "..." } (either or both fields)
 router.patch('/:id/availability/:blockId', async (req, res) => {
   const { id: artisanId, blockId } = req.params;
   const { start, end } = req.body ?? {};
@@ -269,7 +269,7 @@ router.patch('/:id/availability/:blockId', async (req, res) => {
   }
 });
 
-// DELETE /api/artisans/1/availability/7
+// DELETE /artisans/1/availability/7
 router.delete('/:id/availability/:blockId', async (req, res) => {
   const { id: artisanId, blockId } = req.params;
 
@@ -303,7 +303,7 @@ function toReview(row) {
   };
 }
 
-// POST /api/artisans/1/reviews   body: { "author": "...", "rating": 5, "comment": "..." }
+// POST /artisans/1/reviews   body: { "author": "...", "rating": 5, "comment": "..." }
 router.post('/:id/reviews', async (req, res) => {
   const artisanId = req.params.id;
   const { author, rating, comment } = req.body ?? {};
