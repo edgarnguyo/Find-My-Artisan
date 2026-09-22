@@ -22,6 +22,7 @@ The contract and the code described two different APIs:
 - **New columns on `artisans`:** `county`, `phone`, `hourly_rate_kes`.
   - Why: the contract promises these fields, and data that isn't stored can't be returned.
   - The file adds each column only if it's missing, so it's still safe to run again.
+- **`location` now holds only the area** (`"Embakasi"`, not `"Embakasi, Nairobi"`). The county has its own column, so storing it twice was redundant. `schema.sql` fills `county` from the old text first, then trims `location`. Artisan sign-up asks for the area and picks the county from a list of the 47 counties.
 - **New table `verifications`:** one certificate per verified artisan (issuing body, certificate id, expiry date).
   - Why a separate table: only verified artisans have a certificate. That's a separate fact about an artisan, and the contract sends it as a separate object.
 - **New table `availability_blocks`:** Week 6 fills it. Week 5 only reads it, to work out `availableToday`.
@@ -37,7 +38,7 @@ mysql -u root < schema.sql
 **Mapping** means converting a database row into the shape the contract promises before sending it.
 
 ```js
-// database row: { skill: 'Plumber', verified: 1, location: 'Embakasi, Nairobi', county: 'Nairobi' }
+// database row: { skill: 'Plumber', verified: 1, location: 'Embakasi', county: 'Nairobi' }
 function toArtisanSummary(row) {
   return {
     trade: TRADES[row.skill],          // 'Plumber' -> 'plumbing'

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../lib/authContext';
+import { COUNTIES } from '../data/counties';
 
 // Same trades as the listings filter.
 const SKILLS = ['Plumber', 'Electrician', 'Carpenter', 'Painter'];
@@ -14,6 +15,7 @@ export default function SignInPage() {
   const [phone, setPhone] = useState('');
   const [skill, setSkill] = useState('');
   const [workLocation, setWorkLocation] = useState('');
+  const [county, setCounty] = useState('');
   const [price, setPrice] = useState('');
   const [bio, setBio] = useState('');
   const [error, setError] = useState(null);
@@ -39,7 +41,8 @@ export default function SignInPage() {
     if (isArtisan && !skill) return 'Please choose your skill.';
     // Meditrac books artisans by phone, so the API contract requires a number.
     if (isArtisan && !phone.trim()) return 'Please enter your phone number.';
-    if (isArtisan && !workLocation.trim()) return 'Please enter where you work.';
+    if (isArtisan && !workLocation.trim()) return 'Please enter the area you work in.';
+    if (isArtisan && !county) return 'Please choose your county.';
     return null;
   }
 
@@ -62,6 +65,7 @@ export default function SignInPage() {
           details.phone = phone;
         } else {
           details.skill = skill;
+          details.county = county;
           details.phone = phone;
           details.price = price;
           details.bio = bio;
@@ -82,12 +86,12 @@ export default function SignInPage() {
   const locationField = (
     <div className="field">
       <label htmlFor="work-location">
-        {isArtisan ? 'Location' : 'Location (optional)'}
+        {isArtisan ? 'Area' : 'Location (optional)'}
       </label>
       <input
         id="work-location"
         type="text"
-        placeholder="e.g. Westlands, Nairobi"
+        placeholder="e.g. Westlands"
         maxLength={100}
         value={workLocation}
         onChange={e => setWorkLocation(e.target.value)}
@@ -201,6 +205,16 @@ export default function SignInPage() {
                   </select>
                 </div>
                 {locationField}
+              </div>
+
+              <div className="field">
+                <label htmlFor="county">County</label>
+                <select id="county" value={county} onChange={e => setCounty(e.target.value)}>
+                  <option value="">Choose…</option>
+                  {COUNTIES.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="field">

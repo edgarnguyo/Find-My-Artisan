@@ -26,7 +26,8 @@ function ListingsPage() {
     const matchesSearch =
       worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       worker.skill.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      worker.location.toLowerCase().includes(searchTerm.toLowerCase());
+      worker.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      worker.county.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesSkill =
       activeFilter === "All" ||

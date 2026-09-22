@@ -15,7 +15,7 @@ export default function LocationsGrid() {
   const locations = CITIES.map((city) => ({
     ...city,
     count: (workers ?? []).filter((worker) =>
-      worker.location.includes(city.name)
+      worker.county === city.name
     ).length,
   }));
 

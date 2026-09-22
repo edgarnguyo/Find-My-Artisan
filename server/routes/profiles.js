@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 
 // Every column except email and password, which must never be sent to the browser.
-const COLUMNS = `id, name, skill, verified, price, photo, location, bio, rating,
+const COLUMNS = `id, name, skill, verified, price, photo, location, county, bio, rating,
   job_success, hours_per_week, total_earnings, jobs_completed, hours_worked`;
 
 // Website-only routes, not part of openapi.yaml: the profile pages need photos,
@@ -51,10 +51,10 @@ router.get('/:id', async (req, res) => {
 
 // POST a new artisan (the sign-up form, "An artisan")
 router.post('/', async (req, res) => {
-  const { name, email, password, skill, location, phone, price, bio } = req.body;
+  const { name, email, password, skill, location, county, phone, price, bio } = req.body;
 
-  if (!name || !email || !password || !skill || !location || !phone) {
-    return res.status(400).json({ error: 'Name, email, password, skill, location and phone are required' });
+  if (!name || !email || !password || !skill || !location || !county || !phone) {
+    return res.status(400).json({ error: 'Name, email, password, skill, area, county and phone are required' });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
@@ -73,8 +73,8 @@ router.post('/', async (req, res) => {
     // The ? placeholders keep the typed values separate from the SQL,
     // so nothing typed into the form can run as SQL.
     const [result] = await db.query(
-      'INSERT INTO artisans (name, email, password, skill, location, phone, price, bio) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, email, password, skill, location, phone, price || null, bio || null]
+      'INSERT INTO artisans (name, email, password, skill, location, county, phone, price, bio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, email, password, skill, location, county, phone, price || null, bio || null]
     );
 
     res.status(201).json({ id: result.insertId, name, email, role: 'artisan' });

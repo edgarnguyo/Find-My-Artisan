@@ -42,8 +42,7 @@ function toArtisanSummary(row) {
     id: row.id,
     name: row.name,
     trade: TRADES[row.skill] || row.skill.toLowerCase(),
-    // Artisans who signed up after the county column was added only have location.
-    county: row.county || row.location.split(',').pop().trim(),
+    county: row.county,
     // MySQL sends BOOLEAN as 1/0; the contract says true/false.
     verified: Boolean(row.verified),
     availableToday: Boolean(row.available_today),

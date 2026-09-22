@@ -14,6 +14,7 @@ function toWorker(row) {
     price: row.price,
     photo: row.photo,
     location: row.location,
+    county: row.county,
     bio: row.bio,
     // DECIMAL arrives as a string ("4.8"), so convert it to a number.
     rating: row.rating === null ? null : Number(row.rating),
