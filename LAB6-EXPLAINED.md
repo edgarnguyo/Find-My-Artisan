@@ -96,3 +96,37 @@ Recorded in `CONTRACT_DEVIATIONS.md`, #5–#8:
 - POST gained a 404;
 - PATCH gained a 400;
 - the "no write endpoints" sentence in the description was fixed.
+
+---
+
+## 8. Addition: `POST /api/artisans/{id}/reviews` (the write Meditrac uses)
+
+**Why it was added:** the three availability writes are for your artisans only. This gives
+Meditrac a write of its own that fits the "consume, don't interconnect" feedback: it's
+feedback about an artisan, not a booking.
+
+**Validation, in the same three steps:**
+
+1. **Present?** `author` and `rating` are required.
+2. **Right type?**
+   - `author` must be a string.
+   - `rating` must be a whole number. `Number.isInteger("5")` is `false`, so the string `"5"` is rejected, and so is `4.5`.
+   - `comment`, if sent, must be a string.
+3. **Usable?**
+   - `author` can't be only spaces, and is at most 100 characters (the column is `VARCHAR(100)`).
+   - `rating` must be from 1 to 5.
+   - `comment` is at most 1000 characters.
+
+After validation, the artisan must exist (404). Then the review is saved and returned with 201.
+
+| Request | Expected | Got |
+|---|---|---|
+| Missing `author` | 400 | 400 |
+| `author: "   "` | 400 | 400 |
+| `rating: "5"` / `4.5` / `6` | 400 | 400 |
+| `comment: 42` | 400 | 400 |
+| Artisan 999 | 404 | 404 |
+| Rows added after the bad requests | 0 | 0 |
+| Valid, with and without a comment | 201 (comment `null` when left out) | ✓, and the review shows on `/api/profiles/3` |
+
+It's recorded in `CONTRACT_DEVIATIONS.md` as #9. Meditrac gets `CHANGES_FOR_MEDITRAC.md` with the new `openapi.yaml`.
