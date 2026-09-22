@@ -3,12 +3,12 @@ info:
   title: Find My Artisan API
   version: 1.0.0
   description: >
-    Read-only access to artisan profiles. Consumed by Meditrac (Team 2) to
-    find and vet artisans, then contact them directly for maintenance work
-    at their pharmacies — the booking itself is a phone call using the
-    contact details this API exposes, not an API call. This contract has
-    no write endpoints: Meditrac never creates, edits, or holds a booking
-    record on our side.
+    Access to artisan profiles. Meditrac (Team 2) uses only the two GET
+    endpoints, to find and vet artisans, then contacts them directly for
+    maintenance work at their pharmacies — the booking itself is a phone
+    call using the contact details this API exposes, not an API call.
+    Meditrac never creates, edits, or holds a booking record on our side.
+    The three availability endpoints are used only by our own artisans.
 
 servers:
   - url: http://localhost:5001/api
@@ -158,6 +158,15 @@ paths:
               example:
                 code: "invalid_body"
                 message: "end must be after start."
+        '404':
+          description: No artisan exists with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No artisan with id 999."
 
   /artisans/{id}/availability/{blockId}:
     patch:
@@ -201,6 +210,15 @@ paths:
                 start: "2026-09-14T09:00:00Z"
                 end: "2026-09-14T13:00:00Z"
                 createdAt: "2026-09-07T10:15:00Z"
+        '400':
+          description: No fields sent, a value is not a date-time, end is not after start, or the new window overlaps another block.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_body"
+                message: "end must be after start."
         '404':
           description: No block exists with this id for this artisan.
           content:

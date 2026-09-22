@@ -62,6 +62,15 @@ app.use((req, res, next) => {
   res.sendFile('index.html', { root: reactBuild });
 });
 
+// express.json() throws when the body isn't valid JSON. Send the contract's
+// Error shape instead of Express's default HTML error page.
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ code: 'invalid_body', message: 'Request body must be valid JSON.' });
+  }
+  next(err);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Website:       http://localhost:${PORT}`);
