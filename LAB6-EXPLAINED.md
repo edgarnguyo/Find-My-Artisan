@@ -90,12 +90,12 @@ handler at the bottom of `server/index.js` turns that into the contract's
 
 ## 7. Contract changes
 
-Recorded in `CONTRACT_DEVIATIONS.md`, #5–#8:
+Recorded in `CONTRACT_DEVIATIONS.md`, #4–#5:
 
-- block ids are integers;
-- POST gained a 404;
-- PATCH gained a 400;
-- the "no write endpoints" sentence in the description was fixed.
+- block ids are integers (#4);
+- POST gained a 404 and PATCH gained a 400 (#5).
+
+The "no write endpoints" sentence in the description was removed with the reviews endpoint (#6).
 
 ---
 
@@ -129,4 +129,4 @@ After validation, the artisan must exist (404). Then the review is saved and ret
 | Rows added after the bad requests | 0 | 0 |
 | Valid, with and without a comment | 201 (comment `null` when left out) | ✓, and the review shows on `/profiles/3` |
 
-It's recorded in `CONTRACT_DEVIATIONS.md` as #9. Meditrac gets `CHANGES_FOR_MEDITRAC.md` with the new `openapi.yaml`.
+It's recorded in `CONTRACT_DEVIATIONS.md` as #6. Meditrac gets `CHANGES_FOR_MEDITRAC.md` with the new `openapi.yaml`.

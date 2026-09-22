@@ -129,17 +129,15 @@ One section per week: the file each handout asks for, what it contains now, and 
 
 | # | Change |
 |---|---|
-| 1, 5 | ids are integers, not UUIDs |
-| 2 | Contract endpoints at `http://localhost:5001/artisans` (no `/api` prefix on any route); version 1.2.0 |
-| 3 | `availableToday` description fixed (later superseded by #12) |
-| 4 | Examples use real data |
-| 6 | POST availability can return 404 |
-| 7 | PATCH availability can return 400 |
-| 8 | Description no longer says "no write endpoints" |
-| 9 | New `POST /artisans/{id}/reviews`; version 1.1.0 |
-| 10 | `GET /artisans/{id}` returns `busy` (next 14 days); version 1.3.0 |
-| 11 | Every artisan has `area` (e.g. Embakasi); version 1.4.0 |
-| 12 | `availableToday` removed; `busy` on every artisan; version 2.0.0 |
+| 1, 4 | ids are integers, not UUIDs |
+| 2 | `availableToday` description fixed (superseded by #10) |
+| 3 | Examples use real data |
+| 5 | POST availability can return 404; PATCH can return 400 |
+| 6 | New `POST /artisans/{id}/reviews`; "no write endpoints" sentence removed; version 1.1.0 |
+| 7 | Endpoints at `http://localhost:5001/artisans`, no `/api` prefix anywhere; version 1.2.0 |
+| 8 | `GET /artisans/{id}` returns `busy` (next 14 days); version 1.3.0 |
+| 9 | Every artisan has `area` (e.g. Embakasi); version 1.4.0 |
+| 10 | `availableToday` removed; `busy` on every artisan; version 2.0.0 |
 
 **Open:** tell Meditrac about these changes directly. The handout requires it.
 
