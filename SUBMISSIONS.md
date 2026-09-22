@@ -66,7 +66,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 
 | Method | Path | For |
 |---|---|---|
-| GET | `/artisans?trade=&county=&availableToday=` | Meditrac: needs 1 and 4 |
+| GET | `/artisans?trade=&county=` | Meditrac: needs 1 and 4 (each artisan's `busy` bookings) |
 | GET | `/artisans/{id}` | Meditrac: needs 2 and 3 (phone + verification) |
 | POST | `/artisans/{id}/reviews` | Meditrac: need 3 (rate after a job) |
 | POST | `/artisans/{id}/availability` | Our artisans only |
@@ -77,7 +77,7 @@ One section per week: the file each handout asks for, what it contains now, and 
   - Points 1–3 were fixed at the time, then superseded by the redesign.
   - Point 4 (versioning) is marked "not applied", since `/v1` was removed at your request.
 - **"Design pivot" section:** booking happens by phone, so Meditrac's side is read-only (the lecturer's feedback).
-- **Availability section:** explains why `availableToday` is computed from blocks.
+- **Availability:** `busy` lists each artisan's bookings (date and time) for the next 14 days, read from the blocks.
 
 ---
 
@@ -131,7 +131,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 |---|---|
 | 1, 5 | ids are integers, not UUIDs |
 | 2 | Contract endpoints at `http://localhost:5001/artisans` (no `/api` prefix on any route); version 1.2.0 |
-| 3 | `availableToday` description fixed; only true/false accepted |
+| 3 | `availableToday` description fixed (later superseded by #12) |
 | 4 | Examples use real data |
 | 6 | POST availability can return 404 |
 | 7 | PATCH availability can return 400 |
@@ -139,6 +139,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 | 9 | New `POST /artisans/{id}/reviews`; version 1.1.0 |
 | 10 | `GET /artisans/{id}` returns `busy` (next 14 days); version 1.3.0 |
 | 11 | Every artisan has `area` (e.g. Embakasi); version 1.4.0 |
+| 12 | `availableToday` removed; `busy` on every artisan; version 2.0.0 |
 
 **Open:** tell Meditrac about these changes directly. The handout requires it.
 
@@ -156,5 +157,5 @@ One section per week: the file each handout asks for, what it contains now, and 
 - [ ] A teammate pushes `CONTRIBUTORS.md`
 - [ ] Write `CONTRACT_QUESTIONS.md` once you have Team 13's contract
 - [ ] `openapi.yaml` shows zero errors in editor.swagger.io
-- [ ] Send Meditrac `openapi.yaml` (v1.4.0) and `CHANGES_FOR_MEDITRAC.md`
+- [ ] Send Meditrac `openapi.yaml` (v2.0.0) and `CHANGES_FOR_MEDITRAC.md`
 - [ ] Merge this branch to `main` and push (the handouts grade what's on GitHub)

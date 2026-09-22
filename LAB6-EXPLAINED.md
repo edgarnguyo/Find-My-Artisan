@@ -60,7 +60,7 @@ toDbTime('2026-10-01T09:00:00+03:00')   // '2026-10-01 06:00:00'
 fromDbTime('2026-10-01 06:00:00')       // '2026-10-01T06:00:00Z'  (contract format)
 ```
 
-This is also why `availableToday` compares against `UTC_TIMESTAMP()` and not `NOW()`.
+This is also why the `busy` query compares against `UTC_TIMESTAMP()` and not `NOW()`.
 
 ## 5. Bad JSON
 
@@ -80,13 +80,13 @@ handler at the bottom of `server/index.js` turns that into the contract's
 | POST artisan 999 | 404 | 404 |
 | POST body `not json` | 400 | 400 |
 | Rows in the table after all the bad requests | 0 | 0 |
-| POST valid window covering now | 201, then `GET /artisans/3` shows `availableToday: false` | ✓ |
+| POST valid window | 201, then `GET /artisans/3` lists it in `busy` | ✓ |
 | POST the same window again | 400 overlap | 400 |
 | PATCH `{}` | 400 | 400 |
 | PATCH end moved before start | 400 | 400 |
 | PATCH block 999 / someone else's block | 404 | 404 |
 | PATCH valid, sent twice | 200, same result both times | ✓ |
-| DELETE, then DELETE again | 204, then 404 | ✓, and `availableToday` went back to `true` |
+| DELETE, then DELETE again | 204, then 404 | ✓, and it disappeared from `busy` |
 
 ## 7. Contract changes
 

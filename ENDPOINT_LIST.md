@@ -4,7 +4,7 @@ Ring: Team 13 (upstream, materials) → **Team 1 (us, Find My Artisan)** → Tea
 
 | Method | Path                                                              | Purpose                                                                                             | Maps to Need                                                                                                     |
 | ------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| GET    | `/artisans?trade=plumbing&county=Nairobi&availableToday=true`   | Return a list of artisans, filterable by trade, location, and same-day availability                  | #1 "source artisans" and #4 "schedule maintenance jobs" — the `availableToday` filter is how Meditrac finds someone now, without us running a scheduling system |
+| GET    | `/artisans?trade=plumbing&county=Nairobi`                         | Return a list of artisans, filterable by trade and county, each with when they're booked                | #1 "source artisans" and #4 "schedule maintenance jobs" — each artisan's `busy` list (next 14 days) shows when they're free, without us running a scheduling system |
 | GET    | `/artisans/{id}`                                                 | Return one artisan's full profile: trades, rate, verification status, and contact phone number       | #2 "book artisans" and #3 "vet artisans" — we hand over verification and contact details; the booking itself is a phone call, not an API call |
 | POST   | `/artisans/{id}/reviews`                                         | Meditrac rates an artisan (1–5, optional comment) after a phone-booked job is done                     | #3 "vet artisans" — reviews from real pharmacy jobs inform later vetting; feedback only, no booking record is created |
 | POST   | `/artisans/{id}/availability`                                    | Artisan marks themselves unavailable for a time window, once a job is agreed by phone                 | Artisan-only — not part of Meditrac's contract; supports the `availableToday` field above                       |
@@ -29,8 +29,8 @@ verbs are gone along with the booking resource.*
 
 **3. "`availability` is an abstract noun — represent it as `slots` or `schedules`."**
 Fixed at the time, to `slots`. *Superseded: no slots endpoint remains; availability is now the
-`availableToday` field on the artisan resource itself, which is a boolean state, not a noun that
-needed pluralizing.*
+`busy` field on the artisan resource itself (the times it's booked), not a separate resource
+that needed a plural noun.*
 
 **4. "There is also the issue of versioning."**
 Not applied: paths carry no version prefix. The contract's `info.version: 1.0.0` records the
@@ -49,10 +49,9 @@ concretely:
   create, read, or cancel.
 - **Two fields carry weight that used to belong to a whole booking subsystem.** `phone` (new, on
   the single-artisan response only, not the list) is what makes "book artisans" possible at all
-  without a POST. `availableToday` (new, a plain boolean the artisan sets on their own profile) is
-  what makes "schedule maintenance jobs" possible without a slots/scheduling engine — it answers
-  "who's free right now," which is the only kind of scheduling question a same-day equipment
-  failure actually asks.
+  without a POST. `busy` (new, the times the artisan is booked over the next 14 days) is
+  what makes "schedule maintenance jobs" possible without a slots/scheduling engine — any time
+  not listed is free, so Meditrac can see when someone is available and phone them.
 - **This is the "genuinely everything is read-only" case the Week 3 handout names directly**
   ("if genuinely everything is read-only, flag this to your instructor rather than inventing a
   fake write endpoint just to hit the minimum"). We are flagging it here rather than padding the
@@ -74,9 +73,8 @@ read as Meditrac.
 
 ## Artisan-side availability management — NOT part of Meditrac's contract
 
-These three exist because `availableToday` needs a real source of truth instead of a boolean
-someone has to remember to flip. It is now **computed**: true unless the artisan has a block
-covering right now. The artisan calls POST right after agreeing a job on the phone; nobody at
+These three exist because `busy` needs a real source of truth. Each block is one booked window;
+`busy` lists the ones in the next 14 days. The artisan calls POST right after agreeing a job on the phone; nobody at
 Meditrac ever calls any of these three — they're in the table above for a complete picture of
 our API surface, but Meditrac's actual contract is the two GET rows only.
 
@@ -84,12 +82,13 @@ PATCH and DELETE cover different cases, not the same one twice: PATCH means the 
 happening but the time moved; DELETE means the job isn't happening at all, so the block itself
 should never have existed.
 
-## Busy windows for the next 14 days (added in Week 6)
+## Availability is just `busy` (Week 6)
 
-`GET /artisans/{id}` also returns `busy`: the windows the artisan is booked over the next 14
-days. `availableToday` alone only answers "free right now?", which covers a same-day failure but
-not maintenance planned a week ahead (need #4). It's read from the same availability blocks, so
-no new endpoint was needed.
+Every artisan, in the list and on the profile, has `busy`: the windows they're booked over the
+next 14 days. Any time not listed is free. An earlier `availableToday` true/false (and its
+filter) only answered "free this minute?", which isn't a useful question for planning a job, so
+it was removed in favour of this one list. It's read from the availability blocks, so no new
+endpoint was needed.
 
 ## Reviews — the one write Meditrac uses (added in Week 6)
 

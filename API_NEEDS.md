@@ -34,7 +34,7 @@ Repo: https://github.com/edgarnguyo/Find-My-Artisan.git
 | 1. Source artisans | Yes — artisan name, skills, location | |
 | 2. Book artisans | Partly — job information exists, but no contact detail for the artisan | Gap: the audit stores no artisan phone number. Added to the contract as `phone` |
 | 3. Vet artisans | No | Gap: the audit stores no verification or certificate data. Added to the contract as `verified` + `verification` |
-| 4. Schedule artisans | Yes — artisan availability | Kept simple as `availableToday` |
+| 4. Schedule artisans | Yes — artisan availability | Kept simple as `busy`: when the artisan is booked over the next 14 days |
 
 ## Reflection
 

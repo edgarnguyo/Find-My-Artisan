@@ -23,21 +23,34 @@ const COUNTIES = [
   'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot',
 ];
 
-// available_today is 1 unless a block in availability_blocks covers right now.
-// UTC_TIMESTAMP() because the blocks are stored in UTC.
 const SELECT_ARTISANS = `
   SELECT a.id, a.name, a.skill, a.county, a.location, a.verified, a.phone, a.hourly_rate_kes,
-         v.issuing_body, v.certificate_id, v.expires_on,
-         NOT EXISTS (
-           SELECT 1 FROM availability_blocks b
-           WHERE b.artisan_id = a.id
-             AND b.start_at <= UTC_TIMESTAMP() AND b.end_at > UTC_TIMESTAMP()
-         ) AS available_today
+         v.issuing_body, v.certificate_id, v.expires_on
   FROM artisans a
   LEFT JOIN verifications v ON v.artisan_id = a.id`;
 
+// Each artisan's booked windows from now to 14 days ahead, as { artisanId: [...] }.
+// A window already under way still counts, hence end_at > now, not start_at > now.
+// UTC_TIMESTAMP() because the blocks are stored in UTC.
+async function busyByArtisan(artisanId = null) {
+  const [rows] = await db.query(
+    `SELECT artisan_id, start_at, end_at FROM availability_blocks
+     WHERE end_at > UTC_TIMESTAMP()
+       AND start_at < UTC_TIMESTAMP() + INTERVAL 14 DAY
+       AND (? IS NULL OR artisan_id = ?)
+     ORDER BY start_at`,
+    [artisanId, artisanId]
+  );
+  const busy = {};
+  for (const r of rows) {
+    (busy[r.artisan_id] ??= []).push({ start: fromDbTime(r.start_at), end: fromDbTime(r.end_at) });
+  }
+  return busy;
+}
+
 // The mapping step: database row in, contract shape out (ArtisanSummary).
-function toArtisanSummary(row) {
+// busy is this artisan's list from busyByArtisan(); an empty list means free throughout.
+function toArtisanSummary(row, busy = []) {
   return {
     id: row.id,
     name: row.name,
@@ -47,13 +60,13 @@ function toArtisanSummary(row) {
     county: row.county,
     // MySQL sends BOOLEAN as 1/0; the contract says true/false.
     verified: Boolean(row.verified),
-    availableToday: Boolean(row.available_today),
+    busy,
   };
 }
 
 // Full profile (Artisan): the summary plus phone, rate and certificate.
-function toArtisan(row) {
-  const artisan = { ...toArtisanSummary(row), phone: row.phone };
+function toArtisan(row, busy = []) {
+  const artisan = { ...toArtisanSummary(row, busy), phone: row.phone };
   if (row.hourly_rate_kes !== null) artisan.hourlyRateKes = Number(row.hourly_rate_kes);
   // The contract says verification is present only when verified is true.
   if (artisan.verified && row.certificate_id) {
@@ -70,34 +83,29 @@ function sendError(res, status, code, message) {
   res.status(status).json({ code, message });
 }
 
-// GET /artisans?trade=plumbing&county=Nairobi&availableToday=true
+// GET /artisans?trade=plumbing&county=Nairobi
 router.get('/', async (req, res) => {
-  const { trade, county, availableToday } = req.query;
+  const { trade, county } = req.query;
 
   // ?county=a&county=b arrives as an array; each filter takes one value.
-  if ([trade, county, availableToday].some(v => v !== undefined && typeof v !== 'string')) {
+  if ([trade, county].some(v => v !== undefined && typeof v !== 'string')) {
     return sendError(res, 400, 'invalid_query', 'Each query parameter can be given only once.');
   }
 
   if (county !== undefined && !COUNTIES.some(c => c.toLowerCase() === county.toLowerCase())) {
     return sendError(res, 400, 'invalid_query', 'county must be a known Kenyan county name.');
   }
-  if (availableToday !== undefined && availableToday !== 'true' && availableToday !== 'false') {
-    return sendError(res, 400, 'invalid_query', 'availableToday must be true or false.');
-  }
 
   try {
     const [rows] = await db.query(`${SELECT_ARTISANS} ORDER BY a.id`);
-    let artisans = rows.map(toArtisanSummary);
+    const busy = await busyByArtisan();
+    let artisans = rows.map(row => toArtisanSummary(row, busy[row.id]));
 
     if (trade !== undefined) {
       artisans = artisans.filter(a => a.trade === trade.toLowerCase());
     }
     if (county !== undefined) {
       artisans = artisans.filter(a => a.county.toLowerCase() === county.toLowerCase());
-    }
-    if (availableToday !== undefined) {
-      artisans = artisans.filter(a => a.availableToday === (availableToday === 'true'));
     }
 
     res.status(200).json(artisans);
@@ -118,18 +126,8 @@ router.get('/:id', async (req, res) => {
     if (rows.length === 0) {
       return sendError(res, 404, 'not_found', `No artisan with id ${req.params.id}.`);
     }
-    // Busy windows from now to 14 days ahead. A window that started earlier but
-    // hasn't ended yet still counts, hence end_at > now rather than start_at > now.
-    const [blocks] = await db.query(
-      `SELECT start_at, end_at FROM availability_blocks
-       WHERE artisan_id = ? AND end_at > UTC_TIMESTAMP()
-         AND start_at < UTC_TIMESTAMP() + INTERVAL 14 DAY
-       ORDER BY start_at`,
-      [req.params.id]
-    );
-    const artisan = toArtisan(rows[0]);
-    artisan.busy = blocks.map(b => ({ start: fromDbTime(b.start_at), end: fromDbTime(b.end_at) }));
-    res.status(200).json(artisan);
+    const busy = await busyByArtisan(rows[0].id);
+    res.status(200).json(toArtisan(rows[0], busy[rows[0].id]));
   } catch (err) {
     console.error(err);
     sendError(res, 500, 'server_error', 'Failed to fetch artisan.');

@@ -14,7 +14,7 @@ The contract and the code described two different APIs:
 | `county: "Nairobi"` | `location: "Westlands, Nairobi"` |
 | `verified: true` | `verified: 1` (MySQL has no true/false type) |
 | `phone`, `hourlyRateKes`, `verification{…}` | not stored at all |
-| `availableToday` | not stored at all |
+| `availableToday` (later replaced by `busy`) | not stored at all |
 | error `{ code, message }` | error `{ error }` |
 
 ## 2. Database changes (`server/schema.sql`, bottom of the file)
@@ -25,7 +25,7 @@ The contract and the code described two different APIs:
 - **`location` now holds only the area** (`"Embakasi"`, not `"Embakasi, Nairobi"`). The county has its own column, so storing it twice was redundant. `schema.sql` fills `county` from the old text first, then trims `location`. Artisan sign-up asks for the area and picks the county from a list of the 47 counties.
 - **New table `verifications`:** one certificate per verified artisan (issuing body, certificate id, expiry date).
   - Why a separate table: only verified artisans have a certificate. That's a separate fact about an artisan, and the contract sends it as a separate object.
-- **New table `availability_blocks`:** Week 6 fills it. Week 5 only reads it, to work out `availableToday`.
+- **New table `availability_blocks`:** Week 6 fills it. Week 5 only reads it, to build each artisan's `busy` list.
 
 Apply the changes by running this from `server/`:
 
@@ -45,7 +45,7 @@ function toArtisanSummary(row) {
     area: row.location,                 // 'Embakasi' (added later)
     county: row.county,                 // 'Nairobi'
     verified: Boolean(row.verified),    // 1 -> true
-    availableToday: Boolean(row.available_today),
+    busy,                               // [{ start, end }, ...] next 14 days
     ...
   };
 }
@@ -59,15 +59,7 @@ Two type traps the lab warns about, and the fix used for each:
 - **Numbers:** MySQL sends `DECIMAL` values as text (`"900"`). `Number(...)` turns them into a real number.
 - **Dates:** `db.js` has `dateStrings: true`, so `expires_on` comes out as `"2027-03-01"` and not as a JavaScript Date.
 
-**`availableToday` is computed, not stored.** The SQL asks whether any block covers the current time:
-
-```sql
-NOT EXISTS (SELECT 1 FROM availability_blocks b
-            WHERE b.artisan_id = a.id
-              AND b.start_at <= UTC_TIMESTAMP() AND b.end_at > UTC_TIMESTAMP())
-```
-
-**`busy` (added later) looks ahead 14 days.** A block is listed if it hasn't ended yet and starts within 14 days:
+**Availability is `busy`: the date and time of each booking over the next 14 days.** Any time not listed is free. (An earlier `availableToday` true/false only said "free this minute?", so it was replaced; deviation #12.) A block is listed if it hasn't ended yet and starts within 14 days:
 
 ```sql
 WHERE artisan_id = ? AND end_at > UTC_TIMESTAMP()
@@ -82,7 +74,6 @@ WHERE artisan_id = ? AND end_at > UTC_TIMESTAMP()
 |---|---|---|
 | `GET /artisans` | 200 + list | Success. An empty list is still a 200, because "no matches" isn't an error |
 | `GET /artisans?county=Atlantis` | 400 | The contract says an invalid county gets 400 |
-| `GET /artisans?availableToday=yes` | 400 | Only `true` / `false` are valid |
 | `GET /artisans/1` | 200 + profile | Success |
 | `GET /artisans/999` or `/5abc` | 404 | No artisan with that id. `5abc` is checked explicitly because MySQL would read it as `5` |
 
@@ -105,7 +96,7 @@ Recorded in `CONTRACT_DEVIATIONS.md`, #1–#4:
 
 - ids are integers, not UUIDs;
 - the endpoints sit at `/artisans` on `http://localhost:5001`, with no `/api` prefix (#2);
-- the `availableToday` description was corrected;
+- `availableToday` was later replaced by `busy` (#12);
 - the examples now use real data.
 
 Tell Meditrac about each of these.
