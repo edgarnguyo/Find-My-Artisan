@@ -93,7 +93,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 - All 6 endpoints (reviews added in Week 6, version 1.1.0).
 - **Schemas:** `ArtisanSummary`, `Artisan` (adds `phone`, `hourlyRateKes`, `verification`), `AvailabilityBlockCreate`, `AvailabilityBlockUpdate`, `AvailabilityBlock`, and `Error { code, message }`.
 - Examples are real rows from your database.
-- **Server:** `http://localhost:5001/api`.
+- **Server:** `http://localhost:5001`.
 - It parses and renders in Swagger UI at `/docs`.
 
 **Open:**
@@ -130,7 +130,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 | # | Change |
 |---|---|
 | 1, 5 | ids are integers, not UUIDs |
-| 2 | Server URL has `/api` |
+| 2 | Contract endpoints at `http://localhost:5001/artisans` (no `/api`); version 1.2.0 |
 | 3 | `availableToday` description fixed; only true/false accepted |
 | 4 | Examples use real data |
 | 6 | POST availability can return 404 |

@@ -14,14 +14,14 @@
             "type": "editor-browser",
             "request": "launch",
             "name": "Artisans page (React)",
-            "url": "http://localhost:5001/artisans",
+            "url": "http://localhost:5001/artisans-table",
             "webRoot": "${workspaceFolder}/react-app"
         },
         {
             "type": "editor-browser",
             "request": "launch",
             "name": "Artisans JSON (API)",
-            "url": "http://localhost:5001/api/artisans"
+            "url": "http://localhost:5001/artisans"
         },
         {
             "type": "editor-browser",

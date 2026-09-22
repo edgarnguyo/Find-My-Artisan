@@ -69,16 +69,17 @@ NOT EXISTS (SELECT 1 FROM availability_blocks b
 
 | Request | Status | Why |
 |---|---|---|
-| `GET /api/artisans` | 200 + list | Success. An empty list is still a 200, because "no matches" isn't an error |
-| `GET /api/artisans?county=Atlantis` | 400 | The contract says an invalid county gets 400 |
-| `GET /api/artisans?availableToday=yes` | 400 | Only `true` / `false` are valid |
-| `GET /api/artisans/1` | 200 + profile | Success |
-| `GET /api/artisans/999` or `/5abc` | 404 | No artisan with that id. `5abc` is checked explicitly because MySQL would read it as `5` |
+| `GET /artisans` | 200 + list | Success. An empty list is still a 200, because "no matches" isn't an error |
+| `GET /artisans?county=Atlantis` | 400 | The contract says an invalid county gets 400 |
+| `GET /artisans?availableToday=yes` | 400 | Only `true` / `false` are valid |
+| `GET /artisans/1` | 200 + profile | Success |
+| `GET /artisans/999` or `/5abc` | 404 | No artisan with that id. `5abc` is checked explicitly because MySQL would read it as `5` |
 
-## 5. Option A: one API at `/api/artisans`
+## 5. Option A: one API at `/artisans`
 
-- `/api/artisans` now follows the contract exactly. The lab says to send no extra fields, so it has no photos, bios or reviews.
+- `/artisans` now follows the contract exactly. The lab says to send no extra fields, so it has no photos, bios or reviews.
 - The website still needs those extras. They moved to a **website-only** route, `/api/profiles`, which is the old code renamed. Artisan sign-up moved to `POST /api/profiles` too.
+- The contract's paths start at `/artisans`, so Express mounts the router at `/artisans`, not `/api/artisans`. The React demo table that used that address moved to `/artisans-table`. Website-only routes (`/api/profiles`, `/api/clients`, `/api/login`, `/api/bookings`) keep `/api`, because they aren't in the contract.
 - Artisan sign-up now asks for a phone number, because the contract marks `phone` as required.
 
 ## 6. Verifying: Swagger UI at http://localhost:5001/docs
@@ -92,7 +93,7 @@ further down the same page, field by field.
 Recorded in `CONTRACT_DEVIATIONS.md`, #1–#4:
 
 - ids are integers, not UUIDs;
-- the server URL includes `/api`;
+- the endpoints sit at `/artisans` on `http://localhost:5001`, with no `/api` prefix (#2);
 - the `availableToday` description was corrected;
 - the examples now use real data.
 

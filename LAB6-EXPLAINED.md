@@ -8,9 +8,9 @@ All three are artisan-only; Meditrac never calls them.
 
 | Endpoint | What it does | Success |
 |---|---|---|
-| `POST /api/artisans/{id}/availability` | Artisan agreed a job by phone: mark them busy from `start` to `end` | 201 + the new block |
-| `PATCH /api/artisans/{id}/availability/{blockId}` | The job's time moved: change `start` and/or `end` | 200 + the updated block |
-| `DELETE /api/artisans/{id}/availability/{blockId}` | The job fell through: remove the block | 204, no body |
+| `POST /artisans/{id}/availability` | Artisan agreed a job by phone: mark them busy from `start` to `end` | 201 + the new block |
+| `PATCH /artisans/{id}/availability/{blockId}` | The job's time moved: change `start` and/or `end` | 200 + the updated block |
+| `DELETE /artisans/{id}/availability/{blockId}` | The job fell through: remove the block | 204, no body |
 
 ## 1. Validate first
 
@@ -99,7 +99,7 @@ Recorded in `CONTRACT_DEVIATIONS.md`, #5–#8:
 
 ---
 
-## 8. Addition: `POST /api/artisans/{id}/reviews` (the write Meditrac uses)
+## 8. Addition: `POST /artisans/{id}/reviews` (the write Meditrac uses)
 
 **Why it was added:** the three availability writes are for your artisans only. This gives
 Meditrac a write of its own that fits the "consume, don't interconnect" feedback: it's

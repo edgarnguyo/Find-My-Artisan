@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API
-  version: 1.1.0
+  version: 1.2.0
   description: >
     Access to artisan profiles. Meditrac (Team 2) uses the two GET
     endpoints to find and vet artisans, and POST /artisans/{id}/reviews to
@@ -12,9 +12,9 @@ info:
     The three availability endpoints are used only by our own artisans.
 
 servers:
-  - url: http://localhost:5001/api
+  - url: http://localhost:5001
     description: Local development server
-  - url: https://api.findmyartisan.app/api
+  - url: https://api.findmyartisan.app
 
 paths:
   /artisans:

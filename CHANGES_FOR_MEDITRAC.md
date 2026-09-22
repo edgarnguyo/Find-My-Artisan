@@ -2,7 +2,7 @@
 
 **To:** Meditrac (Team 2)
 **From:** Find My Artisan (Team 1)
-**Contract version:** 1.1.0 (attached `openapi.yaml`)
+**Contract version:** 1.2.0 (attached `openapi.yaml`). This replaces 1.0.0 and any 1.1.0 copy Meditrac may have received.
 
 Find My Artisan has built the API and, in doing so, changed the contract Meditrac
 received in Week 4. The changes below are listed in order of how likely they are to
@@ -13,8 +13,10 @@ affect Meditrac's code.
 1. **Artisan ids are whole numbers, not UUIDs.**
    - `id` in both GET responses is an `integer` (e.g. `3`), and `/artisans/{id}` takes an integer.
    - Find My Artisan's database numbers artisans 1, 2, 3…, so a UUID can't be supplied.
-2. **The base URL includes `/api`.**
-   - Local: `http://localhost:5001/api`, e.g. `GET http://localhost:5001/api/artisans?county=Nairobi`.
+2. **The base URL is the server itself, with no prefix.**
+   - Local: `http://localhost:5001`.
+   - The paths are exactly as written in the contract, e.g. `GET http://localhost:5001/artisans?county=Nairobi`.
+   - (Version 1.1.0 briefly used an `/api` prefix. That has been removed.)
 
 ## New
 
@@ -27,7 +29,7 @@ affect Meditrac's code.
    - The review appears on the artisan's public profile. It's feedback only; no booking is created.
 
    ```bash
-   curl -X POST http://localhost:5001/api/artisans/3/reviews \
+   curl -X POST http://localhost:5001/artisans/3/reviews \
      -H "Content-Type: application/json" \
      -d '{"author":"Meditrac — Westlands branch","rating":5,"comment":"Fixed the sink the same day."}'
    ```
