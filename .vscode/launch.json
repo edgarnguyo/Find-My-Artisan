@@ -34,7 +34,7 @@
             "type": "editor-browser",
             "request": "launch",
             "name": "Clients JSON (API)",
-            "url": "http://localhost:5001/api/clients"
+            "url": "http://localhost:5001/clients"
         }
     ],
     "compounds": [

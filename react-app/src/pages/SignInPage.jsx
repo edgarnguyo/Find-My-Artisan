@@ -24,7 +24,7 @@ export default function SignInPage() {
   const location = useLocation();
 
   // Send the user back where they were headed before we interrupted them.
-  const next = location.state?.from ?? '/bookings';
+  const next = location.state?.from ?? '/my-bookings';
   const isSignup = mode === 'signup';
   const isClient = isSignup && role === 'client';
   const isArtisan = isSignup && role === 'artisan';

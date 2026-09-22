@@ -121,16 +121,16 @@ One section per week: the file each handout asks for, what it contains now, and 
   - New tables: `verifications` and `availability_blocks`.
 - **`server/index.js`:**
   - Swagger UI at `/docs`.
-  - `/api/profiles`, a website-only route for photos and reviews.
+  - `/profiles`, a website-only route for photos and reviews.
   - JSON error handler.
-- **React:** reads from `/api/profiles`; artisan sign-up asks for a phone number.
+- **React:** reads from `/profiles`; artisan sign-up asks for a phone number.
 
 **`CONTRACT_DEVIATIONS.md`:**
 
 | # | Change |
 |---|---|
 | 1, 5 | ids are integers, not UUIDs |
-| 2 | Contract endpoints at `http://localhost:5001/artisans` (no `/api`); version 1.2.0 |
+| 2 | Contract endpoints at `http://localhost:5001/artisans` (no `/api` prefix on any route); version 1.2.0 |
 | 3 | `availableToday` description fixed; only true/false accepted |
 | 4 | Examples use real data |
 | 6 | POST availability can return 404 |

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// GET one client's bookings:  /api/bookings?clientId=5
+// GET one client's bookings:  /bookings?clientId=5
 router.get('/', async (req, res) => {
   const { clientId } = req.query;
   if (!clientId) {
@@ -48,7 +48,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PATCH cancel a booking:  /api/bookings/7/cancel  with  { clientId }
+// PATCH cancel a booking:  /bookings/7/cancel  with  { clientId }
 router.patch('/:id/cancel', async (req, res) => {
   const { clientId } = req.body;
 

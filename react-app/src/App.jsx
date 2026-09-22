@@ -22,7 +22,7 @@ export default function App() {
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/artisans-table" element={<ArtisansPage />} />
           <Route
-            path="/bookings"
+            path="/my-bookings"
             element={
               <RequireAuth>
                 <MyBookingsPage />

@@ -158,7 +158,7 @@ browser both the React site and the data:
 ```
 Browser  --http://localhost:5001-->  Express  --SQL-->  MySQL
            pages from react-app/dist
-           data from /api/...
+           data from /artisans, /clients…
 ```
 
 | Lab step | In this project |
@@ -169,14 +169,14 @@ Browser  --http://localhost:5001-->  Express  --SQL-->  MySQL
 | Step 5: route files | `server/routes/artisans.js`, `clients.js`, `bookings.js`, `login.js` |
 | Step 7: React component that fetches | `react-app/src/components/ArtisansTable.jsx` (page `/artisans-table`) |
 | Step 8: run both servers | One server: Express also sends the built React files |
-| Exercise 3: a second table and route | `clients` table, `/api/clients` |
-| Exercise 4: POST route + form that inserts | sign-up form → `POST /api/clients` or `POST /api/profiles`; booking form → `POST /api/bookings` |
+| Exercise 3: a second table and route | `clients` table, `/clients` |
+| Exercise 4: POST route + form that inserts | sign-up form → `POST /clients` or `POST /profiles`; booking form → `POST /bookings` |
 
 - **Every request goes through `src/api/`.** `workers.js` has artisans and
   bookings, `auth.js` has sign-up and sign-in. Add new calls there rather than
   calling `fetch` from a component.
 - **Sign-up** inserts a row into `clients` or `artisans`. **Sign-in**
-  (`POST /api/login`) looks the email up and checks the password, then returns
+  (`POST /login`) looks the email up and checks the password, then returns
   the user, which React keeps in `localStorage`.
 - Passwords are saved as typed, to keep the lab simple. Don't reuse a real
   password when testing.
@@ -188,7 +188,7 @@ Data still arrives asynchronously, so a lookup has loading, error, and
 not-found states:
 
 ```js
-import { fetchWorkerById } from '../api/workers';
+import { fetchWorkerById } from '../workers';
 import { useAsync } from '../hooks/useAsync';
 
 const { data: worker, error, loading } = useAsync(() => fetchWorkerById(id), [id]);
