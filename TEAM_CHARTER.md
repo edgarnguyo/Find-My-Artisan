@@ -60,3 +60,8 @@ Clients can rate an artisan's work.
 Team Responsibility
 
 The team will collaborate across frontend, backend, database, and coordination responsibilities to ensure that the Find My Artisan application correctly manages artisan information, user information, job information, bookings, portfolios, availability, and reviews while supporting the required user actions.
+4. Ring Position
+
+We consume from: Team 13 (second-hand materials)
+We are consumed by: Meditrac (Team 2)
+Ring: Team 13 → Team 1 (us, Find My Artisan) → Team 2 (Meditrac)
