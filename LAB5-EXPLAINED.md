@@ -42,6 +42,7 @@ mysql -u root < schema.sql
 function toArtisanSummary(row) {
   return {
     trade: TRADES[row.skill],          // 'Plumber' -> 'plumbing'
+    area: row.location,                 // 'Embakasi' (added later)
     county: row.county,                 // 'Nairobi'
     verified: Boolean(row.verified),    // 1 -> true
     availableToday: Boolean(row.available_today),

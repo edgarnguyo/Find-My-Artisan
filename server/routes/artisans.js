@@ -42,6 +42,8 @@ function toArtisanSummary(row) {
     id: row.id,
     name: row.name,
     trade: TRADES[row.skill] || row.skill.toLowerCase(),
+    // location holds only the area, e.g. 'Embakasi'.
+    area: row.location,
     county: row.county,
     // MySQL sends BOOLEAN as 1/0; the contract says true/false.
     verified: Boolean(row.verified),
