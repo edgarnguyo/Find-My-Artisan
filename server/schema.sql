@@ -274,6 +274,11 @@ PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 UPDATE artisans SET county = TRIM(SUBSTRING_INDEX(location, ',', -1)) WHERE county IS NULL;
 UPDATE artisans SET county = 'Kisumu' WHERE id = 15;
 
+-- location now holds only the area ("Embakasi"); the county has its own column.
+-- Runs after county is filled in above, so nothing is lost. Rows without a comma
+-- are already in the new format and are left alone.
+UPDATE artisans SET location = TRIM(SUBSTRING_INDEX(location, ',', 1)) WHERE location LIKE '%,%';
+
 -- Sample phone numbers and hourly rates for the 23 sample artisans.
 UPDATE artisans SET phone = CONCAT('+2547120000', LPAD(id, 2, '0')) WHERE id BETWEEN 1 AND 23 AND phone IS NULL;
 UPDATE artisans SET hourly_rate_kes = CASE skill

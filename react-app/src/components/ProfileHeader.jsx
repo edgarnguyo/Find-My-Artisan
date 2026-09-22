@@ -12,7 +12,7 @@ export default function ProfileHeader({ worker }) {
           )}
         </h1>
         <p className="profile-skill">{worker.skill}</p>
-        <p className="profile-location">📍 {worker.location}</p>
+        <p className="profile-location">📍 {worker.location}, {worker.county}</p>
 
         <div className="profile-header-meta">
           {/* Artisans who just signed up have no rating or job success yet (null). */}

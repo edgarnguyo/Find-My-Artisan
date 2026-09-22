@@ -26,7 +26,7 @@ function WorkerCard({ worker }) {
           <p className="worker-success">{worker.jobSuccess}% job success</p>
         )}
         <p className="worker-price">{worker.price}</p>
-        <p className="worker-location">{worker.location}</p>
+        <p className="worker-location">{worker.location}, {worker.county}</p>
         {worker.verified && (
           <p className="worker-verified">✓ Verified</p>
         )}
