@@ -69,3 +69,10 @@ The website already uses `/api/artisans` with the old field names. Without `/v1`
 
 - **Option A:** make `/api/artisans` return the contract shape and update the React app to read the new names. One API.
 - **Option B:** leave the website's routes alone and put the contract endpoints under another prefix. Less work, but two APIs for the same data.
+
+## Update (same day)
+
+Done: items 1, 2 (except the reflection, which the team has to write) and 5, plus Option A,
+Week 5 and Week 6. Still open: `CONTRIBUTORS.md` (a teammate pushes it), the API_NEEDS
+reflection, `CONTRACT_QUESTIONS.md` (needs Team 13's contract), and telling Meditrac about
+`CONTRACT_DEVIATIONS.md`.
