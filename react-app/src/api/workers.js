@@ -40,14 +40,14 @@ function toWorker(row) {
 
 /** All artisans, without their languages/history/reviews. */
 export async function fetchWorkers() {
-  const rows = await request('/api/artisans');
+  const rows = await request('/api/profiles');
   return rows.map(toWorker);
 }
 
 /** One artisan with everything attached, or null if that id does not exist. */
 export async function fetchWorkerById(id) {
   try {
-    return toWorker(await request(`/api/artisans/${id}`));
+    return toWorker(await request(`/api/profiles/${id}`));
   } catch (err) {
     if (err.status === 404) return null;
     throw err;

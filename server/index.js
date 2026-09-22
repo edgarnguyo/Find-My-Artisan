@@ -15,12 +15,23 @@ const reactBuild = path.join(__dirname, '..', 'react-app', 'dist');
 app.use(cors());
 app.use(express.json());
 
+// Swagger UI at /docs, built from openapi.yaml, for "Try it out" testing.
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yaml');
+const contract = YAML.parse(fs.readFileSync(path.join(__dirname, '..', 'openapi.yaml'), 'utf8'));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(contract));
+
 app.get('/api', (req, res) => {
   res.send('API is running');
 });
 
+// The API promised to Meditrac in openapi.yaml.
 const artisanRoutes = require('./routes/artisans');
 app.use('/api/artisans', artisanRoutes);
+
+// Website-only: the extra profile data (photos, reviews...) and artisan sign-up.
+const profileRoutes = require('./routes/profiles');
+app.use('/api/profiles', profileRoutes);
 
 const clientRoutes = require('./routes/clients');
 app.use('/api/clients', clientRoutes);
@@ -39,7 +50,7 @@ app.use(express.static(reactBuild));
 // reads the address and picks the page. So for any other GET, send index.html.
 // /api addresses are skipped, so a mistyped API URL still gets "Cannot GET".
 app.use((req, res, next) => {
-  if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
+  if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/docs')) return next();
 
   if (!fs.existsSync(path.join(reactBuild, 'index.html'))) {
     return res
@@ -55,4 +66,5 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Website:       http://localhost:${PORT}`);
   console.log(`Artisans JSON: http://localhost:${PORT}/api/artisans`);
+  console.log(`Swagger UI:    http://localhost:${PORT}/docs`);
 });
