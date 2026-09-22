@@ -59,7 +59,7 @@ Two type traps the lab warns about, and the fix used for each:
 - **Numbers:** MySQL sends `DECIMAL` values as text (`"900"`). `Number(...)` turns them into a real number.
 - **Dates:** `db.js` has `dateStrings: true`, so `expires_on` comes out as `"2027-03-01"` and not as a JavaScript Date.
 
-**Availability is `busy`: the date and time of each booking over the next 14 days.** Any time not listed is free. (An earlier `availableToday` true/false only said "free this minute?", so it was replaced; deviation #12.) A block is listed if it hasn't ended yet and starts within 14 days:
+**Availability is `busy`: the date and time of each booking over the next 14 days.** Any time not listed is free. (An earlier `availableToday` true/false only said "free this minute?", so it was replaced; deviation #10.) A block is listed if it hasn't ended yet and starts within 14 days:
 
 ```sql
 WHERE artisan_id = ? AND end_at > UTC_TIMESTAMP()
@@ -92,11 +92,11 @@ further down the same page, field by field.
 
 ## 7. Contract changes
 
-Recorded in `CONTRACT_DEVIATIONS.md`, #1–#4:
+Recorded in `CONTRACT_DEVIATIONS.md`:
 
-- ids are integers, not UUIDs;
-- the endpoints sit at `/artisans` on `http://localhost:5001`, with no `/api` prefix (#2);
-- `availableToday` was later replaced by `busy` (#12);
-- the examples now use real data.
+- ids are integers, not UUIDs (#1);
+- the `availableToday` description was corrected (#2), and it was later replaced by `busy` (#10);
+- the examples now use real data (#3);
+- later, the endpoints moved to `/artisans` on `http://localhost:5001`, with no `/api` prefix (#7).
 
 Tell Meditrac about each of these.

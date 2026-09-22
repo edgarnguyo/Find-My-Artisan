@@ -363,7 +363,7 @@ components:
               example: "+254712000001"
             hourlyRateKes:
               type: number
-              example: 800
+              example: 900
             verification:
               type: object
               description: Present only when verified is true.
