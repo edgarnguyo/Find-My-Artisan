@@ -81,8 +81,8 @@ on a **port** for **HTTP requests** and sends back a response.
 | Method | Used to | Example in this project |
 |---|---|---|
 | `GET` | Read data | `GET /artisans` |
-| `POST` | Create something new | `POST /api/clients` (sign-up) |
-| `PATCH` | Change part of something | `PATCH /api/bookings/7/cancel` |
+| `POST` | Create something new | `POST /clients` (sign-up) |
+| `PATCH` | Change part of something | `PATCH /bookings/7/cancel` |
 
 A route from `server/routes/artisans.js`:
 
@@ -219,14 +219,14 @@ Browser  ── GET / ─▶ │ express.static → react-app/dist/index.html + 
          ◀─ page ─── │                                                           │
                      │                                                           │  SQL   ┌────────────────┐
          ── GET ───▶ │ /artisans → routes/artisans.js → db.query(...)  ──────┼──────▶ │ MySQL :3306    │
-         /api/...    │                                                           │ ◀───── │ find_my_artisan│
+         /artisans…  │                                                           │ ◀───── │ find_my_artisan│
          ◀─ JSON ─── │ res.json(rows)                                            │  rows  └────────────────┘
                      └───────────────────────────────────────────────────────────┘
 ```
 
 How it does that, in `server/index.js`:
 
-1. The `/api/...` routes are attached first, so data requests reach them.
+1. The API routes are attached first, so data requests reach them.
 2. `express.static(reactBuild)` sends any real file from `react-app/dist`,
    such as `/assets/index-abc123.js`.
 3. For any other `GET`, such as `/listings` or `/profile/3`, it sends
@@ -286,7 +286,7 @@ as a client:
 | # | Where | What happens | The data |
 |---|---|---|---|
 | 1 | React | `SignInPage.jsx` keeps each field in state and, on submit, checks the required fields are filled | |
-| 2 | React | `api/auth.js` sends the form with `fetch(..., { method: 'POST', body: JSON.stringify(details) })` | `POST /api/clients` with `{"name":"Amina","email":"amina@example.com","password":"secret1",...}` |
+| 2 | React | `api/auth.js` sends the form with `fetch(..., { method: 'POST', body: JSON.stringify(details) })` | `POST /clients` with `{"name":"Amina","email":"amina@example.com","password":"secret1",...}` |
 | 3 | Express | `express.json()` turns the body into `req.body` | `req.body.name === "Amina"` |
 | 4 | Express | `routes/clients.js` checks the fields, then checks the email isn't already used | `400` or `409` if not |
 | 5 | MySQL | The route runs the insert with `?` placeholders | `INSERT INTO clients (name, email, password, phone, location) VALUES (?, ?, ?, ?, ?)` |
@@ -311,7 +311,7 @@ applied to this project:
 | "The React site is not built yet" | Express → React build | Wait for `[react] ... built in`, then refresh |
 | `Error: Failed to fetch` / `could not reach the API` | React → Express | Is the server running? Does the URL use port 5001? |
 | `CORS policy` error in the browser console | React → Express | Only happens when the page comes from another port: is `app.use(cors())` above the routes? |
-| `Cannot GET /api/...` | Inside Express | Does the path match `app.use(...)` in `index.js` plus the route in the route file? |
+| `Cannot GET /clients` (or another API path) | Inside Express | Does the path match `app.use(...)` in `index.js` plus the route in the route file? |
 | `ECONNREFUSED` or `Access denied` in the terminal | Express → MySQL | Is MySQL running? Are the values in `server/.env` right? |
 | Status 500 in the browser, error in the terminal | Express → MySQL | Read the SQL error the route printed: wrong table or column name? |
 | Table shows but is empty | MySQL | Does the table have rows? `SELECT * FROM artisans;` |

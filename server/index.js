@@ -21,38 +21,39 @@ const YAML = require('yaml');
 const contract = YAML.parse(fs.readFileSync(path.join(__dirname, '..', 'openapi.yaml'), 'utf8'));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(contract));
 
-app.get('/api', (req, res) => {
-  res.send('API is running');
-});
 
-// The API promised to Meditrac in openapi.yaml. It sits at /artisans, not under
-// /api, because that's the path the contract gives. The React page that used to
-// live at /artisans moved to /artisans-table so the two don't collide.
+// The API promised to Meditrac in openapi.yaml, at the paths the contract gives.
+// No route has an /api prefix, so page addresses must not reuse these names:
+// the React pages that were at /artisans and /bookings moved to /artisans-table
+// and /my-bookings.
 const artisanRoutes = require('./routes/artisans');
 app.use('/artisans', artisanRoutes);
 
 // Website-only: the extra profile data (photos, reviews...) and artisan sign-up.
 const profileRoutes = require('./routes/profiles');
-app.use('/api/profiles', profileRoutes);
+app.use('/profiles', profileRoutes);
 
 const clientRoutes = require('./routes/clients');
-app.use('/api/clients', clientRoutes);
+app.use('/clients', clientRoutes);
 
 const loginRoutes = require('./routes/login');
-app.use('/api/login', loginRoutes);
+app.use('/login', loginRoutes);
 
 const bookingRoutes = require('./routes/bookings');
-app.use('/api/bookings', bookingRoutes);
+app.use('/bookings', bookingRoutes);
 
-// Everything that isn't /api is the React site. express.static sends back the
+// Everything that isn't an API address is the React site. express.static sends back the
 // file that was asked for (JavaScript, CSS, images) from the build folder.
 app.use(express.static(reactBuild));
 
 // Page addresses like /listings or /profile/3 aren't real files: React Router
 // reads the address and picks the page. So for any other GET, send index.html.
-// /api addresses are skipped, so a mistyped API URL still gets "Cannot GET".
+// API addresses are skipped, so a mistyped API URL still gets "Cannot GET".
+// Old /api/... URLs are included, so anything still calling them gets a 404.
+const API_PATHS = /^\/(artisans|profiles|clients|login|bookings|docs|api)(\/|$)/;
+
 app.use((req, res, next) => {
-  if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/docs') || /^\/artisans(\/|$)/.test(req.path)) return next();
+  if (req.method !== 'GET' || API_PATHS.test(req.path)) return next();
 
   if (!fs.existsSync(path.join(reactBuild, 'index.html'))) {
     return res

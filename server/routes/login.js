@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// POST /api/login  with  { email, password }
+// POST /login  with  { email, password }
 router.post('/', async (req, res) => {
   const { email, password } = req.body;
 

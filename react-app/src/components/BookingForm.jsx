@@ -107,7 +107,7 @@ export default function BookingForm({ worker }) {
         </div>
         {user ? (
           <p className="booking-note">
-            <Link to="/bookings">Track it under My bookings</Link>
+            <Link to="/my-bookings">Track it under My bookings</Link>
           </p>
         ) : (
           <p className="booking-note">

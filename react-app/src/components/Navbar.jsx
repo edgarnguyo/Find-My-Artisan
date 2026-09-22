@@ -55,8 +55,8 @@ export default function Navbar() {
         {user?.role === "client" && (
           <li>
             <Link
-              to="/bookings"
-              className={`nav-link${isActive("/bookings") ? " active" : ""}`}
+              to="/my-bookings"
+              className={`nav-link${isActive("/my-bookings") ? " active" : ""}`}
               onClick={() => setMenuOpen(false)}
             >
               My bookings

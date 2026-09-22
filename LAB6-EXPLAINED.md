@@ -127,6 +127,6 @@ After validation, the artisan must exist (404). Then the review is saved and ret
 | `comment: 42` | 400 | 400 |
 | Artisan 999 | 404 | 404 |
 | Rows added after the bad requests | 0 | 0 |
-| Valid, with and without a comment | 201 (comment `null` when left out) | ✓, and the review shows on `/api/profiles/3` |
+| Valid, with and without a comment | 201 (comment `null` when left out) | ✓, and the review shows on `/profiles/3` |
 
 It's recorded in `CONTRACT_DEVIATIONS.md` as #9. Meditrac gets `CHANGES_FOR_MEDITRAC.md` with the new `openapi.yaml`.

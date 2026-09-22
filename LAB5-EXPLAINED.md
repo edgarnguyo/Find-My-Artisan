@@ -78,8 +78,8 @@ NOT EXISTS (SELECT 1 FROM availability_blocks b
 ## 5. Option A: one API at `/artisans`
 
 - `/artisans` now follows the contract exactly. The lab says to send no extra fields, so it has no photos, bios or reviews.
-- The website still needs those extras. They moved to a **website-only** route, `/api/profiles`, which is the old code renamed. Artisan sign-up moved to `POST /api/profiles` too.
-- The contract's paths start at `/artisans`, so Express mounts the router at `/artisans`, not `/api/artisans`. The React demo table that used that address moved to `/artisans-table`. Website-only routes (`/api/profiles`, `/api/clients`, `/api/login`, `/api/bookings`) keep `/api`, because they aren't in the contract.
+- The website still needs those extras. They moved to a **website-only** route, `/profiles`, which is the old code renamed. Artisan sign-up moved to `POST /profiles` too.
+- No route has an `/api` prefix: the contract's router is mounted at `/artisans`, exactly the contract's paths, and the website's routes are `/profiles`, `/clients`, `/login` and `/bookings`. Page addresses can't reuse those names, so the React demo table moved from `/artisans` to `/artisans-table` and the bookings page from `/bookings` to `/my-bookings`.
 - Artisan sign-up now asks for a phone number, because the contract marks `phone` as required.
 
 ## 6. Verifying: Swagger UI at http://localhost:5001/docs

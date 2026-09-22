@@ -40,14 +40,14 @@ function toWorker(row) {
 
 /** All artisans, without their languages/history/reviews. */
 export async function fetchWorkers() {
-  const rows = await request('/api/profiles');
+  const rows = await request('/profiles');
   return rows.map(toWorker);
 }
 
 /** One artisan with everything attached, or null if that id does not exist. */
 export async function fetchWorkerById(id) {
   try {
-    return toWorker(await request(`/api/profiles/${id}`));
+    return toWorker(await request(`/profiles/${id}`));
   } catch (err) {
     if (err.status === 404) return null;
     throw err;
@@ -56,7 +56,7 @@ export async function fetchWorkerById(id) {
 
 /** Save a booking request. clientId is null when nobody is signed in. */
 export async function createBooking({ workerId, clientId, name, contact, date, time, budget, job }) {
-  await request('/api/bookings', {
+  await request('/bookings', {
     method: 'POST',
     body: { artisanId: workerId, clientId, name, contact, date, time, budget, job },
   });
@@ -83,11 +83,11 @@ function toBooking(row) {
 
 /** Every booking made by this client, newest first. */
 export async function fetchMyBookings(clientId) {
-  const rows = await request(`/api/bookings?clientId=${clientId}`);
+  const rows = await request(`/bookings?clientId=${clientId}`);
   return rows.map(toBooking);
 }
 
 /** Cancel one of this client's bookings. */
 export async function cancelBooking(id, clientId) {
-  await request(`/api/bookings/${id}/cancel`, { method: 'PATCH', body: { clientId } });
+  await request(`/bookings/${id}/cancel`, { method: 'PATCH', body: { clientId } });
 }
