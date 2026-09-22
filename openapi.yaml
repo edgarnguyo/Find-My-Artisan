@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API
-  version: 1.3.0
+  version: 1.4.0
   description: >
     Access to artisan profiles. Meditrac (Team 2) uses the two GET
     endpoints to find and vet artisans, and POST /artisans/{id}/reviews to
@@ -55,12 +55,14 @@ paths:
                 - id: 1
                   name: "Wanjiru Kamau"
                   trade: "electrical"
+                  area: "Westlands"
                   county: "Nairobi"
                   verified: true
                   availableToday: true
                 - id: 3
                   name: "Achieng Nyambura"
                   trade: "plumbing"
+                  area: "Embakasi"
                   county: "Nairobi"
                   verified: true
                   availableToday: false
@@ -96,6 +98,7 @@ paths:
                 id: 1
                 name: "Wanjiru Kamau"
                 trade: "electrical"
+                area: "Westlands"
                 county: "Nairobi"
                 verified: true
                 availableToday: true
@@ -326,7 +329,7 @@ components:
   schemas:
     ArtisanSummary:
       type: object
-      required: [id, name, trade, county, verified, availableToday]
+      required: [id, name, trade, area, county, verified, availableToday]
       properties:
         id:
           type: integer
@@ -336,6 +339,10 @@ components:
         trade:
           type: string
           example: plumbing
+        area:
+          type: string
+          description: The part of the county the artisan works in, as the artisan typed it at sign-up (free text, not a fixed list).
+          example: Westlands
         county:
           type: string
           example: Nairobi

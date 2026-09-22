@@ -2,7 +2,7 @@
 
 **To:** Meditrac (Team 2)
 **From:** Find My Artisan (Team 1)
-**Contract version:** 1.3.0 (attached `openapi.yaml`). This replaces every earlier copy Meditrac may have received (1.0.0 to 1.2.0).
+**Contract version:** 1.4.0 (attached `openapi.yaml`). This replaces every earlier copy Meditrac may have received (1.0.0 to 1.3.0).
 
 Find My Artisan has built the API and, in doing so, changed the contract Meditrac
 received in Week 4. The changes below are listed in order of how likely they are to
@@ -45,12 +45,17 @@ affect Meditrac's code.
    ]
    ```
 
+5. **`area` on every artisan**: the part of the county they work in, e.g. `"area": "Embakasi"` with `"county": "Nairobi"`.
+   - It's in both the list and the single profile.
+   - Use `?county=` to narrow the list, then `area` to pick someone near the pharmacy.
+   - There's no `?area=` filter: areas are free text typed by artisans, so exact matching would miss results.
+
 ## Clarifications (no code change needed)
 
-5. **`availableToday`** means "free right now": no job is booked over the current time. For later times, use `busy` (item 4). As a query parameter it only accepts `true` or `false`; anything else returns 400.
-6. **`county`** must be one of Kenya's 47 county names, case-insensitive. An unknown county returns 400.
-7. **Every error has the same body**: `{ "code": "...", "message": "..." }`. The codes are `invalid_query`, `invalid_body` and `not_found`.
-8. **The examples** in the contract are now real records from Find My Artisan's database.
+6. **`availableToday`** means "free right now": no job is booked over the current time. For later times, use `busy` (item 4). As a query parameter it only accepts `true` or `false`; anything else returns 400.
+7. **`county`** must be one of Kenya's 47 county names, case-insensitive. An unknown county returns 400.
+8. **Every error has the same body**: `{ "code": "...", "message": "..." }`. The codes are `invalid_query`, `invalid_body` and `not_found`.
+9. **The examples** in the contract are now real records from Find My Artisan's database.
 
 ## Not for Meditrac
 
