@@ -246,3 +246,66 @@ INSERT INTO reviews (artisan_id, author, rating, comment) values
   (21, 'Esther C.', 5, 'Handled a complicated farm setup with no issues.'),
   (22, 'Daniel K.', 4, 'Reasonable price and got it right first time.'),
   (23, 'Ruth M.', 4, 'Did a fair job, took a bit longer than quoted.');
+
+-- ---------------------------------------------------------------------------
+-- Week 5: data the API contract (openapi.yaml) promises that the tables above
+-- didn't have: county, phone, hourly rate and certificate details.
+-- ---------------------------------------------------------------------------
+
+-- MySQL has no "ADD COLUMN IF NOT EXISTS", so each column is added only when
+-- information_schema says it's missing. That keeps this file safe to re-run.
+SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = DATABASE() AND table_name = 'artisans' AND column_name = 'county') = 0,
+              'ALTER TABLE artisans ADD COLUMN county VARCHAR(50)', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = DATABASE() AND table_name = 'artisans' AND column_name = 'phone') = 0,
+              'ALTER TABLE artisans ADD COLUMN phone VARCHAR(20)', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = DATABASE() AND table_name = 'artisans' AND column_name = 'hourly_rate_kes') = 0,
+              'ALTER TABLE artisans ADD COLUMN hourly_rate_kes INT', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- County is the part of location after the comma ("Westlands, Nairobi" -> Nairobi).
+-- Artisan 15's location ends in "Nyanza", an old province, so it's set by hand.
+UPDATE artisans SET county = TRIM(SUBSTRING_INDEX(location, ',', -1)) WHERE county IS NULL;
+UPDATE artisans SET county = 'Kisumu' WHERE id = 15;
+
+-- Sample phone numbers and hourly rates for the 23 sample artisans.
+UPDATE artisans SET phone = CONCAT('+2547120000', LPAD(id, 2, '0')) WHERE id BETWEEN 1 AND 23 AND phone IS NULL;
+UPDATE artisans SET hourly_rate_kes = CASE skill
+    WHEN 'Plumber' THEN 800 WHEN 'Electrician' THEN 900
+    WHEN 'Carpenter' THEN 1000 WHEN 'Painter' THEN 700 END
+  WHERE id BETWEEN 1 AND 23 AND hourly_rate_kes IS NULL;
+
+-- One certificate per verified artisan. artisan_id is the primary key, so an
+-- artisan can't have two, and INSERT IGNORE skips rows that already exist.
+CREATE TABLE IF NOT EXISTS verifications (
+  artisan_id INT PRIMARY KEY,
+  issuing_body VARCHAR(100) NOT NULL,
+  certificate_id VARCHAR(50) NOT NULL,
+  expires_on DATE NOT NULL,
+  FOREIGN KEY (artisan_id) REFERENCES artisans(id)
+);
+
+INSERT IGNORE INTO verifications (artisan_id, issuing_body, certificate_id, expires_on)
+  SELECT id, 'National Industrial Training Authority',
+         CONCAT('NITA-', UPPER(LEFT(skill, 2)), '-2024-', LPAD(id, 5, '0')), '2027-03-01'
+  FROM artisans WHERE id BETWEEN 1 AND 23 AND verified = TRUE;
+
+-- ---------------------------------------------------------------------------
+-- Week 6: times an artisan is busy with a job agreed by phone. availableToday
+-- in the API is worked out from this table: false while a block covers now.
+-- Times are stored in UTC.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS availability_blocks (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  artisan_id INT NOT NULL,
+  start_at DATETIME NOT NULL,
+  end_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL,
+  FOREIGN KEY (artisan_id) REFERENCES artisans(id)
+);

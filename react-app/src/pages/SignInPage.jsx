@@ -37,6 +37,8 @@ export default function SignInPage() {
     if (!isSignup) return null;
     if (!name.trim()) return 'Please enter your name.';
     if (isArtisan && !skill) return 'Please choose your skill.';
+    // Meditrac books artisans by phone, so the API contract requires a number.
+    if (isArtisan && !phone.trim()) return 'Please enter your phone number.';
     if (isArtisan && !workLocation.trim()) return 'Please enter where you work.';
     return null;
   }
@@ -60,6 +62,7 @@ export default function SignInPage() {
           details.phone = phone;
         } else {
           details.skill = skill;
+          details.phone = phone;
           details.price = price;
           details.bio = bio;
         }
@@ -198,6 +201,19 @@ export default function SignInPage() {
                   </select>
                 </div>
                 {locationField}
+              </div>
+
+              <div className="field">
+                <label htmlFor="artisan-phone">Phone</label>
+                <input
+                  id="artisan-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="e.g. 0712 345 678"
+                  maxLength={20}
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                />
               </div>
 
               <div className="field">

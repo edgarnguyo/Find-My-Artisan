@@ -11,7 +11,9 @@ info:
     record on our side.
 
 servers:
-  - url: https://api.findmyartisan.app
+  - url: http://localhost:5001/api
+    description: Local development server
+  - url: https://api.findmyartisan.app/api
 
 paths:
   /artisans:
@@ -35,7 +37,7 @@ paths:
         - name: availableToday
           in: query
           required: false
-          description: Filter to artisans who have marked themselves available today.
+          description: Filter to artisans who are free right now (no availability block covers the current time). Must be true or false.
           schema:
             type: boolean
             example: true
@@ -49,15 +51,15 @@ paths:
                 items:
                   $ref: '#/components/schemas/ArtisanSummary'
               example:
-                - id: "a1b2c3d4-0001-4a11-8f2e-111111111111"
-                  name: "Samuel Kariuki"
-                  trade: "plumbing"
+                - id: 1
+                  name: "Wanjiru Kamau"
+                  trade: "electrical"
                   county: "Nairobi"
                   verified: true
                   availableToday: true
-                - id: "a1b2c3d4-0003-4a11-8f2e-333333333333"
-                  name: "Peter Otieno"
-                  trade: "refrigeration"
+                - id: 3
+                  name: "Achieng Nyambura"
+                  trade: "plumbing"
                   county: "Nairobi"
                   verified: true
                   availableToday: false
@@ -80,9 +82,8 @@ paths:
           required: true
           description: The artisan's unique identifier.
           schema:
-            type: string
-            format: uuid
-            example: "a1b2c3d4-0001-4a11-8f2e-111111111111"
+            type: integer
+            example: 1
       responses:
         '200':
           description: The artisan's full profile.
@@ -91,17 +92,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Artisan'
               example:
-                id: "a1b2c3d4-0001-4a11-8f2e-111111111111"
-                name: "Samuel Kariuki"
-                trade: "plumbing"
+                id: 1
+                name: "Wanjiru Kamau"
+                trade: "electrical"
                 county: "Nairobi"
                 verified: true
                 availableToday: true
-                phone: "+254712345678"
-                hourlyRateKes: 800
+                phone: "+254712000001"
+                hourlyRateKes: 900
                 verification:
                   issuingBody: "National Industrial Training Authority"
-                  certificateId: "NITA-PL-2024-00981"
+                  certificateId: "NITA-EL-2024-00001"
                   expiresOn: "2027-03-01"
         '404':
           description: No artisan exists with this id.
@@ -111,7 +112,7 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 code: "not_found"
-                message: "No artisan with id a1b2c3d4-0001-4a11-8f2e-111111111111."
+                message: "No artisan with id 1."
 
   /artisans/{id}/availability:
     post:
@@ -124,9 +125,8 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
-            example: "a1b2c3d4-0001-4a11-8f2e-111111111111"
+            type: integer
+            example: 1
       requestBody:
         required: true
         content:
@@ -144,8 +144,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AvailabilityBlock'
               example:
-                id: "c1d2e3f4-0001-4a11-8f2e-444444444444"
-                artisanId: "a1b2c3d4-0001-4a11-8f2e-111111111111"
+                id: 1
+                artisanId: 1
                 start: "2026-09-14T09:00:00Z"
                 end: "2026-09-14T12:00:00Z"
                 createdAt: "2026-09-07T10:15:00Z"
@@ -171,15 +171,14 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
+            example: 1
         - name: blockId
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
-            example: "c1d2e3f4-0001-4a11-8f2e-444444444444"
+            type: integer
+            example: 1
       requestBody:
         required: true
         description: Only the fields being changed need to be sent.
@@ -197,8 +196,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AvailabilityBlock'
               example:
-                id: "c1d2e3f4-0001-4a11-8f2e-444444444444"
-                artisanId: "a1b2c3d4-0001-4a11-8f2e-111111111111"
+                id: 1
+                artisanId: 1
                 start: "2026-09-14T09:00:00Z"
                 end: "2026-09-14T13:00:00Z"
                 createdAt: "2026-09-07T10:15:00Z"
@@ -210,7 +209,7 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 code: "not_found"
-                message: "No availability block with id c1d2e3f4-0001-4a11-8f2e-444444444444."
+                message: "No availability block with id 1."
 
     delete:
       summary: Remove an unavailability block entirely — the job it was for isn't happening
@@ -223,15 +222,14 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
+            example: 1
         - name: blockId
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
-            example: "c1d2e3f4-0001-4a11-8f2e-444444444444"
+            type: integer
+            example: 1
       responses:
         '204':
           description: The block was removed. No content is returned.
@@ -243,7 +241,7 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 code: "not_found"
-                message: "No availability block with id c1d2e3f4-0001-4a11-8f2e-444444444444."
+                message: "No availability block with id 1."
 
 components:
   schemas:
@@ -252,8 +250,8 @@ components:
       required: [id, name, trade, county, verified, availableToday]
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          example: 1
         name:
           type: string
         trade:
@@ -277,7 +275,7 @@ components:
             phone:
               type: string
               description: Contact number. Only exposed on the full profile, not the list, so the consumer views an artisan before reaching out.
-              example: "+254712345678"
+              example: "+254712000001"
             hourlyRateKes:
               type: number
               example: 800
@@ -290,7 +288,7 @@ components:
                   example: "National Industrial Training Authority"
                 certificateId:
                   type: string
-                  example: "NITA-PL-2024-00981"
+                  example: "NITA-EL-2024-00001"
                 expiresOn:
                   type: string
                   format: date
@@ -327,11 +325,11 @@ components:
       required: [id, artisanId, start, end, createdAt]
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          example: 1
         artisanId:
-          type: string
-          format: uuid
+          type: integer
+          example: 1
         start:
           type: string
           format: date-time
@@ -351,4 +349,4 @@ components:
           example: "not_found"
         message:
           type: string
-          example: "No artisan with id a1b2c3d4-0001-4a11-8f2e-111111111111."
+          example: "No artisan with id 1."

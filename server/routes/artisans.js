@@ -1,83 +1,126 @@
+// The routes promised in openapi.yaml. Every response here is checked against
+// that file, so field names and types must match it exactly.
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Every column except email and password, which must never be sent to the browser.
-const COLUMNS = `id, name, skill, verified, price, photo, location, bio, rating,
-  job_success, hours_per_week, total_earnings, jobs_completed, hours_worked`;
+// The database stores the job title ("Plumber"); the contract promises the
+// trade ("plumbing").
+const TRADES = {
+  Plumber: 'plumbing',
+  Electrician: 'electrical',
+  Carpenter: 'carpentry',
+  Painter: 'painting',
+};
 
-// GET all artisans
+const COUNTIES = [
+  'Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa',
+  'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi',
+  'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos',
+  'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', "Murang'a",
+  'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri',
+  'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia',
+  'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot',
+];
+
+// available_today is 1 unless a block in availability_blocks covers right now.
+// UTC_TIMESTAMP() because the blocks are stored in UTC.
+const SELECT_ARTISANS = `
+  SELECT a.id, a.name, a.skill, a.county, a.location, a.verified, a.phone, a.hourly_rate_kes,
+         v.issuing_body, v.certificate_id, v.expires_on,
+         NOT EXISTS (
+           SELECT 1 FROM availability_blocks b
+           WHERE b.artisan_id = a.id
+             AND b.start_at <= UTC_TIMESTAMP() AND b.end_at > UTC_TIMESTAMP()
+         ) AS available_today
+  FROM artisans a
+  LEFT JOIN verifications v ON v.artisan_id = a.id`;
+
+// The mapping step: database row in, contract shape out (ArtisanSummary).
+function toArtisanSummary(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    trade: TRADES[row.skill] || row.skill.toLowerCase(),
+    // Artisans who signed up after the county column was added only have location.
+    county: row.county || row.location.split(',').pop().trim(),
+    // MySQL sends BOOLEAN as 1/0; the contract says true/false.
+    verified: Boolean(row.verified),
+    availableToday: Boolean(row.available_today),
+  };
+}
+
+// Full profile (Artisan): the summary plus phone, rate and certificate.
+function toArtisan(row) {
+  const artisan = { ...toArtisanSummary(row), phone: row.phone };
+  if (row.hourly_rate_kes !== null) artisan.hourlyRateKes = Number(row.hourly_rate_kes);
+  // The contract says verification is present only when verified is true.
+  if (artisan.verified && row.certificate_id) {
+    artisan.verification = {
+      issuingBody: row.issuing_body,
+      certificateId: row.certificate_id,
+      expiresOn: row.expires_on,
+    };
+  }
+  return artisan;
+}
+
+function sendError(res, status, code, message) {
+  res.status(status).json({ code, message });
+}
+
+// GET /api/artisans?trade=plumbing&county=Nairobi&availableToday=true
 router.get('/', async (req, res) => {
+  const { trade, county, availableToday } = req.query;
+
+  // ?county=a&county=b arrives as an array; each filter takes one value.
+  if ([trade, county, availableToday].some(v => v !== undefined && typeof v !== 'string')) {
+    return sendError(res, 400, 'invalid_query', 'Each query parameter can be given only once.');
+  }
+
+  if (county !== undefined && !COUNTIES.some(c => c.toLowerCase() === county.toLowerCase())) {
+    return sendError(res, 400, 'invalid_query', 'county must be a known Kenyan county name.');
+  }
+  if (availableToday !== undefined && availableToday !== 'true' && availableToday !== 'false') {
+    return sendError(res, 400, 'invalid_query', 'availableToday must be true or false.');
+  }
+
   try {
-    const [rows] = await db.query(`SELECT ${COLUMNS} FROM artisans ORDER BY id`);
-    res.json(rows);
+    const [rows] = await db.query(`${SELECT_ARTISANS} ORDER BY a.id`);
+    let artisans = rows.map(toArtisanSummary);
+
+    if (trade !== undefined) {
+      artisans = artisans.filter(a => a.trade === trade.toLowerCase());
+    }
+    if (county !== undefined) {
+      artisans = artisans.filter(a => a.county.toLowerCase() === county.toLowerCase());
+    }
+    if (availableToday !== undefined) {
+      artisans = artisans.filter(a => a.availableToday === (availableToday === 'true'));
+    }
+
+    res.status(200).json(artisans);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch artisans' });
+    sendError(res, 500, 'server_error', 'Failed to fetch artisans.');
   }
 });
 
-// GET one artisan, with their languages, work history and reviews
+// GET /api/artisans/5
 router.get('/:id', async (req, res) => {
+  // MySQL would read '5abc' as 5, so only plain whole numbers are real ids.
+  if (!/^\d+$/.test(req.params.id)) {
+    return sendError(res, 404, 'not_found', `No artisan with id ${req.params.id}.`);
+  }
   try {
-    const [artisans] = await db.query(`SELECT ${COLUMNS} FROM artisans WHERE id = ?`, [req.params.id]);
-    if (artisans.length === 0) {
-      return res.status(404).json({ error: 'Artisan not found' });
+    const [rows] = await db.query(`${SELECT_ARTISANS} WHERE a.id = ?`, [req.params.id]);
+    if (rows.length === 0) {
+      return sendError(res, 404, 'not_found', `No artisan with id ${req.params.id}.`);
     }
-    const artisan = artisans[0];
-
-    const [languages] = await db.query(
-      'SELECT name, level FROM languages WHERE artisan_id = ?',
-      [artisan.id]
-    );
-    const [workHistory] = await db.query(
-      'SELECT title, rating, date_range, price, price_type FROM work_history WHERE artisan_id = ?',
-      [artisan.id]
-    );
-    const [reviews] = await db.query(
-      'SELECT author, rating, comment FROM reviews WHERE artisan_id = ?',
-      [artisan.id]
-    );
-
-    res.json({ ...artisan, languages, work_history: workHistory, reviews });
+    res.status(200).json(toArtisan(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch artisan' });
-  }
-});
-
-// POST a new artisan (the sign-up form, "An artisan")
-router.post('/', async (req, res) => {
-  const { name, email, password, skill, location, price, bio } = req.body;
-
-  if (!name || !email || !password || !skill || !location) {
-    return res.status(400).json({ error: 'Name, email, password, skill and location are required' });
-  }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
-  }
-
-  try {
-    // One email can't be both a client and an artisan, so check both tables.
-    const [taken] = await db.query(
-      'SELECT id FROM clients WHERE email = ? UNION SELECT id FROM artisans WHERE email = ?',
-      [email, email]
-    );
-    if (taken.length > 0) {
-      return res.status(409).json({ error: 'An account with that email already exists' });
-    }
-
-    // The ? placeholders keep the typed values separate from the SQL,
-    // so nothing typed into the form can run as SQL.
-    const [result] = await db.query(
-      'INSERT INTO artisans (name, email, password, skill, location, price, bio) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, email, password, skill, location, price || null, bio || null]
-    );
-
-    res.status(201).json({ id: result.insertId, name, email, role: 'artisan' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create artisan' });
+    sendError(res, 500, 'server_error', 'Failed to fetch artisan.');
   }
 });
 

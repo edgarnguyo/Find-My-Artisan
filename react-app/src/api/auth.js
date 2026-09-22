@@ -1,11 +1,11 @@
 import { request } from './client';
 
 /**
- * Sign up. A client is saved by POST /api/clients, an artisan by POST /api/artisans.
+ * Sign up. A client is saved by POST /api/clients, an artisan by POST /api/profiles.
  * Returns the new user: { id, name, email, role }.
  */
 export function register(details) {
-  const path = details.role === 'artisan' ? '/api/artisans' : '/api/clients';
+  const path = details.role === 'artisan' ? '/api/profiles' : '/api/clients';
   return request(path, { method: 'POST', body: details });
 }
 
