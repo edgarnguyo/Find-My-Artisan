@@ -7,11 +7,13 @@ Ring: Team 13 (upstream, materials) → **Team 1 (us, Find My Artisan)** → Tea
 | GET    | `/artisans?trade=plumbing&county=Nairobi`                         | Return a list of artisans, filterable by trade and county, each with when they're booked                | #1 "source artisans" and #4 "schedule maintenance jobs" — each artisan's `busy` list (next 14 days) shows when they're free, without us running a scheduling system |
 | GET    | `/artisans/{id}`                                                 | Return one artisan's full profile: trades, rate, verification status, and contact phone number       | #2 "book artisans" and #3 "vet artisans" — we hand over verification and contact details; the booking itself is a phone call, not an API call |
 | POST   | `/artisans/{id}/reviews`                                         | Meditrac rates an artisan (1–5, optional comment) after a phone-booked job is done                     | #3 "vet artisans" — reviews from real pharmacy jobs inform later vetting; feedback only, no booking record is created |
+| PATCH  | `/artisans/{id}/reviews/{reviewId}`                              | Meditrac corrects a review it posted (rating, author or comment)                                       | #3 "vet artisans" — keeps Meditrac's own feedback accurate; the site's existing reviews can't be changed |
+| DELETE | `/artisans/{id}/reviews/{reviewId}`                              | Meditrac removes a review it posted                                                                     | #3 "vet artisans" — same restriction: only reviews Meditrac created through the API |
 | POST   | `/artisans/{id}/availability`                                    | Artisan marks themselves unavailable for a time window, once a job is agreed by phone                 | Artisan-only — not part of Meditrac's contract; supports the `availableToday` field above                       |
 | PATCH  | `/artisans/{id}/availability/{blockId}`                          | Artisan adjusts the window on an existing block (job time shifted)                                     | Artisan-only — not part of Meditrac's contract                                                                   |
 | DELETE | `/artisans/{id}/availability/{blockId}`                          | Artisan removes a block entirely (job fell through, not just moved)                                    | Artisan-only — not part of Meditrac's contract                                                                   |
 
-6 endpoints: 2 reads and 1 write (reviews) used by Meditrac, 3 writes used only by our own
+8 endpoints: 2 reads and 3 review writes used by Meditrac, 3 writes used only by our own
 artisans. Meditrac still never creates or edits a booking — see "Design pivot" and "Reviews" below.
 
 ## Peer review — Group 3, 31 Aug 2026
@@ -90,9 +92,11 @@ filter) only answered "free this minute?", which isn't a useful question for pla
 it was removed in favour of this one list. It's read from the availability blocks, so no new
 endpoint was needed.
 
-## Reviews — the one write Meditrac uses (added in Week 6)
+## Reviews — the writes Meditrac uses (added in Week 6)
 
 Find My Artisan added `POST /artisans/{id}/reviews` so that Meditrac can rate an artisan after a
-job. It does not reverse the design pivot: a review is feedback about an artisan, not a booking,
-and Meditrac holds no record on the Find My Artisan side that it later edits or cancels. It serves
-need #3 directly, because later vetting can draw on ratings from real pharmacy jobs.
+job, plus `PATCH` and `DELETE` on `/artisans/{id}/reviews/{reviewId}` so it can correct or remove
+a review it posted. A review is feedback about an artisan, not a booking, so no booking record is
+created, moved or cancelled. It serves need #3 directly, because later vetting can draw on ratings
+from real pharmacy jobs. PATCH and DELETE only find reviews posted through the API; the reviews
+already on the site return 404, so they can't be changed from outside.

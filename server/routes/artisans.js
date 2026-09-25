@@ -298,7 +298,7 @@ router.delete('/:id/availability/:blockId', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Reviews: the one write Meditrac calls, to rate an artisan after a job.
+// Reviews: Meditrac rates an artisan after a job, and can fix or remove its own reviews.
 // ---------------------------------------------------------------------------
 
 // The mapping step for Review.
@@ -313,24 +313,48 @@ function toReview(row) {
   };
 }
 
+// Checks the review fields that were sent. On POST, author and rating are
+// required; on PATCH (partial = true) any field may be left out, but not all
+// of them. Returns an error message, or null when everything is valid.
+function reviewProblem({ author, rating, comment }, partial = false) {
+  if (!partial && (author === undefined || rating === undefined)) {
+    return 'author and rating are required.';
+  }
+  if (partial && author === undefined && rating === undefined && comment === undefined) {
+    return 'Send author, rating, comment, or any combination of them.';
+  }
+  if (author !== undefined && (typeof author !== 'string' || author.trim() === '' || author.length > 100)) {
+    return 'author must be a non-empty string of at most 100 characters.';
+  }
+  // Number.isInteger rejects "5" (a string) and 4.5, not just values out of range.
+  if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
+    return 'rating must be a whole number from 1 to 5.';
+  }
+  if (comment !== undefined && comment !== null && (typeof comment !== 'string' || comment.length > 1000)) {
+    return 'comment must be a string of at most 1000 characters.';
+  }
+  return null;
+}
+
+// Finds a review of this artisan that was posted through the API, or null.
+// Reviews that came from the website have from_api = FALSE and are never found,
+// so they can't be edited or deleted here.
+async function findApiReview(artisanId, reviewId) {
+  if (!isId(artisanId) || !isId(reviewId)) return null;
+  const [rows] = await db.query(
+    'SELECT * FROM reviews WHERE id = ? AND artisan_id = ? AND from_api = TRUE',
+    [reviewId, artisanId]
+  );
+  return rows[0] ?? null;
+}
+
 // POST /artisans/1/reviews   body: { "author": "...", "rating": 5, "comment": "..." }
 router.post('/:id/reviews', async (req, res) => {
   const artisanId = req.params.id;
   const { author, rating, comment } = req.body ?? {};
 
-  if (author === undefined || rating === undefined) {
-    return sendError(res, 400, 'invalid_body', 'author and rating are required.');
-  }
-  if (typeof author !== 'string' || author.trim() === '' || author.length > 100) {
-    return sendError(res, 400, 'invalid_body', 'author must be a non-empty string of at most 100 characters.');
-  }
-  // Number.isInteger rejects "5" (a string) and 4.5, not just values out of range.
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return sendError(res, 400, 'invalid_body', 'rating must be a whole number from 1 to 5.');
-  }
-  if (comment !== undefined && comment !== null && (typeof comment !== 'string' || comment.length > 1000)) {
-    return sendError(res, 400, 'invalid_body', 'comment must be a string of at most 1000 characters.');
-  }
+  const problem = reviewProblem({ author, rating, comment });
+  if (problem) return sendError(res, 400, 'invalid_body', problem);
 
   try {
     if (!isId(artisanId) || !(await artisanExists(artisanId))) {
@@ -338,7 +362,8 @@ router.post('/:id/reviews', async (req, res) => {
     }
 
     const [result] = await db.query(
-      'INSERT INTO reviews (artisan_id, author, rating, comment, created_at) VALUES (?, ?, ?, ?, ?)',
+      `INSERT INTO reviews (artisan_id, author, rating, comment, created_at, from_api)
+       VALUES (?, ?, ?, ?, ?, TRUE)`,
       [artisanId, author.trim(), rating, comment?.trim() || null, toDbTime(new Date())]
     );
     const [rows] = await db.query('SELECT * FROM reviews WHERE id = ?', [result.insertId]);
@@ -346,6 +371,56 @@ router.post('/:id/reviews', async (req, res) => {
   } catch (err) {
     console.error(err);
     sendError(res, 500, 'server_error', 'Failed to create review.');
+  }
+});
+
+// PATCH /artisans/1/reviews/7   body: any of { "author", "rating", "comment" }
+router.patch('/:id/reviews/:reviewId', async (req, res) => {
+  const { id: artisanId, reviewId } = req.params;
+  const { author, rating, comment } = req.body ?? {};
+
+  const problem = reviewProblem({ author, rating, comment }, true);
+  if (problem) return sendError(res, 400, 'invalid_body', problem);
+
+  try {
+    const review = await findApiReview(artisanId, reviewId);
+    if (!review) {
+      return sendError(res, 404, 'not_found', `No review with id ${reviewId} for artisan ${artisanId}.`);
+    }
+
+    // A field that wasn't sent keeps its current value. Sending comment: null
+    // clears it. Values are set, not added to, so the same PATCH twice gives the
+    // same review.
+    const newAuthor = author !== undefined ? author.trim() : review.author;
+    const newRating = rating !== undefined ? rating : review.rating;
+    const newComment = comment !== undefined ? (comment?.trim() || null) : review.comment;
+
+    await db.query(
+      'UPDATE reviews SET author = ?, rating = ?, comment = ? WHERE id = ?',
+      [newAuthor, newRating, newComment, review.id]
+    );
+    const [rows] = await db.query('SELECT * FROM reviews WHERE id = ?', [review.id]);
+    res.status(200).json(toReview(rows[0]));
+  } catch (err) {
+    console.error(err);
+    sendError(res, 500, 'server_error', 'Failed to update review.');
+  }
+});
+
+// DELETE /artisans/1/reviews/7
+router.delete('/:id/reviews/:reviewId', async (req, res) => {
+  const { id: artisanId, reviewId } = req.params;
+
+  try {
+    const review = await findApiReview(artisanId, reviewId);
+    if (!review) {
+      return sendError(res, 404, 'not_found', `No review with id ${reviewId} for artisan ${artisanId}.`);
+    }
+    await db.query('DELETE FROM reviews WHERE id = ?', [review.id]);
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    sendError(res, 500, 'server_error', 'Failed to delete review.');
   }
 });
 

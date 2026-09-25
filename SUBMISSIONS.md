@@ -69,6 +69,8 @@ One section per week: the file each handout asks for, what it contains now, and 
 | GET | `/artisans?trade=&county=` | Meditrac: needs 1 and 4 (each artisan's `busy` bookings) |
 | GET | `/artisans/{id}` | Meditrac: needs 2 and 3 (phone + verification) |
 | POST | `/artisans/{id}/reviews` | Meditrac: need 3 (rate after a job) |
+| PATCH | `/artisans/{id}/reviews/{reviewId}` | Meditrac: correct its own review |
+| DELETE | `/artisans/{id}/reviews/{reviewId}` | Meditrac: remove its own review |
 | POST | `/artisans/{id}/availability` | Our artisans only |
 | PATCH | `/artisans/{id}/availability/{blockId}` | Our artisans only |
 | DELETE | `/artisans/{id}/availability/{blockId}` | Our artisans only |
@@ -90,7 +92,8 @@ One section per week: the file each handout asks for, what it contains now, and 
 
 **What's in `openapi.yaml`:**
 
-- All 6 endpoints (reviews added in Week 6, version 1.1.0).
+- All 8 endpoints, version 2.1.0.
+- `openapi-meditrac.yaml`: only the 5 endpoints Meditrac uses (the two GETs and the three review writes), cut from `openapi.yaml`. This is the file to send them.
 - **Schemas:** `ArtisanSummary`, `Artisan` (adds `phone`, `hourlyRateKes`, `verification`), `AvailabilityBlockCreate`, `AvailabilityBlockUpdate`, `AvailabilityBlock`, and `Error { code, message }`.
 - Examples are real rows from your database.
 - **Server:** `http://localhost:5001`.
@@ -115,7 +118,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 
 - **`server/routes/artisans.js`:**
   - The 2 GETs with the mapping step.
-  - The 3 availability writes and the reviews write, each validating first.
+  - The 3 availability writes and the 3 review writes, each validating first.
 - **`server/schema.sql` (bottom):**
   - New columns: `county`, `phone`, `hourly_rate_kes`.
   - New tables: `verifications` and `availability_blocks`.
@@ -138,6 +141,7 @@ One section per week: the file each handout asks for, what it contains now, and 
 | 8 | `GET /artisans/{id}` returns `busy` (next 14 days); version 1.3.0 |
 | 9 | Every artisan has `area` (e.g. Embakasi); version 1.4.0 |
 | 10 | `availableToday` removed; `busy` on every artisan; version 2.0.0 |
+| 11 | PATCH and DELETE for reviews (only reviews posted through the API); version 2.1.0 |
 
 **Open:** tell Meditrac about these changes directly. The handout requires it.
 
@@ -155,5 +159,5 @@ One section per week: the file each handout asks for, what it contains now, and 
 - [ ] A teammate pushes `CONTRIBUTORS.md`
 - [ ] Write `CONTRACT_QUESTIONS.md` once you have Team 13's contract
 - [ ] `openapi.yaml` shows zero errors in editor.swagger.io
-- [ ] Send Meditrac `openapi.yaml` (v2.0.0) and `CHANGES_FOR_MEDITRAC.md`
+- [ ] Send Meditrac `openapi-meditrac.yaml` (v2.1.0) and `CHANGES_FOR_MEDITRAC.md`
 - [ ] Merge this branch to `main` and push (the handouts grade what's on GitHub)

@@ -1,11 +1,11 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API
-  version: 2.0.0
+  version: 2.1.0
   description: >
     Access to artisan profiles. Meditrac (Team 2) uses the two GET
-    endpoints to find and vet artisans, and POST /artisans/{id}/reviews to
-    rate them after a job. Meditrac contacts artisans directly for
+    endpoints to find and vet artisans, and the /artisans/{id}/reviews
+    endpoints to rate them after a job and correct or remove its own reviews. Meditrac contacts artisans directly for
     maintenance work at their pharmacies — the booking itself is a phone
     call using the contact details this API exposes, not an API call.
     Meditrac never creates, edits, or holds a booking record on our side.
@@ -171,6 +171,98 @@ paths:
               example:
                 code: "not_found"
                 message: "No artisan with id 999."
+
+  /artisans/{id}/reviews/{reviewId}:
+    patch:
+      summary: Correct a review Meditrac posted earlier
+      description: >
+        Only reviews created through POST /artisans/{id}/reviews can be changed;
+        the reviews already on Find My Artisan's site can't. Send only the fields
+        being changed. Sending "comment": null removes the comment. Values are
+        set, not added to, so sending the same PATCH twice gives the same review.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 3
+        - name: reviewId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 58
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewUpdate'
+            example:
+              rating: 4
+      responses:
+        '200':
+          description: The updated review.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+              example:
+                id: 58
+                artisanId: 3
+                author: "Meditrac — Westlands branch"
+                rating: 4
+                comment: "Fixed the leaking sink the same afternoon."
+                createdAt: "2026-09-22T10:30:00Z"
+        '400':
+          description: No fields sent, or a value has the wrong type or is out of range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_body"
+                message: "rating must be a whole number from 1 to 5."
+        '404':
+          description: No review with this id posted through the API for this artisan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No review with id 58 for artisan 3."
+
+    delete:
+      summary: Remove a review Meditrac posted earlier
+      description: >
+        Only reviews created through POST /artisans/{id}/reviews can be removed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 3
+        - name: reviewId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 58
+      responses:
+        '204':
+          description: The review was removed. No content is returned.
+        '404':
+          description: No review with this id posted through the API for this artisan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No review with id 58 for artisan 3."
 
   /artisans/{id}/availability:
     post:
@@ -407,6 +499,26 @@ components:
           minimum: 1
           maximum: 5
           example: 5
+        comment:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: "Fixed the leaking sink the same afternoon."
+
+    ReviewUpdate:
+      type: object
+      description: At least one of the three fields must be present.
+      properties:
+        author:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Meditrac — Westlands branch"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
         comment:
           type: string
           nullable: true

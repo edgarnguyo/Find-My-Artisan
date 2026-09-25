@@ -1,0 +1,411 @@
+openapi: 3.0.0
+info:
+  title: Find My Artisan API (Meditrac)
+  version: 2.1.0
+  description: >
+    The part of Find My Artisan's API that Meditrac (Team 2) uses. Meditrac
+    finds and vets artisans with the two GET endpoints, then books them by
+    phone using the contact details returned; the booking itself is a phone
+    call, not an API call. After a job, Meditrac can review the artisan and
+    correct or remove its own reviews. The full API, including the endpoints
+    Find My Artisan's own artisans use to record their bookings, is in openapi.yaml.
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+  - url: https://api.findmyartisan.app
+
+paths:
+  /artisans:
+    get:
+      summary: List artisans, optionally filtered by trade and county, with when each is booked
+      parameters:
+        - name: trade
+          in: query
+          required: false
+          description: Filter to artisans practicing this trade.
+          schema:
+            type: string
+            example: plumbing
+        - name: county
+          in: query
+          required: false
+          description: Filter to artisans based in this county.
+          schema:
+            type: string
+            example: Nairobi
+      responses:
+        '200':
+          description: A list of artisans matching the filters (empty list if none match).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArtisanSummary'
+              example:
+                - id: 1
+                  name: "Wanjiru Kamau"
+                  trade: "electrical"
+                  area: "Westlands"
+                  county: "Nairobi"
+                  verified: true
+                  busy: []
+                - id: 3
+                  name: "Achieng Nyambura"
+                  trade: "plumbing"
+                  area: "Embakasi"
+                  county: "Nairobi"
+                  verified: true
+                  busy:
+                    - start: "2026-09-24T06:00:00Z"
+                      end: "2026-09-24T10:00:00Z"
+        '400':
+          description: A query parameter has an invalid value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_query"
+                message: "county must be a known Kenyan county name."
+
+  /artisans/{id}:
+    get:
+      summary: Get one artisan's full profile, including verification details and contact phone
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The artisan's unique identifier.
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: The artisan's full profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artisan'
+              example:
+                id: 1
+                name: "Wanjiru Kamau"
+                trade: "electrical"
+                area: "Westlands"
+                county: "Nairobi"
+                verified: true
+                phone: "+254712000001"
+                hourlyRateKes: 900
+                verification:
+                  issuingBody: "National Industrial Training Authority"
+                  certificateId: "NITA-EL-2024-00001"
+                  expiresOn: "2027-03-01"
+                busy:
+                  - start: "2026-09-24T06:00:00Z"
+                    end: "2026-09-24T10:00:00Z"
+        '404':
+          description: No artisan exists with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No artisan with id 1."
+
+  /artisans/{id}/reviews:
+    post:
+      summary: Leave a review of an artisan after a job
+      description: >
+        Called by Meditrac after a job agreed by phone is finished. The review
+        appears on the artisan's public profile and helps later vetting. This
+        records feedback only; it does not create or change a booking.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+            example:
+              author: "Meditrac — Westlands branch"
+              rating: 5
+              comment: "Fixed the leaking sink the same afternoon."
+      responses:
+        '201':
+          description: The review was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+              example:
+                id: 58
+                artisanId: 3
+                author: "Meditrac — Westlands branch"
+                rating: 5
+                comment: "Fixed the leaking sink the same afternoon."
+                createdAt: "2026-09-22T10:30:00Z"
+        '400':
+          description: A required field is missing, or a value has the wrong type or is out of range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_body"
+                message: "rating must be a whole number from 1 to 5."
+        '404':
+          description: No artisan exists with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No artisan with id 999."
+
+  /artisans/{id}/reviews/{reviewId}:
+    patch:
+      summary: Correct a review Meditrac posted earlier
+      description: >
+        Only reviews created through POST /artisans/{id}/reviews can be changed;
+        the reviews already on Find My Artisan's site can't. Send only the fields
+        being changed. Sending "comment": null removes the comment. Values are
+        set, not added to, so sending the same PATCH twice gives the same review.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 3
+        - name: reviewId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 58
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewUpdate'
+            example:
+              rating: 4
+      responses:
+        '200':
+          description: The updated review.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+              example:
+                id: 58
+                artisanId: 3
+                author: "Meditrac — Westlands branch"
+                rating: 4
+                comment: "Fixed the leaking sink the same afternoon."
+                createdAt: "2026-09-22T10:30:00Z"
+        '400':
+          description: No fields sent, or a value has the wrong type or is out of range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_body"
+                message: "rating must be a whole number from 1 to 5."
+        '404':
+          description: No review with this id posted through the API for this artisan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No review with id 58 for artisan 3."
+
+    delete:
+      summary: Remove a review Meditrac posted earlier
+      description: >
+        Only reviews created through POST /artisans/{id}/reviews can be removed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 3
+        - name: reviewId
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 58
+      responses:
+        '204':
+          description: The review was removed. No content is returned.
+        '404':
+          description: No review with this id posted through the API for this artisan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No review with id 58 for artisan 3."
+
+components:
+  schemas:
+    ArtisanSummary:
+      type: object
+      required: [id, name, trade, area, county, verified, busy]
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+        trade:
+          type: string
+          example: plumbing
+        area:
+          type: string
+          description: The part of the county the artisan works in, as the artisan typed it at sign-up (free text, not a fixed list).
+          example: Westlands
+        county:
+          type: string
+          example: Nairobi
+        verified:
+          type: boolean
+        busy:
+          type: array
+          description: >
+            The times the artisan is booked in the next 14 days (from now),
+            earliest first. Any time not listed is free. Empty array if the
+            artisan has nothing booked. A window already under way is included.
+          items:
+            $ref: '#/components/schemas/BusyWindow'
+
+    Artisan:
+      allOf:
+        - $ref: '#/components/schemas/ArtisanSummary'
+        - type: object
+          required: [phone]
+          properties:
+            phone:
+              type: string
+              description: Contact number. Only exposed on the full profile, not the list, so the consumer views an artisan before reaching out.
+              example: "+254712000001"
+            hourlyRateKes:
+              type: number
+              example: 900
+            verification:
+              type: object
+              description: Present only when verified is true.
+              properties:
+                issuingBody:
+                  type: string
+                  example: "National Industrial Training Authority"
+                certificateId:
+                  type: string
+                  example: "NITA-EL-2024-00001"
+                expiresOn:
+                  type: string
+                  format: date
+                  example: "2027-03-01"
+
+    BusyWindow:
+      type: object
+      required: [start, end]
+      properties:
+        start:
+          type: string
+          format: date-time
+          example: "2026-09-24T06:00:00Z"
+        end:
+          type: string
+          format: date-time
+          example: "2026-09-24T10:00:00Z"
+
+    ReviewCreate:
+      type: object
+      required: [author, rating]
+      properties:
+        author:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Who is leaving the review, e.g. the pharmacy branch.
+          example: "Meditrac — Westlands branch"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: "Fixed the leaking sink the same afternoon."
+
+    ReviewUpdate:
+      type: object
+      description: At least one of the three fields must be present.
+      properties:
+        author:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Meditrac — Westlands branch"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: "Fixed the leaking sink the same afternoon."
+
+    Review:
+      type: object
+      required: [id, artisanId, author, rating, comment, createdAt]
+      properties:
+        id:
+          type: integer
+          example: 58
+        artisanId:
+          type: integer
+          example: 3
+        author:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: "not_found"
+        message:
+          type: string
+          example: "No artisan with id 1."
