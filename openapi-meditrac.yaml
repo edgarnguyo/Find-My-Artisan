@@ -1,16 +1,14 @@
 openapi: 3.0.0
 info:
-  title: Find My Artisan API
+  title: Find My Artisan API (Meditrac)
   version: 2.1.0
   description: >
-    Access to artisan profiles. Meditrac (Team 2) uses the two GET
-    endpoints to find and vet artisans, and the /artisans/{id}/reviews
-    endpoints to rate them after a job and correct or remove its own reviews. Meditrac contacts artisans directly for
-    maintenance work at their pharmacies — the booking itself is a phone
-    call using the contact details this API exposes, not an API call.
-    Meditrac never creates, edits, or holds a booking record on our side.
-    The three availability endpoints are used only by our own artisans.
-
+    The part of Find My Artisan's API that Meditrac (Team 2) uses. Meditrac
+    finds and vets artisans with the two GET endpoints, then books them by
+    phone using the contact details returned; the booking itself is a phone
+    call, not an API call. After a job, Meditrac can review the artisan and
+    correct or remove its own reviews. The full API, including the endpoints
+    Find My Artisan's own artisans use to record their bookings, is in openapi.yaml.
 servers:
   - url: http://localhost:5001
     description: Local development server
@@ -264,153 +262,6 @@ paths:
                 code: "not_found"
                 message: "No review with id 58 for artisan 3."
 
-  /artisans/{id}/availability:
-    post:
-      summary: Mark the artisan unavailable for a time window, once a job is agreed by phone
-      description: >
-        Artisan-facing only — not part of Meditrac's contract. Called by the
-        artisan's own account right after agreeing a job over the phone.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AvailabilityBlockCreate'
-            example:
-              start: "2026-09-14T09:00:00Z"
-              end: "2026-09-14T12:00:00Z"
-      responses:
-        '201':
-          description: The block was created.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AvailabilityBlock'
-              example:
-                id: 1
-                artisanId: 1
-                start: "2026-09-14T09:00:00Z"
-                end: "2026-09-14T12:00:00Z"
-                createdAt: "2026-09-07T10:15:00Z"
-        '400':
-          description: end is not after start, or the window overlaps an existing block.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                code: "invalid_body"
-                message: "end must be after start."
-        '404':
-          description: No artisan exists with this id.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                code: "not_found"
-                message: "No artisan with id 999."
-
-  /artisans/{id}/availability/{blockId}:
-    patch:
-      summary: Change the time window of an existing unavailability block
-      description: >
-        Artisan-facing only — not part of Meditrac's contract. For when an
-        agreed job's time shifts, not for when it falls through entirely
-        (use DELETE for that).
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-        - name: blockId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      requestBody:
-        required: true
-        description: Only the fields being changed need to be sent.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AvailabilityBlockUpdate'
-            example:
-              end: "2026-09-14T13:00:00Z"
-      responses:
-        '200':
-          description: The updated block.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AvailabilityBlock'
-              example:
-                id: 1
-                artisanId: 1
-                start: "2026-09-14T09:00:00Z"
-                end: "2026-09-14T13:00:00Z"
-                createdAt: "2026-09-07T10:15:00Z"
-        '400':
-          description: No fields sent, a value is not a date-time, end is not after start, or the new window overlaps another block.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                code: "invalid_body"
-                message: "end must be after start."
-        '404':
-          description: No block exists with this id for this artisan.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                code: "not_found"
-                message: "No availability block with id 1."
-
-    delete:
-      summary: Remove an unavailability block entirely — the job it was for isn't happening
-      description: >
-        Artisan-facing only — not part of Meditrac's contract. Different
-        from PATCH: PATCH says the job's time shifted, DELETE says the job
-        fell through and the window is available again.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-        - name: blockId
-          in: path
-          required: true
-          schema:
-            type: integer
-            example: 1
-      responses:
-        '204':
-          description: The block was removed. No content is returned.
-        '404':
-          description: No block exists with this id for this artisan.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                code: "not_found"
-                message: "No availability block with id 1."
-
 components:
   schemas:
     ArtisanSummary:
@@ -544,52 +395,6 @@ components:
         comment:
           type: string
           nullable: true
-        createdAt:
-          type: string
-          format: date-time
-
-    AvailabilityBlockCreate:
-      type: object
-      required: [start, end]
-      properties:
-        start:
-          type: string
-          format: date-time
-          example: "2026-09-14T09:00:00Z"
-        end:
-          type: string
-          format: date-time
-          example: "2026-09-14T12:00:00Z"
-
-    AvailabilityBlockUpdate:
-      type: object
-      description: At least one of the two fields must be present.
-      properties:
-        start:
-          type: string
-          format: date-time
-          example: "2026-09-14T09:00:00Z"
-        end:
-          type: string
-          format: date-time
-          example: "2026-09-14T13:00:00Z"
-
-    AvailabilityBlock:
-      type: object
-      required: [id, artisanId, start, end, createdAt]
-      properties:
-        id:
-          type: integer
-          example: 1
-        artisanId:
-          type: integer
-          example: 1
-        start:
-          type: string
-          format: date-time
-        end:
-          type: string
-          format: date-time
         createdAt:
           type: string
           format: date-time

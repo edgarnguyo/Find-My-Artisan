@@ -79,6 +79,16 @@ CREATE TABLE IF NOT EXISTS reviews (
   FOREIGN KEY (artisan_id) REFERENCES artisans(id)
 );
 
+-- ---------------------------------------------------------------------------
+-- Reviews Meditrac posts through the API are marked from_api = TRUE. The API
+-- only lets reviews with this mark be edited or deleted, so the sample reviews
+-- that come with the site can't be changed or removed through it.
+-- ---------------------------------------------------------------------------
+SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = DATABASE() AND table_name = 'reviews' AND column_name = 'from_api') = 0,
+              'ALTER TABLE reviews ADD COLUMN from_api BOOLEAN NOT NULL DEFAULT FALSE', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS bookings (
   id INT AUTO_INCREMENT PRIMARY KEY,
   artisan_id INT NOT NULL,
@@ -127,7 +137,7 @@ INSERT IGNORE INTO artisans (id, name, skill, verified, price, photo, location, 
 -- are removed first; otherwise every re-run would add them again.
 DELETE FROM languages    WHERE artisan_id BETWEEN 1 AND 23;
 DELETE FROM work_history WHERE artisan_id BETWEEN 1 AND 23;
-DELETE FROM reviews      WHERE artisan_id BETWEEN 1 AND 23;
+DELETE FROM reviews      WHERE artisan_id BETWEEN 1 AND 23 AND from_api = FALSE;
 
 INSERT INTO languages (artisan_id, name, level) values
   (1, 'English', 'Fluent'),
@@ -314,3 +324,4 @@ CREATE TABLE IF NOT EXISTS availability_blocks (
   created_at DATETIME NOT NULL,
   FOREIGN KEY (artisan_id) REFERENCES artisans(id)
 );
+

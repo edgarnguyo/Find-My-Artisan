@@ -2,7 +2,7 @@
 
 **To:** Meditrac (Team 2)
 **From:** Find My Artisan (Team 1)
-**Contract version:** 2.0.0 (attached `openapi.yaml`). This replaces every earlier copy Meditrac may have received (1.0.0 to 1.4.0).
+**Contract version:** 2.1.0 (attached `openapi-meditrac.yaml`, the endpoints Meditrac uses). This replaces every earlier copy Meditrac may have received (1.0.0 to 2.0.0).
 
 Find My Artisan has built the API and, in doing so, changed the contract Meditrac
 received in Week 4. The changes below are listed in order of how likely they are to
@@ -46,15 +46,22 @@ affect Meditrac's code.
    - Use `?county=` to narrow the list, then `area` to pick someone near the pharmacy.
    - There's no `?area=` filter: areas are free text typed by artisans, so exact matching would miss results.
 
+6. **`PATCH` and `DELETE /artisans/{id}/reviews/{reviewId}`**: Meditrac can correct or remove a review it posted.
+   - `reviewId` is the `id` returned when the review was created.
+   - PATCH: send only the fields being changed (`author`, `rating`, `comment`). `"comment": null` removes the comment. Responses: 200 with the updated review, 400 for no fields or an invalid value, 404 if not found.
+   - DELETE: 204 with no body, or 404 if not found.
+   - Only reviews created through the API can be changed or removed. The reviews already on Find My Artisan's site return 404.
+
 ## Clarifications (no code change needed)
 
-6. **`county`** must be one of Kenya's 47 county names, case-insensitive. An unknown county returns 400.
-7. **Every error has the same body**: `{ "code": "...", "message": "..." }`. The codes are `invalid_query`, `invalid_body` and `not_found`.
-8. **The examples** in the contract are now real records from Find My Artisan's database.
+7. **`county`** must be one of Kenya's 47 county names, case-insensitive. An unknown county returns 400.
+8. **Every error has the same body**: `{ "code": "...", "message": "..." }`. The codes are `invalid_query`, `invalid_body` and `not_found`.
+9. **The examples** in the contract are now real records from Find My Artisan's database.
 
-## Not for Meditrac
+## Not in this contract
 
-The three `/artisans/{id}/availability` endpoints are used only by Find My Artisan's own
-artisans, to record when they're booked. They're in the file so the full API is documented.
+The attached file contains only the endpoints Meditrac uses. Find My Artisan's full API
+(`openapi.yaml`) also has three `/artisans/{id}/availability` endpoints, which only Find My
+Artisan's own artisans use to record when they're booked.
 
 Find My Artisan asks Meditrac to confirm receipt and to raise any questions about these changes.

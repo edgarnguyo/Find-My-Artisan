@@ -130,3 +130,46 @@ After validation, the artisan must exist (404). Then the review is saved and ret
 | Valid, with and without a comment | 201 (comment `null` when left out) | ✓, and the review shows on `/profiles/3` |
 
 It's recorded in `CONTRACT_DEVIATIONS.md` as #6. Meditrac gets `CHANGES_FOR_MEDITRAC.md` with the new `openapi.yaml`.
+
+---
+
+## 9. Addition: PATCH and DELETE for reviews
+
+| Endpoint | What it does | Success |
+|---|---|---|
+| `PATCH /artisans/{id}/reviews/{reviewId}` | Change any of `author`, `rating`, `comment`; `"comment": null` clears the comment | 200 + the updated review |
+| `DELETE /artisans/{id}/reviews/{reviewId}` | Remove the review | 204, no body |
+
+**Validation is shared with POST.** `reviewProblem()` holds the checks once. POST calls it
+normally (author and rating required); PATCH calls it with `partial = true`, so fields may be
+left out, but not all of them.
+
+**The existence check has one extra condition.** `findApiReview()` looks for the review with
+`WHERE id = ? AND artisan_id = ? AND from_api = TRUE`:
+
+- `artisan_id = ?`: a review can only be reached through its own artisan's URL.
+- `from_api = TRUE`: only reviews posted through the API. The sample reviews that come with the
+  site have `from_api = FALSE`, so they return 404 and can't be changed or removed from outside.
+  (There's no login, so this is the only way to protect them.)
+
+`schema.sql` adds the `from_api` column, and its reset of the sample reviews now skips
+`from_api = TRUE` rows, so re-running it doesn't wipe Meditrac's reviews.
+
+**Idempotency:** PATCH sets values rather than adding to them, so the same PATCH twice gives the
+same review. DELETE twice gives 204 then 404, with the same end state: no review.
+
+| Request | Expected | Got |
+|---|---|---|
+| PATCH `{}` | 400 | 400 |
+| PATCH `rating: "4"` / `0` | 400 | 400 |
+| PATCH `author: "  "` | 400 | 400 |
+| PATCH `comment: 42` | 400 | 400 |
+| PATCH body `not json` | 400 | 400 |
+| PATCH review 999999 | 404 | 404 |
+| PATCH a review through another artisan's URL | 404 | 404 |
+| PATCH a sample review (`from_api = FALSE`) | 404 | 404 |
+| PATCH `rating: 4`, sent twice | 200, same result both times | ✓ |
+| PATCH `comment: null` | 200, comment is `null` | ✓ |
+| DELETE a sample review / wrong artisan / `abc` | 404 | 404, and the sample review is still there |
+| DELETE, then DELETE again | 204, then 404 | ✓ |
+| Review count before and after all the tests | unchanged | 29 / 29 |
