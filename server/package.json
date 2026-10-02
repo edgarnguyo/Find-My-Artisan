@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "concurrently --names api,react --prefix-colors blue,magenta \"nodemon index.js\" \"npm --prefix ../react-app run build -- --watch\"",
-    "build": "npm --prefix ../react-app run build"
+    "build": "npm --prefix ../react-app run build",
+    "test": "jest --runInBand"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +23,8 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.5",
-    "nodemon": "^3.1.14"
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.0"
   }
 }
