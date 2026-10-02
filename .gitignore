@@ -6,3 +6,12 @@ dist/
 # submission bundles
 FindMyArtisan-submission/
 FindMyArtisan-submission.zip
+
+# personal study notes, kept on disk only
+GIT-NOTES.md
+LAB-EXPLAINED.md
+LAB-STATUS.md
+LAB5-6-STUDY.md
+LAB5-EXPLAINED.md
+LAB6-EXPLAINED.md
+SUBMISSIONS.md
