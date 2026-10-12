@@ -12,9 +12,10 @@ info:
     The three availability endpoints are used only by our own artisans.
 
 servers:
+  - url: https://find-my-artisan.onrender.com
+    description: Hosted server (no setup needed; the first request after a quiet spell takes about a minute)
   - url: http://localhost:5001
     description: Local development server
-  - url: https://api.findmyartisan.app
 
 paths:
   /artisans:

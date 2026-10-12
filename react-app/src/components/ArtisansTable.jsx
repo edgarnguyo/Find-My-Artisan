@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const API_URL = 'http://localhost:5001';
+import { API_URL } from '../api/client';
 
 export default function ArtisansTable() {
   const [artisans, setArtisans] = useState([]);

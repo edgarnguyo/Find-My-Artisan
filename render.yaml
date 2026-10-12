@@ -1,0 +1,31 @@
+# Tells Render (render.com) how to build and run the app, so the service can be
+# created from this file instead of by filling in a form: New > Blueprint.
+services:
+  - type: web
+    name: find-my-artisan
+    runtime: node
+    plan: free
+    # The database is hosted on the US east coast; a nearby server keeps each query fast.
+    region: virginia
+    # 1. Build the React site into react-app/dist (Vite is a dev dependency, hence --include=dev).
+    # 2. Install what the server needs to run (not jest, nodemon and the other dev tools).
+    buildCommand: npm --prefix react-app ci --include=dev && npm --prefix react-app run build && npm --prefix server ci --omit=dev
+    # One Express server answers the API and sends the built site. Render sets PORT itself.
+    startCommand: npm --prefix server start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: DB_NAME
+        value: find_my_artisan
+      - key: DB_SSL
+        value: "true"
+      # sync: false means the value is typed into Render's dashboard and never
+      # stored in this file. This repository is public.
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false

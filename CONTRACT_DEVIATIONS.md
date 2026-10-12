@@ -28,5 +28,11 @@ must now enter a phone number, because the contract marks `phone` as required.
 | 11 | Every artisan (list and full profile) now has `area`, e.g. `"Embakasi"`, next to `county`. Required in `ArtisanSummary`. `info.version` raised to 1.4.0. | A county can be large: Nairobi alone spans areas an hour apart. Without `area`, Meditrac could tell an artisan was in Nairobi but not whether they were near the pharmacy. There's no `?area=` filter, because areas are free text typed at sign-up and wouldn't match reliably. This adds a field; nothing Meditrac already reads changes. |
 | 12 | `availableToday` (field and query filter) removed. `busy` moved from the full profile onto every artisan, so the list has it too. `info.version` raised to 2.0.0 because a field was removed. Supersedes #3 and extends #10. | `availableToday` only said whether an artisan was free at the exact moment of the request, which doesn't tell a pharmacy whether they can come and finish a job. Two ways of showing availability were also more complicated than needed. `busy` answers the real question on its own: any time not listed is free. |
 
+## Week 8: published docs
+
+| # | What changed | Why the original didn't hold up |
+|---|---|---|
+| 13 | `servers` now lists `https://find-my-artisan.onrender.com` first and `http://localhost:5001` second. `https://api.findmyartisan.app` is removed. `info.version` is unchanged because no path or field changed. | `api.findmyartisan.app` was a placeholder that never existed, so a reader who picked it in Swagger UI got no response. The API is now hosted, and putting that address first makes "Try it out" work for someone who has nothing running on their own computer. `openapi-meditrac.yaml` still lists the old placeholder and needs the same change. |
+
 Not a contract change: a body that isn't valid JSON now gets the contract's
 `{ code, message }` error with 400, instead of Express's HTML error page.
