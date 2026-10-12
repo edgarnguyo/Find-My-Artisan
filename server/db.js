@@ -9,6 +9,10 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT,
+  // A hosted MySQL usually refuses unencrypted connections, so DB_SSL=true in
+  // .env turns encryption on. Local MySQL has no SSL, so leave it out there.
+  // rejectUnauthorized: false encrypts but skips checking the server's certificate.
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   waitForConnections: true,
   connectionLimit: 10,
   // Return dates as text like '2026-10-01'. Otherwise they become JavaScript
