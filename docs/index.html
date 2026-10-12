@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Find My Artisan API</title>
+    <!-- Same Swagger UI version as the server's own /docs page (swagger-ui-express). -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.0/swagger-ui.css" />
+    <style>
+      body { margin: 0; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.0/swagger-ui-bundle.js"></script>
+    <script>
+      // The page is drawn from openapi.yaml on the main branch, so it always
+      // shows the current contract and there is no second copy to keep in step.
+      // GitHub serves that file with "Access-Control-Allow-Origin: *", which is
+      // what lets a page on another address (GitHub Pages) fetch it.
+      SwaggerUIBundle({
+        url: 'https://raw.githubusercontent.com/edgarnguyo/Find-My-Artisan/main/openapi.yaml',
+        dom_id: '#swagger-ui',
+      });
+    </script>
+  </body>
+</html>
