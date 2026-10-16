@@ -10,6 +10,7 @@ import SignInPage from './pages/SignInPage';
 import MyBookingsPage from './pages/MyBookingsPage';
 import ArtisansPage from './pages/ArtisansPage';
 import DashboardPage from './pages/DashboardPage';
+import EditProfilePage from './pages/EditProfilePage';
 
 export default function App() {
   return (
@@ -27,6 +28,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <DashboardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/dashboard/profile"
+            element={
+              <RequireAuth>
+                <EditProfilePage />
               </RequireAuth>
             }
           />

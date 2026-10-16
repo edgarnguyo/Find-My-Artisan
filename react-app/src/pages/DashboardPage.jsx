@@ -116,7 +116,8 @@ export default function DashboardPage() {
       <header className="bookings-header">
         <h1>Your jobs</h1>
         <p className="bookings-sub">
-          Signed in as {user.email} · <Link to={`/profile/${user.id}`}>View your public profile</Link>
+          Signed in as {user.email} · <Link to="/dashboard/profile">Edit your profile &amp; portfolio</Link>
+          {' · '}<Link to={`/profile/${user.id}`}>View your public profile</Link>
         </p>
       </header>
 

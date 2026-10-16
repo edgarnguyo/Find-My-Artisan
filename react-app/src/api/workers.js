@@ -16,6 +16,8 @@ function toWorker(row) {
     location: row.location,
     county: row.county,
     bio: row.bio,
+    phone: row.phone,
+    hourlyRateKes: row.hourly_rate_kes,
     // The average of the artisan's reviews, or null when nobody has reviewed
     // them yet. DECIMAL arrives as a string ("4.8"), so convert it to a number.
     rating: row.rating === null ? null : Number(row.rating),
@@ -39,8 +41,19 @@ function toWorker(row) {
       comment: r.comment,
     })),
     // Booked windows in the next 14 days, in UTC: [{ start, end }]. Only the
-    // single-artisan route sends them.
+    // single-artisan route sends them, like the portfolio below.
     busy: row.busy ?? [],
+    portfolio: (row.portfolio ?? []).map(toPortfolioItem),
+  };
+}
+
+function toPortfolioItem(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    imageUrl: row.image_url,
+    workDate: row.work_date,
   };
 }
 
@@ -140,4 +153,21 @@ export async function addBusyTime(artisanId, start, end) {
 /** Free up a busy time the artisan added themselves. */
 export async function removeBusyTime(artisanId, blockId) {
   await request(`/artisans/${artisanId}/availability/${blockId}`, { method: 'DELETE' });
+}
+
+/**
+ * Save changes to an artisan's own profile. fields holds any of location,
+ * county, phone, price, bio and hourlyRateKes.
+ */
+export async function updateProfile(artisanId, fields) {
+  return toWorker(await request(`/profiles/${artisanId}`, { method: 'PATCH', body: fields }));
+}
+
+/** Add a past job to the portfolio: { title, imageUrl, description?, workDate? }. */
+export async function addPortfolioItem(artisanId, item) {
+  return toPortfolioItem(await request(`/profiles/${artisanId}/portfolio`, { method: 'POST', body: item }));
+}
+
+export async function removePortfolioItem(artisanId, itemId) {
+  await request(`/profiles/${artisanId}/portfolio/${itemId}`, { method: 'DELETE' });
 }
