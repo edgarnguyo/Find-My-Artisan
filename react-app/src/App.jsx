@@ -9,6 +9,7 @@ import ProfilePage from './pages/ProfilePage';
 import SignInPage from './pages/SignInPage';
 import MyBookingsPage from './pages/MyBookingsPage';
 import ArtisansPage from './pages/ArtisansPage';
+import DashboardPage from './pages/DashboardPage';
 
 export default function App() {
   return (
@@ -21,6 +22,14 @@ export default function App() {
           <Route path="/profile/:id" element={<ProfilePage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/artisans-table" element={<ArtisansPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <RequireAuth>
+                <DashboardPage />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/my-bookings"
             element={

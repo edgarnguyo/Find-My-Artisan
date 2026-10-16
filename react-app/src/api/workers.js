@@ -67,6 +67,8 @@ function toBooking(row) {
   return {
     id: row.id,
     status: row.status,
+    // Who asked for the job, as typed into the booking form.
+    clientName: row.name,
     job: row.job,
     budget: row.budget,
     contact: row.contact,
@@ -91,4 +93,15 @@ export async function fetchMyBookings(clientId) {
 /** Cancel one of this client's bookings. */
 export async function cancelBooking(id, clientId) {
   await request(`/bookings/${id}/cancel`, { method: 'PATCH', body: { clientId } });
+}
+
+/** Every booking made with this artisan, newest first. */
+export async function fetchArtisanBookings(artisanId) {
+  const rows = await request(`/bookings?artisanId=${artisanId}`);
+  return rows.map(toBooking);
+}
+
+/** An artisan's answer to a booking: 'confirmed', 'declined' or 'completed'. */
+export async function setBookingStatus(id, artisanId, status) {
+  await request(`/bookings/${id}/status`, { method: 'PATCH', body: { artisanId, status } });
 }
