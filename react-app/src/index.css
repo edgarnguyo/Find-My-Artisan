@@ -665,7 +665,32 @@ textarea:focus {
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Rating filter and sort order, under the skill buttons. */
+.listings-controls {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
   margin-bottom: var(--spacing-xl);
+}
+
+.listings-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.listings-controls select {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-size: 0.9rem;
+  text-transform: none;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .filter-btn {
@@ -761,6 +786,11 @@ textarea:focus {
   color: var(--color-text);
   font-weight: 600;
   font-size: 0.92rem;
+}
+
+.worker-rate {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
 }
 
 .worker-location {
@@ -1157,12 +1187,16 @@ textarea:focus {
 }
 
 .preview-card {
+  display: block;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   text-align: center;
   transition: transform 0.2s, box-shadow 0.2s;
+  /* Each card links to the artisan's profile. */
+  color: inherit;
+  text-decoration: none;
 }
 
 .preview-card:hover {
@@ -1308,7 +1342,8 @@ textarea:focus {
   aspect-ratio: 4 / 3;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  cursor: default;
+  /* Each photo links to the profile of the artisan who did the work. */
+  text-decoration: none;
 }
 
 .gallery-tile img {
@@ -1327,6 +1362,11 @@ textarea:focus {
   background: rgba(36, 29, 23, 0.55);
   border-radius: var(--radius-full);
   font-size: 0.9rem;
+  /* Long titles stay inside the photo. */
+  max-width: calc(100% - 2 * var(--spacing-md));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tips-section {
