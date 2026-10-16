@@ -20,8 +20,10 @@ function WorkerCard({ worker }) {
       </span>
 
       <div className="worker-meta">
-        {/* Artisans who just signed up have no rating or job success yet (null). */}
-        <p className="worker-rating">⭐ {worker.rating ?? "New"}</p>
+        {/* rating is the average of the reviews: null until there is one. */}
+        <p className="worker-rating">
+          ⭐ {worker.rating != null ? `${worker.rating.toFixed(1)} (${worker.reviewCount})` : "New"}
+        </p>
         {worker.jobSuccess != null && (
           <p className="worker-success">{worker.jobSuccess}% job success</p>
         )}

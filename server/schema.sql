@@ -106,6 +106,17 @@ CREATE TABLE IF NOT EXISTS bookings (
   FOREIGN KEY (client_id) REFERENCES clients(id)
 );
 
+-- ---------------------------------------------------------------------------
+-- Phase 3: a client reviews a job from My bookings once the artisan has marked
+-- it completed. booking_id links the review to that job (NULL for the sample
+-- reviews and the ones Meditrac posts). UNIQUE: one review per booking.
+-- Added here, before the sample reviews below, because their DELETE uses it.
+-- ---------------------------------------------------------------------------
+SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = DATABASE() AND table_name = 'reviews' AND column_name = 'booking_id') = 0,
+              'ALTER TABLE reviews ADD COLUMN booking_id INT NULL UNIQUE, ADD FOREIGN KEY (booking_id) REFERENCES bookings(id)', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- Sample artisans (ids 1-23). INSERT IGNORE skips a row whose id already
 -- exists, so running this file again doesn't add them twice.
 INSERT IGNORE INTO artisans (id, name, skill, verified, price, photo, location, bio, rating, job_success, hours_per_week, total_earnings, jobs_completed, hours_worked) values
@@ -133,11 +144,12 @@ INSERT IGNORE INTO artisans (id, name, skill, verified, price, photo, location, 
   (22, 'Grace Wambui', 'Plumber', true, 'KES 1,900 – 6,000 / job', 'https://loremflickr.com/500/500/nigerian,woman,portrait/all?lock=101', 'Free Area, Nakuru', 'Plumbing repairs, water tank installations, and drainage fixes for homes and small offices.', 4.4, 93, 'Less than 30 hrs/week', 'KES 210K+', 16, 520),
   (23, 'Samuel Kimutai', 'Painter', false, 'KES 2,000 – 7,500 / job', 'https://randomuser.me/api/portraits/men/91.jpg', 'London Estate, Nakuru', 'Painter offering interior and exterior work, with flexible scheduling for weekend jobs.', 4, 87, 'Less than 30 hrs/week', 'KES 120K+', 9, 260);
 
--- Their languages, work history and reviews have no fixed ids, so the old copies
--- are removed first; otherwise every re-run would add them again.
+-- Their languages, work history and sample reviews have no fixed ids, so the old
+-- copies are removed first; otherwise every re-run would add them again.
 DELETE FROM languages    WHERE artisan_id BETWEEN 1 AND 23;
 DELETE FROM work_history WHERE artisan_id BETWEEN 1 AND 23;
-DELETE FROM reviews      WHERE artisan_id BETWEEN 1 AND 23 AND from_api = FALSE;
+-- Reviews clients left for a booked job (booking_id set) are real, so they stay.
+DELETE FROM reviews      WHERE artisan_id BETWEEN 1 AND 23 AND from_api = FALSE AND booking_id IS NULL;
 
 INSERT INTO languages (artisan_id, name, level) values
   (1, 'English', 'Fluent'),

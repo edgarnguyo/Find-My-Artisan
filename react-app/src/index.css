@@ -1849,6 +1849,84 @@ textarea:focus {
   width: auto;
 }
 
+/* Text only screen readers announce, such as "4 stars" behind a ★. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* My bookings: the review a client gave, and the form to leave one. */
+.booking-review {
+  margin-top: var(--spacing-sm);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.booking-review .review-stars {
+  margin: 0;
+}
+
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.star-picker {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-sm);
+  min-width: 0;
+}
+
+.star-picker legend {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.star-picker label {
+  position: relative;
+  display: inline-block;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--color-border);
+  cursor: pointer;
+  text-transform: none;
+  padding: 0 0.1rem;
+}
+
+.star-picker label.is-on {
+  color: var(--color-star);
+}
+
+/* The radio itself is hidden; the star is what's clicked. */
+.star-picker input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.star-picker label:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.review-form-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
 /* "When you're busy" on the artisan dashboard. */
 .busy-times {
   margin-top: var(--spacing-xl);
