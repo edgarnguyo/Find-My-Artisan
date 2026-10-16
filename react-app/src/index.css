@@ -328,6 +328,30 @@ button {
   object-fit: cover;
 }
 
+.profile-gallery-item {
+  margin: 0;
+  min-width: 0;
+}
+
+.profile-gallery-tile {
+  background: var(--color-bg);
+}
+
+.profile-gallery-item figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.profile-gallery-item figcaption p {
+  margin-top: 0.2rem;
+  color: var(--color-text-muted);
+}
+
+.gallery-date,
+.gallery-empty {
+  color: var(--color-text-muted);
+}
+
 .history-list {
   list-style: none;
   display: flex;
@@ -1641,7 +1665,8 @@ textarea:focus {
   accent-color: var(--color-primary);
 }
 
-.auth-card select {
+.auth-card select,
+.edit-profile-form select {
   width: 100%;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -1652,7 +1677,8 @@ textarea:focus {
   outline: none;
 }
 
-.auth-card select:focus {
+.auth-card select:focus,
+.edit-profile-form select:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px var(--color-primary-light);
 }
@@ -1849,6 +1875,56 @@ textarea:focus {
   width: auto;
 }
 
+/* The artisan's profile page: details form and portfolio. */
+.edit-profile-form,
+.portfolio-form {
+  margin-top: var(--spacing-md);
+}
+
+.saved-note {
+  color: var(--color-verified);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+}
+
+.portfolio-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-md) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.portfolio-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.portfolio-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  flex-shrink: 0;
+}
+
+.portfolio-list-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.portfolio-preview {
+  max-width: 220px;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+}
+
 /* Text only screen readers announce, such as "4 stars" behind a ★. */
 .visually-hidden {
   position: absolute;
@@ -1927,8 +2003,9 @@ textarea:focus {
   margin-top: var(--spacing-sm);
 }
 
-/* "When you're busy" on the artisan dashboard. */
-.busy-times {
+/* Cards on the artisan's pages: "When you're busy", profile details, portfolio. */
+.busy-times,
+.dashboard-card {
   margin-top: var(--spacing-xl);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -1936,7 +2013,8 @@ textarea:focus {
   padding: var(--spacing-lg);
 }
 
-.busy-times h2 {
+.busy-times h2,
+.dashboard-card h2 {
   font-size: 1.25rem;
   margin-bottom: 0.25rem;
 }

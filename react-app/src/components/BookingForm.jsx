@@ -192,7 +192,7 @@ export default function BookingForm({ worker }) {
           <input
             id="budget"
             type="text"
-            placeholder={`e.g. ${worker.price}`}
+            placeholder={`e.g. ${worker.price ?? 'KES 3,000'}`}
             value={budget}
             onChange={e => setBudget(e.target.value)}
           />

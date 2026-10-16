@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { busyByArtisan, fromDbTime } = require('../availability');
+const COUNTIES = require('../counties');
 
 // Every column except email and password, which must never be sent to the browser.
 // The artisans.rating column is a fixed number from the sample data, so the
 // rating is worked out from the reviews instead: their average to one decimal,
 // or NULL (shown as "New") when there are none yet. jobs_completed adds the
 // jobs finished through the site to the count the artisan started with.
-const COLUMNS = `id, name, skill, verified, price, photo, location, county, bio,
+const COLUMNS = `id, name, skill, verified, price, photo, location, county, bio, phone, hourly_rate_kes,
   (SELECT ROUND(AVG(r.rating), 1) FROM reviews r WHERE r.artisan_id = artisans.id) AS rating,
   (SELECT COUNT(*) FROM reviews r WHERE r.artisan_id = artisans.id) AS review_count,
   job_success, hours_per_week, total_earnings, hours_worked,
@@ -52,10 +53,20 @@ router.get('/:id', async (req, res) => {
       [artisan.id]
     );
 
+    // Newest first, like the reviews.
+    const [portfolio] = await db.query(
+      `SELECT id, title, description, image_url, work_date FROM portfolio_items
+       WHERE artisan_id = ? ORDER BY id DESC`,
+      [artisan.id]
+    );
+
     // The same 14-day busy list Meditrac gets from GET /artisans/:id.
     const busy = await busyByArtisan(artisan.id);
 
-    res.json({ ...artisan, languages, work_history: workHistory, reviews, busy: busy[artisan.id] ?? [] });
+    res.json({
+      ...artisan, languages, work_history: workHistory, reviews, portfolio,
+      busy: busy[artisan.id] ?? [],
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch artisan' });
@@ -122,6 +133,152 @@ router.post('/', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create artisan' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Phase 4: artisans edit their own profile and portfolio from the dashboard.
+// ---------------------------------------------------------------------------
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const PORTFOLIO_LIMIT = 12;
+
+// Text that must be present when sent: a non-empty string of at most max characters.
+const isText = (value, max) => typeof value === 'string' && value.trim() !== '' && value.length <= max;
+
+// Only https links, so a photo can't be served over an insecure connection and
+// nothing like "javascript:..." ends up in the page.
+function isHttpsUrl(value) {
+  if (typeof value !== 'string' || value.length > 500) return false;
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// The profile fields an artisan can change, with the column each is saved in
+// and the check its value must pass. Sending null clears an optional field.
+const EDITABLE = {
+  location: { column: 'location', ok: v => isText(v, 100) },
+  county: { column: 'county', ok: v => typeof v === 'string' && COUNTIES.includes(v) },
+  phone: { column: 'phone', ok: v => isText(v, 20) },
+  price: { column: 'price', ok: v => v === null || (typeof v === 'string' && v.length <= 50) },
+  bio: { column: 'bio', ok: v => v === null || (typeof v === 'string' && v.length <= 2000) },
+  hourlyRateKes: {
+    column: 'hourly_rate_kes',
+    ok: v => v === null || (Number.isInteger(v) && v >= 1 && v <= 100000),
+  },
+};
+
+const MESSAGES = {
+  location: 'area must be text of at most 100 characters',
+  county: 'county must be one of Kenya\'s 47 counties',
+  phone: 'phone must be text of at most 20 characters',
+  price: 'price must be text of at most 50 characters',
+  bio: 'bio must be text of at most 2000 characters',
+  hourlyRateKes: 'hourlyRateKes must be a whole number from 1 to 100000',
+};
+
+async function artisanExists(id) {
+  const [rows] = await db.query('SELECT id FROM artisans WHERE id = ?', [id]);
+  return rows.length > 0;
+}
+
+// PATCH /profiles/5  with any of { location, county, phone, price, bio, hourlyRateKes }
+// Only the fields sent are changed. Name and skill aren't editable here: the
+// skill is what an artisan's certificate (verification) is for.
+router.patch('/:id', async (req, res) => {
+  const body = req.body ?? {};
+  const fields = Object.keys(body).filter(key => key in EDITABLE);
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: `Send at least one of: ${Object.keys(EDITABLE).join(', ')}` });
+  }
+  const bad = fields.find(key => !EDITABLE[key].ok(body[key]));
+  if (bad) {
+    return res.status(400).json({ error: MESSAGES[bad] });
+  }
+
+  try {
+    if (!(await artisanExists(req.params.id))) {
+      return res.status(404).json({ error: 'Artisan not found' });
+    }
+    // Column names come from EDITABLE in this file, never from the request;
+    // the values go in as ? placeholders.
+    const sets = fields.map(key => `${EDITABLE[key].column} = ?`).join(', ');
+    const values = fields.map(key => (typeof body[key] === 'string' ? body[key].trim() || null : body[key]));
+    await db.query(`UPDATE artisans SET ${sets} WHERE id = ?`, [...values, req.params.id]);
+
+    const [rows] = await db.query(`SELECT ${COLUMNS} FROM artisans WHERE id = ?`, [req.params.id]);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// POST /profiles/5/portfolio  with { title, imageUrl, description?, workDate? }
+router.post('/:id/portfolio', async (req, res) => {
+  const { title, imageUrl, description, workDate } = req.body ?? {};
+
+  if (!isText(title, 100)) {
+    return res.status(400).json({ error: 'title is required, at most 100 characters' });
+  }
+  if (!isHttpsUrl(imageUrl)) {
+    return res.status(400).json({ error: 'imageUrl must be a link starting with https://' });
+  }
+  if (description != null && (typeof description !== 'string' || description.length > 500)) {
+    return res.status(400).json({ error: 'description must be text of at most 500 characters' });
+  }
+  if (workDate != null && (typeof workDate !== 'string' || !DATE.test(workDate)
+      || Number.isNaN(Date.parse(workDate)) || workDate > new Date().toISOString().slice(0, 10))) {
+    return res.status(400).json({ error: 'workDate must be a date like 2026-05-14, not in the future' });
+  }
+
+  try {
+    if (!(await artisanExists(req.params.id))) {
+      return res.status(404).json({ error: 'Artisan not found' });
+    }
+    const [[{ count }]] = await db.query(
+      'SELECT COUNT(*) AS count FROM portfolio_items WHERE artisan_id = ?',
+      [req.params.id]
+    );
+    if (count >= PORTFOLIO_LIMIT) {
+      return res.status(409).json({ error: `A portfolio holds up to ${PORTFOLIO_LIMIT} items. Remove one first.` });
+    }
+
+    const [result] = await db.query(
+      `INSERT INTO portfolio_items (artisan_id, title, description, image_url, work_date)
+       VALUES (?, ?, ?, ?, ?)`,
+      [req.params.id, title.trim(), description?.trim() || null, imageUrl, workDate || null]
+    );
+    const [rows] = await db.query(
+      'SELECT id, title, description, image_url, work_date FROM portfolio_items WHERE id = ?',
+      [result.insertId]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to add portfolio item' });
+  }
+});
+
+// DELETE /profiles/5/portfolio/9
+router.delete('/:id/portfolio/:itemId', async (req, res) => {
+  try {
+    // "AND artisan_id = ?" only removes the item if it's this artisan's.
+    const [result] = await db.query(
+      'DELETE FROM portfolio_items WHERE id = ? AND artisan_id = ?',
+      [req.params.itemId, req.params.id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Portfolio item not found' });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to remove portfolio item' });
   }
 });
 

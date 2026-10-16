@@ -348,3 +348,20 @@ SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
                WHERE table_schema = DATABASE() AND table_name = 'availability_blocks' AND column_name = 'booking_id') = 0,
               'ALTER TABLE availability_blocks ADD COLUMN booking_id INT NULL UNIQUE, ADD FOREIGN KEY (booking_id) REFERENCES bookings(id)', 'DO 0');
 PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ---------------------------------------------------------------------------
+-- Phase 4: an artisan's portfolio, the past work they show on their profile.
+-- Added from their dashboard. image_url points at a photo hosted elsewhere
+-- (https only): Render's free plan doesn't keep uploaded files.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS portfolio_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  artisan_id INT NOT NULL,
+  title VARCHAR(100) NOT NULL,
+  description VARCHAR(500),
+  image_url VARCHAR(500) NOT NULL,
+  -- When the job was done, if the artisan says.
+  work_date DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (artisan_id) REFERENCES artisans(id)
+);
