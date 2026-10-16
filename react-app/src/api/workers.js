@@ -16,8 +16,10 @@ function toWorker(row) {
     location: row.location,
     county: row.county,
     bio: row.bio,
-    // DECIMAL arrives as a string ("4.8"), so convert it to a number.
+    // The average of the artisan's reviews, or null when nobody has reviewed
+    // them yet. DECIMAL arrives as a string ("4.8"), so convert it to a number.
     rating: row.rating === null ? null : Number(row.rating),
+    reviewCount: row.review_count,
     jobSuccess: row.job_success,
     hoursPerWeek: row.hours_per_week,
     totalEarnings: row.total_earnings,
@@ -79,6 +81,8 @@ function toBooking(row) {
     time: row.booking_time,
     // When the artisan said the job will be over (UTC), once they've accepted.
     endsAt: row.block_end,
+    // The client's review of the job, once they've left one.
+    review: row.review_rating === null ? null : { rating: row.review_rating, comment: row.review_comment },
     createdAt: row.created_at,
     worker: {
       id: row.artisan_id,
@@ -98,6 +102,11 @@ export async function fetchMyBookings(clientId) {
 /** Cancel one of this client's bookings. */
 export async function cancelBooking(id, clientId) {
   await request(`/bookings/${id}/cancel`, { method: 'PATCH', body: { clientId } });
+}
+
+/** Review a completed job: rating is 1 to 5, comment is optional. */
+export async function reviewBooking(id, clientId, rating, comment) {
+  await request(`/bookings/${id}/review`, { method: 'POST', body: { clientId, rating, comment } });
 }
 
 /** Every booking made with this artisan, newest first. */

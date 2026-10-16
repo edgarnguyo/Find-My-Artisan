@@ -4,8 +4,16 @@ const db = require('../db');
 const { busyByArtisan, fromDbTime } = require('../availability');
 
 // Every column except email and password, which must never be sent to the browser.
-const COLUMNS = `id, name, skill, verified, price, photo, location, county, bio, rating,
-  job_success, hours_per_week, total_earnings, jobs_completed, hours_worked`;
+// The artisans.rating column is a fixed number from the sample data, so the
+// rating is worked out from the reviews instead: their average to one decimal,
+// or NULL (shown as "New") when there are none yet. jobs_completed adds the
+// jobs finished through the site to the count the artisan started with.
+const COLUMNS = `id, name, skill, verified, price, photo, location, county, bio,
+  (SELECT ROUND(AVG(r.rating), 1) FROM reviews r WHERE r.artisan_id = artisans.id) AS rating,
+  (SELECT COUNT(*) FROM reviews r WHERE r.artisan_id = artisans.id) AS review_count,
+  job_success, hours_per_week, total_earnings, hours_worked,
+  jobs_completed + (SELECT COUNT(*) FROM bookings b
+                    WHERE b.artisan_id = artisans.id AND b.status = 'completed') AS jobs_completed`;
 
 // Website-only routes, not part of openapi.yaml: the profile pages need photos,
 // bios, prices, reviews and so on, which the contract doesn't include.
@@ -38,8 +46,9 @@ router.get('/:id', async (req, res) => {
       'SELECT title, rating, date_range, price, price_type FROM work_history WHERE artisan_id = ?',
       [artisan.id]
     );
+    // Newest first, so a client's new review is at the top.
     const [reviews] = await db.query(
-      'SELECT author, rating, comment FROM reviews WHERE artisan_id = ?',
+      'SELECT author, rating, comment FROM reviews WHERE artisan_id = ? ORDER BY id DESC',
       [artisan.id]
     );
 

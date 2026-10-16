@@ -4,6 +4,7 @@ import { fetchMyBookings, cancelBooking } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
+import ReviewForm from '../components/ReviewForm';
 import { kenyaClock } from '../lib/kenyaTime';
 
 const TABS = [
@@ -25,6 +26,8 @@ export default function MyBookingsPage() {
   const [tab, setTab] = useState('active');
   const [reloadKey, setReloadKey] = useState(0);
   const [cancelling, setCancelling] = useState(null);
+  // The completed booking whose review form is open, or null.
+  const [reviewing, setReviewing] = useState(null);
 
   // Bookings belong to clients. An artisan's id could match some client's id,
   // so only ask for bookings when the signed-in user really is a client.
@@ -124,6 +127,28 @@ export default function MyBookingsPage() {
                   {booking.endsAt && `–${kenyaClock(booking.endsAt)}`}
                   {booking.budget && ` · budget ${booking.budget}`}
                 </p>
+
+                {booking.review && (
+                  <p className="booking-review">
+                    You rated this{' '}
+                    <span className="review-stars" aria-label={`${booking.review.rating} out of 5 stars`}>
+                      {'★'.repeat(booking.review.rating) + '☆'.repeat(5 - booking.review.rating)}
+                    </span>
+                    {booking.review.comment && ` · “${booking.review.comment}”`}
+                  </p>
+                )}
+
+                {reviewing === booking.id && (
+                  <ReviewForm
+                    booking={booking}
+                    clientId={user.id}
+                    onCancel={() => setReviewing(null)}
+                    onDone={() => {
+                      setReviewing(null);
+                      setReloadKey(k => k + 1);
+                    }}
+                  />
+                )}
               </div>
 
               <div className="booking-row-side">
@@ -137,6 +162,11 @@ export default function MyBookingsPage() {
                     disabled={cancelling === booking.id}
                   >
                     {cancelling === booking.id ? 'Cancelling…' : 'Cancel'}
+                  </button>
+                )}
+                {booking.status === 'completed' && !booking.review && reviewing !== booking.id && (
+                  <button className="booking-action" onClick={() => setReviewing(booking.id)}>
+                    Leave a review
                   </button>
                 )}
               </div>

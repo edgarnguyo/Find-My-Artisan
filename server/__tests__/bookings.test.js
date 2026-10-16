@@ -1,7 +1,8 @@
 // Automated tests for the website's booking routes: an artisan seeing the
 // requests made to them and accepting, declining and completing them, a client
-// cancelling, and the busy times that accepting creates. Every booking, busy
-// time and client made here is deleted at the end.
+// cancelling, the busy times that accepting creates, and clients reviewing
+// finished jobs. Every booking, busy time, review and client made here is
+// deleted at the end.
 const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
@@ -49,6 +50,18 @@ function accept(bookingId, endTime = '11:00') {
   return setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'confirmed', endTime });
 }
 
+// A booking the artisan has accepted and marked completed, ready to review.
+async function makeCompletedBooking() {
+  const bookingId = await makeBooking();
+  await accept(bookingId);
+  await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'completed' });
+  return bookingId;
+}
+
+function review(bookingId, body) {
+  return request(app).post(`/bookings/${bookingId}/review`).send({ clientId, ...body });
+}
+
 async function blockFor(bookingId) {
   const [rows] = await db.query('SELECT * FROM availability_blocks WHERE booking_id = ?', [bookingId]);
   return rows[0] ?? null;
@@ -66,9 +79,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (bookingIds.length > 0) {
-    // Blocks first: they point at the bookings, so MySQL won't delete a booking
-    // that still has one.
+    // Blocks and reviews first: they point at the bookings, so MySQL won't
+    // delete a booking that still has one.
     await db.query('DELETE FROM availability_blocks WHERE booking_id IN (?)', [bookingIds]);
+    await db.query('DELETE FROM reviews WHERE booking_id IN (?)', [bookingIds]);
     await db.query('DELETE FROM bookings WHERE id IN (?)', [bookingIds]);
   }
   await db.query('DELETE FROM clients WHERE id = ?', [clientId]);
@@ -307,5 +321,124 @@ describe('Busy times from accepted bookings', () => {
       bookingId,
       job: 'Booking made by bookings.test.js',
     });
+  });
+});
+
+describe('POST /bookings/:id/review', () => {
+  it("saves the client's review of a completed job, with their name as author", async () => {
+    const bookingId = await makeCompletedBooking();
+
+    const res = await review(bookingId, { rating: 4, comment: '  Quick and tidy.  ' });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual({ id: expect.any(Number), rating: 4, comment: 'Quick and tidy.' });
+    const [rows] = await db.query('SELECT * FROM reviews WHERE id = ?', [res.body.id]);
+    expect(rows[0]).toMatchObject({
+      artisan_id: ARTISAN_ID,
+      booking_id: bookingId,
+      author: 'Test Client',
+      rating: 4,
+      from_api: 0,
+    });
+  });
+
+  it('lets a client review a job only once', async () => {
+    const bookingId = await makeCompletedBooking();
+    await review(bookingId, { rating: 5 });
+
+    const res = await review(bookingId, { rating: 1 });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/already reviewed/);
+  });
+
+  it('refuses a review before the job is completed', async () => {
+    const bookingId = await makeBooking();
+    await accept(bookingId);
+
+    const res = await review(bookingId, { rating: 5 });
+
+    expect(res.status).toBe(409);
+  });
+
+  it("returns 404 for someone else's booking", async () => {
+    const bookingId = await makeCompletedBooking();
+
+    const res = await request(app)
+      .post(`/bookings/${bookingId}/review`)
+      .send({ clientId: clientId + 1000, rating: 5 });
+
+    expect(res.status).toBe(404);
+  });
+
+  it.each([[0], [6], [4.5], ['5'], [undefined]])('rejects rating %p', async rating => {
+    const bookingId = await makeCompletedBooking();
+
+    const res = await review(bookingId, { rating });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("shows the review on the client's booking", async () => {
+    const bookingId = await makeCompletedBooking();
+    await review(bookingId, { rating: 3, comment: 'Fine.' });
+
+    const res = await request(app).get('/bookings').query({ clientId });
+
+    expect(res.body.find(b => b.id === bookingId)).toMatchObject({
+      review_rating: 3,
+      review_comment: 'Fine.',
+    });
+  });
+
+  it("can't be changed or deleted through Meditrac's review routes", async () => {
+    const bookingId = await makeCompletedBooking();
+    const posted = await review(bookingId, { rating: 5 });
+
+    const patch = await request(app)
+      .patch(`/artisans/${ARTISAN_ID}/reviews/${posted.body.id}`)
+      .send({ rating: 1 });
+    const del = await request(app).delete(`/artisans/${ARTISAN_ID}/reviews/${posted.body.id}`);
+
+    expect(patch.status).toBe(404);
+    expect(del.status).toBe(404);
+  });
+});
+
+describe('Rating and jobs done on the profile', () => {
+  it('works the rating out from the reviews and counts jobs finished on the site', async () => {
+    const before = (await request(app).get(`/profiles/${ARTISAN_ID}`)).body;
+
+    const bookingId = await makeCompletedBooking();
+    await review(bookingId, { rating: 1 });
+
+    const after = (await request(app).get(`/profiles/${ARTISAN_ID}`)).body;
+    const [[avg]] = await db.query(
+      'SELECT ROUND(AVG(rating), 1) AS rating FROM reviews WHERE artisan_id = ?',
+      [ARTISAN_ID]
+    );
+    expect(after.review_count).toBe(before.review_count + 1);
+    expect(after.rating).toBe(avg.rating);
+    expect(after.jobs_completed).toBe(before.jobs_completed + 1);
+    expect(after.reviews[0]).toMatchObject({ author: 'Test Client', rating: 1 });
+  });
+
+  it('has no rating for an artisan nobody has reviewed', async () => {
+    const res = await request(app).post('/profiles').send({
+      name: 'Unrated Artisan',
+      email: `unrated-${Date.now()}@example.com`,
+      password: 'secret1',
+      skill: 'Painter',
+      location: 'Kilimani',
+      county: 'Nairobi',
+      phone: '0712000123',
+    });
+
+    const profile = (await request(app).get(`/profiles/${res.body.id}`)).body;
+    await db.query('DELETE FROM artisans WHERE id = ?', [res.body.id]);
+
+    expect(profile.rating).toBeNull();
+    expect(profile.review_count).toBe(0);
+    expect(profile.jobs_completed).toBe(0);
   });
 });

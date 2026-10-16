@@ -51,15 +51,18 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    // JOINs add the artisan's name, skill and location, and the end of the
-    // time the artisan blocked out when accepting (NULL until then).
+    // JOINs add the artisan's name, skill and location, the end of the time
+    // the artisan blocked out when accepting, and the client's review of the
+    // job (both NULL until there is one).
     const [rows] = await db.query(
       `SELECT bookings.*, artisans.name AS artisan_name,
               artisans.skill AS artisan_skill, artisans.location AS artisan_location,
-              availability_blocks.end_at AS block_end
+              availability_blocks.end_at AS block_end,
+              reviews.rating AS review_rating, reviews.comment AS review_comment
        FROM bookings
        JOIN artisans ON artisans.id = bookings.artisan_id
        LEFT JOIN availability_blocks ON availability_blocks.booking_id = bookings.id
+       LEFT JOIN reviews ON reviews.booking_id = bookings.id
        WHERE ${clientId ? 'bookings.client_id' : 'bookings.artisan_id'} = ?
        ORDER BY bookings.id DESC`,
       [clientId || artisanId]
@@ -171,6 +174,56 @@ router.patch('/:id/status', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update booking' });
+  }
+});
+
+// POST a client's review of a finished job:  /bookings/7/review
+// with  { clientId, rating, comment }. Only the client who booked can review,
+// only once the artisan has marked the job completed, and only once per job,
+// so every website review comes from someone who really hired the artisan.
+router.post('/:id/review', async (req, res) => {
+  const { clientId, rating, comment } = req.body;
+
+  if (!clientId) {
+    return res.status(400).json({ error: 'clientId is required' });
+  }
+  // Number.isInteger rejects "5" (a string) and 4.5, not just values out of range.
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: 'rating must be a whole number from 1 to 5' });
+  }
+  if (comment != null && (typeof comment !== 'string' || comment.length > 1000)) {
+    return res.status(400).json({ error: 'comment must be text of at most 1000 characters' });
+  }
+
+  try {
+    // The JOIN gets the client's name, which is shown as the review's author.
+    const [rows] = await db.query(
+      `SELECT bookings.artisan_id, bookings.status, clients.name AS client_name
+       FROM bookings JOIN clients ON clients.id = bookings.client_id
+       WHERE bookings.id = ? AND bookings.client_id = ?`,
+      [req.params.id, clientId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    const booking = rows[0];
+    if (booking.status !== 'completed') {
+      return res.status(409).json({ error: 'You can review a job once the artisan has marked it completed' });
+    }
+
+    const [result] = await db.query(
+      `INSERT INTO reviews (artisan_id, booking_id, author, rating, comment, created_at, from_api)
+       VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(), FALSE)`,
+      [booking.artisan_id, req.params.id, booking.client_name, rating, comment?.trim() || null]
+    );
+    res.status(201).json({ id: result.insertId, rating, comment: comment?.trim() || null });
+  } catch (err) {
+    // booking_id is UNIQUE, so MySQL itself refuses a second review of a job.
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'You have already reviewed this job' });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save review' });
   }
 });
 
