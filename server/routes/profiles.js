@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { busyByArtisan, fromDbTime } = require('../availability');
 
 // Every column except email and password, which must never be sent to the browser.
 const COLUMNS = `id, name, skill, verified, price, photo, location, county, bio, rating,
@@ -42,10 +43,41 @@ router.get('/:id', async (req, res) => {
       [artisan.id]
     );
 
-    res.json({ ...artisan, languages, work_history: workHistory, reviews });
+    // The same 14-day busy list Meditrac gets from GET /artisans/:id.
+    const busy = await busyByArtisan(artisan.id);
+
+    res.json({ ...artisan, languages, work_history: workHistory, reviews, busy: busy[artisan.id] ?? [] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch artisan' });
+  }
+});
+
+// GET the artisan's own busy times that haven't ended yet, for their dashboard.
+// Unlike the contract's busy list, each one has its id (so it can be removed
+// with DELETE /artisans/:id/availability/:blockId) and, if it was made by
+// accepting a booking, that booking's id and job.
+router.get('/:id/availability', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT availability_blocks.id, availability_blocks.start_at, availability_blocks.end_at,
+              availability_blocks.booking_id, bookings.job
+       FROM availability_blocks
+       LEFT JOIN bookings ON bookings.id = availability_blocks.booking_id
+       WHERE availability_blocks.artisan_id = ? AND availability_blocks.end_at > UTC_TIMESTAMP()
+       ORDER BY availability_blocks.start_at`,
+      [req.params.id]
+    );
+    res.json(rows.map(row => ({
+      id: row.id,
+      start: fromDbTime(row.start_at),
+      end: fromDbTime(row.end_at),
+      bookingId: row.booking_id,
+      job: row.job,
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch busy times' });
   }
 });
 

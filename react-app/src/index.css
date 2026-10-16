@@ -462,6 +462,34 @@ button {
   font-size: 0.92rem;
 }
 
+/* The 14-day strip: weekday over the day of the month. */
+.availability .availability-day {
+  width: 46px;
+  height: 52px;
+  flex-direction: column;
+  line-height: 1.15;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+}
+
+.availability-weekday {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.availability-day.is-busy {
+  background: #fdf1dc;
+  border-color: #e3b866;
+  color: #8a5a10;
+}
+
+.availability-busy {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.92rem;
+}
+
 label {
   font-size: 0.8rem;
   font-weight: 600;
@@ -494,6 +522,11 @@ textarea:focus {
   color: var(--color-error);
   font-size: 0.8rem;
   min-height: 1em;
+}
+
+.booking-busy-error {
+  display: block;
+  margin: calc(-1 * var(--spacing-sm)) 0 var(--spacing-md);
 }
 
 .submit-btn {
@@ -1796,6 +1829,88 @@ textarea:focus {
 .booking-action:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+/* Accepting a request: when the job will be over. */
+.accept-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.accept-form label {
+  text-transform: none;
+  font-size: 0.875rem;
+}
+
+.accept-form input {
+  width: auto;
+}
+
+/* "When you're busy" on the artisan dashboard. */
+.busy-times {
+  margin-top: var(--spacing-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+}
+
+.busy-times h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.busy-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-md) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.busy-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.busy-reason {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.busy-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--spacing-sm);
+  align-items: end;
+  margin-top: var(--spacing-md);
+}
+
+.busy-form .field {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.busy-form .booking-action {
+  padding: 0.7rem 1.1rem;
+}
+
+@media (max-width: 640px) {
+  .busy-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .busy-form .field:first-child,
+  .busy-form .booking-action {
+    grid-column: 1 / -1;
+  }
 }
 
 .bookings-empty {

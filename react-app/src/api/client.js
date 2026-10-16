@@ -24,7 +24,8 @@ export async function request(path, options = {}) {
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const error = new Error(data?.error || `Request failed with status ${res.status}`);
+    // Website routes send { error }; the contract's routes (/artisans) send { code, message }.
+    const error = new Error(data?.error || data?.message || `Request failed with status ${res.status}`);
     error.status = res.status;
     throw error;
   }
