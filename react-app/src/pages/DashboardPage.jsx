@@ -4,6 +4,8 @@ import { fetchArtisanBookings, setBookingStatus } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
+import BusyTimes from '../components/BusyTimes';
+import { kenyaClock } from '../lib/kenyaTime';
 
 // A booking moves pending -> confirmed -> completed, or pending -> declined.
 // A client can cancel it while it's pending or confirmed.
@@ -15,10 +17,11 @@ const TABS = [
 ];
 
 // The buttons each status gets. confirm is the question asked first, for the
-// changes that can't be undone.
+// changes that can't be undone. askEndTime: accepting first asks when the job
+// will be over, so that time can be kept free for it.
 const ACTIONS = {
   pending: [
-    { status: 'confirmed', label: 'Accept', busyLabel: 'Accepting…' },
+    { status: 'confirmed', label: 'Accept', busyLabel: 'Accepting…', askEndTime: true },
     { status: 'declined', label: 'Decline', busyLabel: 'Declining…',
       confirm: 'Decline this request? The client will see it as declined.' },
   ],
@@ -28,10 +31,18 @@ const ACTIONS = {
   ],
 };
 
+// value is a plain date ('2026-10-22'), which JavaScript reads as midnight UTC.
+// Formatting it in UTC too keeps it the same day on any computer.
 function formatDate(value) {
   return new Date(value).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
   });
+}
+
+// A first guess at when the job ends: two hours after it starts, but the same day.
+function guessEndTime(time) {
+  const hour = Math.min(Number(time.slice(0, 2)) + 2, 23);
+  return `${String(hour).padStart(2, '0')}${hour === 23 ? ':59' : time.slice(2, 5)}`;
 }
 
 // The booking form takes an email or a phone number in one field.
@@ -45,6 +56,9 @@ export default function DashboardPage() {
   const [reloadKey, setReloadKey] = useState(0);
   // The booking and button being saved right now: { id, status } or null.
   const [saving, setSaving] = useState(null);
+  // The request being accepted, while the artisan picks its end time:
+  // { id, endTime } or null.
+  const [accepting, setAccepting] = useState(null);
 
   // Client and artisan ids come from different tables and can be the same
   // number, so only ask for an artisan's bookings when this really is one.
@@ -55,11 +69,16 @@ export default function DashboardPage() {
   );
   const { data: bookings, error, loading } = useAsync(load, [reloadKey, user.id]);
 
-  async function handleAction(booking, action) {
+  async function handleAction(booking, action, endTime) {
+    if (action.askEndTime && endTime === undefined) {
+      setAccepting({ id: booking.id, endTime: guessEndTime(booking.time) });
+      return;
+    }
     if (action.confirm && !window.confirm(action.confirm)) return;
     setSaving({ id: booking.id, status: action.status });
     try {
-      await setBookingStatus(booking.id, user.id, action.status);
+      await setBookingStatus(booking.id, user.id, action.status, endTime);
+      setAccepting(null);
       setReloadKey(k => k + 1);
     } catch (err) {
       // Most likely the client cancelled in the meantime: reload to show that.
@@ -142,15 +161,41 @@ export default function DashboardPage() {
                 <p className="booking-row-job">{booking.job}</p>
                 <p className="booking-row-when">
                   {formatDate(booking.date)} at {booking.time.slice(0, 5)}
+                  {booking.endsAt && `–${kenyaClock(booking.endsAt)}`}
                   {booking.budget && ` · budget ${booking.budget}`}
                 </p>
+
+                {accepting?.id === booking.id && (
+                  <form
+                    className="accept-form"
+                    onSubmit={e => {
+                      e.preventDefault();
+                      handleAction(booking, ACTIONS.pending[0], accepting.endTime);
+                    }}
+                  >
+                    <label htmlFor={`end-${booking.id}`}>Job will be over by</label>
+                    <input
+                      id={`end-${booking.id}`}
+                      type="time"
+                      value={accepting.endTime}
+                      onChange={e => setAccepting({ id: booking.id, endTime: e.target.value })}
+                      required
+                    />
+                    <button type="submit" className="booking-action" disabled={saving?.id === booking.id}>
+                      {saving?.id === booking.id ? 'Accepting…' : 'Confirm'}
+                    </button>
+                    <button type="button" className="link-button" onClick={() => setAccepting(null)}>
+                      Back
+                    </button>
+                  </form>
+                )}
               </div>
 
               <div className="booking-row-side">
                 <span className={`status-pill status-${booking.status}`}>
                   {booking.status}
                 </span>
-                {(ACTIONS[booking.status] ?? []).map(action => (
+                {accepting?.id !== booking.id && (ACTIONS[booking.status] ?? []).map(action => (
                   <button
                     key={action.status}
                     className={action.status === 'declined' ? 'link-button' : 'booking-action'}
@@ -167,6 +212,8 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+
+      <BusyTimes artisanId={user.id} reloadKey={reloadKey} />
     </main>
   );
 }

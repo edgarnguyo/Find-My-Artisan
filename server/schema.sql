@@ -325,3 +325,14 @@ CREATE TABLE IF NOT EXISTS availability_blocks (
   FOREIGN KEY (artisan_id) REFERENCES artisans(id)
 );
 
+
+-- ---------------------------------------------------------------------------
+-- Phase 2: when an artisan accepts a booking on the website, the job's time is
+-- saved as an availability block, so the API's busy list includes it too.
+-- booking_id links the block to that booking (NULL for blocks added by hand or
+-- through the API). UNIQUE: one booking can't have two blocks.
+-- ---------------------------------------------------------------------------
+SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = DATABASE() AND table_name = 'availability_blocks' AND column_name = 'booking_id') = 0,
+              'ALTER TABLE availability_blocks ADD COLUMN booking_id INT NULL UNIQUE, ADD FOREIGN KEY (booking_id) REFERENCES bookings(id)', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;

@@ -1,36 +1,55 @@
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+import { useState } from 'react';
+import { kenyaDate, kenyaClock, kenyaDayLabel, kenyaWeekday, kenyaDayOfMonth } from '../lib/kenyaTime';
 
-function getAvailableDayIndexes(worker) {
-  const isFullTime = worker.hoursPerWeek === 'More than 30 hrs/week';
-  const count = isFullTime ? 5 : 3;
-  const start = worker.id % 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-  const indexes = new Set();
-  for (let i = 0; i < count; i++) {
-    indexes.add((start + i) % 7);
-  }
-  return indexes;
-}
-
+// The next 14 days, from the artisan's busy list: the same times Meditrac sees
+// from GET /artisans/:id. Any time not listed is free.
 export default function AvailabilityCalendar({ worker }) {
-  const availableDayIndexes = getAvailableDayIndexes(worker);
-  const isFullTime = worker.hoursPerWeek === 'More than 30 hrs/week';
-  const hours = isFullTime ? '8:00 AM – 5:00 PM' : '9:00 AM – 2:00 PM';
+  // Read the clock once, when the calendar first appears, so re-renders show
+  // the same 14 days.
+  const [now] = useState(() => Date.now());
+  const days = [...Array(14)].map((_, i) => {
+    const moment = new Date(now + i * DAY_MS);
+    return { key: kenyaDate(moment), moment };
+  });
+
+  // A window that runs past midnight marks both days.
+  const busyDays = new Set(worker.busy.flatMap(w => [kenyaDate(w.start), kenyaDate(w.end)]));
 
   return (
     <section className="availability">
       <h2>Availability</h2>
       <div className="availability-days">
-        {DAYS.map((day, i) => (
-          <span
-            key={day}
-            className={`availability-day${availableDayIndexes.has(i) ? ' is-available' : ''}`}
-          >
-            {day}
-          </span>
-        ))}
+        {days.map(day => {
+          const busy = busyDays.has(day.key);
+          return (
+            <span
+              key={day.key}
+              className={`availability-day${busy ? ' is-busy' : ' is-available'}`}
+              title={busy ? 'Booked for part of the day' : 'Free'}
+            >
+              <span className="availability-weekday">{kenyaWeekday(day.moment)}</span>
+              {kenyaDayOfMonth(day.moment)}
+            </span>
+          );
+        })}
       </div>
-      <p className="availability-hours">Typical hours: {hours}</p>
+
+      {worker.busy.length === 0 ? (
+        <p className="availability-hours">Free for the next 14 days.</p>
+      ) : (
+        <>
+          <p className="availability-hours">Already booked (Kenya time):</p>
+          <ul className="availability-busy">
+            {worker.busy.map(w => (
+              <li key={w.start}>
+                {kenyaDayLabel(w.start)}, {kenyaClock(w.start)}–{kenyaClock(w.end)}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }

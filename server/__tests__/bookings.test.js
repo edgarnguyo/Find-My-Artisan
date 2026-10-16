@@ -1,6 +1,7 @@
 // Automated tests for the website's booking routes: an artisan seeing the
-// requests made to them and accepting, declining and completing them, and a
-// client cancelling. Every booking and client made here is deleted at the end.
+// requests made to them and accepting, declining and completing them, a client
+// cancelling, and the busy times that accepting creates. Every booking, busy
+// time and client made here is deleted at the end.
 const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
@@ -12,23 +13,45 @@ const OTHER_ARTISAN_ID = 2;
 const bookingIds = [];
 let clientId;
 
-// Makes a pending booking with artisan 1 for the test client, and returns its id.
-async function makeBooking() {
-  const res = await request(app).post('/bookings').send({
+// Each booking gets its own day in 2030, so accepting one never clashes with
+// the time kept for another.
+let nextDay = 0;
+function freshDate() {
+  nextDay += 1;
+  return new Date(Date.UTC(2030, 0, nextDay)).toISOString().slice(0, 10);
+}
+
+function postBooking(fields) {
+  return request(app).post('/bookings').send({
     artisanId: ARTISAN_ID,
     clientId,
     name: 'Test Client',
     contact: '0712000000',
-    date: '2030-01-15',
     time: '09:00',
     job: 'Booking made by bookings.test.js',
+    ...fields,
   });
+}
+
+// Makes a pending booking with artisan 1 for the test client, and returns its id.
+async function makeBooking(fields = {}) {
+  const res = await postBooking({ date: freshDate(), ...fields });
   bookingIds.push(res.body.id);
   return res.body.id;
 }
 
 function setStatus(bookingId, body) {
   return request(app).patch(`/bookings/${bookingId}/status`).send(body);
+}
+
+// Accepting needs the time the job will be over; the tests' jobs start at 09:00.
+function accept(bookingId, endTime = '11:00') {
+  return setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'confirmed', endTime });
+}
+
+async function blockFor(bookingId) {
+  const [rows] = await db.query('SELECT * FROM availability_blocks WHERE booking_id = ?', [bookingId]);
+  return rows[0] ?? null;
 }
 
 beforeAll(async () => {
@@ -43,6 +66,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (bookingIds.length > 0) {
+    // Blocks first: they point at the bookings, so MySQL won't delete a booking
+    // that still has one.
+    await db.query('DELETE FROM availability_blocks WHERE booking_id IN (?)', [bookingIds]);
     await db.query('DELETE FROM bookings WHERE id IN (?)', [bookingIds]);
   }
   await db.query('DELETE FROM clients WHERE id = ?', [clientId]);
@@ -79,7 +105,7 @@ describe('PATCH /bookings/:id/status', () => {
   it('lets the artisan accept a request, then mark it completed', async () => {
     const bookingId = await makeBooking();
 
-    const accepted = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'confirmed' });
+    const accepted = await accept(bookingId);
     expect(accepted.status).toBe(200);
     expect(accepted.body).toEqual({ id: bookingId, status: 'confirmed' });
 
@@ -110,7 +136,7 @@ describe('PATCH /bookings/:id/status', () => {
     const bookingId = await makeBooking();
     await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'declined' });
 
-    const res = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'confirmed' });
+    const res = await accept(bookingId);
 
     expect(res.status).toBe(409);
   });
@@ -118,7 +144,7 @@ describe('PATCH /bookings/:id/status', () => {
   it("returns 404 for another artisan's booking and leaves it unchanged", async () => {
     const bookingId = await makeBooking();
 
-    const res = await setStatus(bookingId, { artisanId: OTHER_ARTISAN_ID, status: 'confirmed' });
+    const res = await setStatus(bookingId, { artisanId: OTHER_ARTISAN_ID, status: 'confirmed', endTime: '11:00' });
 
     expect(res.status).toBe(404);
     const [rows] = await db.query('SELECT status FROM bookings WHERE id = ?', [bookingId]);
@@ -136,7 +162,7 @@ describe('PATCH /bookings/:id/status', () => {
   it('rejects a request without artisanId', async () => {
     const bookingId = await makeBooking();
 
-    const res = await setStatus(bookingId, { status: 'confirmed' });
+    const res = await setStatus(bookingId, { status: 'confirmed', endTime: '11:00' });
 
     expect(res.status).toBe(400);
   });
@@ -154,11 +180,132 @@ describe('PATCH /bookings/:id/cancel', () => {
 
   it('refuses to cancel a completed job', async () => {
     const bookingId = await makeBooking();
-    await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'confirmed' });
+    await accept(bookingId);
     await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'completed' });
 
     const res = await request(app).patch(`/bookings/${bookingId}/cancel`).send({ clientId });
 
     expect(res.status).toBe(409);
+  });
+});
+
+describe('Busy times from accepted bookings', () => {
+  it('saves the job time as a busy block, converted from Kenya time to UTC', async () => {
+    const bookingId = await makeBooking({ date: '2030-06-03', time: '09:00' });
+
+    await accept(bookingId, '12:30');
+
+    const block = await blockFor(bookingId);
+    // Kenya is UTC+3, so 09:00-12:30 there is 06:00-09:30 UTC.
+    expect(block).toMatchObject({
+      artisan_id: ARTISAN_ID,
+      start_at: '2030-06-03 06:00:00',
+      end_at: '2030-06-03 09:30:00',
+    });
+  });
+
+  it('refuses to accept without an end time', async () => {
+    const bookingId = await makeBooking();
+
+    const res = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'confirmed' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('refuses an end time before the job starts', async () => {
+    const bookingId = await makeBooking();
+
+    const res = await accept(bookingId, '08:00');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/09:00/);
+  });
+
+  it('refuses to accept a job that clashes with a time already kept, and saves nothing', async () => {
+    const date = freshDate();
+    // Both requested before either is accepted, so both get saved.
+    const first = await makeBooking({ date, time: '09:00' });
+    const second = await makeBooking({ date, time: '10:00' });
+    await accept(first, '12:00');
+
+    // Accepting 10:00-13:00 would overlap 09:00-12:00.
+    const res = await accept(second, '13:00');
+
+    expect(res.status).toBe(409);
+    expect(await blockFor(second)).toBeNull();
+    const [rows] = await db.query('SELECT status FROM bookings WHERE id = ?', [second]);
+    expect(rows[0].status).toBe('pending');
+  });
+
+  it('frees the time again when the client cancels an accepted job', async () => {
+    const bookingId = await makeBooking();
+    await accept(bookingId);
+    expect(await blockFor(bookingId)).not.toBeNull();
+
+    const res = await request(app).patch(`/bookings/${bookingId}/cancel`).send({ clientId });
+
+    expect(res.status).toBe(200);
+    expect(await blockFor(bookingId)).toBeNull();
+  });
+
+  it('refuses a new booking that starts while the artisan is busy', async () => {
+    const date = freshDate();
+    const bookingId = await makeBooking({ date, time: '09:00' });
+    await accept(bookingId, '12:00');
+
+    const res = await postBooking({ date, time: '10:30' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/09:00 to 12:00/);
+  });
+
+  it('allows a new booking that starts when the busy time ends', async () => {
+    const date = freshDate();
+    const bookingId = await makeBooking({ date, time: '09:00' });
+    await accept(bookingId, '12:00');
+
+    const res = await postBooking({ date, time: '12:00' });
+    bookingIds.push(res.body.id);
+
+    expect(res.status).toBe(201);
+  });
+
+  it('rejects a booking whose date or time is not in the form the site sends', async () => {
+    const res = await postBooking({ date: '15/01/2030' });
+    expect(res.status).toBe(400);
+  });
+
+  it("shows an accepted job in Meditrac's busy list and on the profile", async () => {
+    // Tomorrow in Kenya, early, so it's inside the 14-day busy window.
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      .toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' });
+    const bookingId = await makeBooking({ date: tomorrow, time: '05:00' });
+    await accept(bookingId, '06:00');
+    const window = {
+      start: `${tomorrow}T02:00:00Z`,
+      end: `${tomorrow}T03:00:00Z`,
+    };
+
+    const api = await request(app).get(`/artisans/${ARTISAN_ID}`);
+    expect(api.body.busy).toContainEqual(window);
+
+    const profile = await request(app).get(`/profiles/${ARTISAN_ID}`);
+    expect(profile.body.busy).toContainEqual(window);
+  });
+
+  it("lists the artisan's own busy times with the booking they belong to", async () => {
+    const bookingId = await makeBooking({ date: '2030-07-01', time: '09:00' });
+    await accept(bookingId);
+
+    const res = await request(app).get(`/profiles/${ARTISAN_ID}/availability`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toContainEqual({
+      id: expect.any(Number),
+      start: '2030-07-01T06:00:00Z',
+      end: '2030-07-01T08:00:00Z',
+      bookingId,
+      job: 'Booking made by bookings.test.js',
+    });
   });
 });

@@ -36,6 +36,9 @@ function toWorker(row) {
       rating: r.rating,
       comment: r.comment,
     })),
+    // Booked windows in the next 14 days, in UTC: [{ start, end }]. Only the
+    // single-artisan route sends them.
+    busy: row.busy ?? [],
   };
 }
 
@@ -74,6 +77,8 @@ function toBooking(row) {
     contact: row.contact,
     date: row.booking_date,
     time: row.booking_time,
+    // When the artisan said the job will be over (UTC), once they've accepted.
+    endsAt: row.block_end,
     createdAt: row.created_at,
     worker: {
       id: row.artisan_id,
@@ -101,7 +106,29 @@ export async function fetchArtisanBookings(artisanId) {
   return rows.map(toBooking);
 }
 
-/** An artisan's answer to a booking: 'confirmed', 'declined' or 'completed'. */
-export async function setBookingStatus(id, artisanId, status) {
-  await request(`/bookings/${id}/status`, { method: 'PATCH', body: { artisanId, status } });
+/**
+ * An artisan's answer to a booking: 'confirmed', 'declined' or 'completed'.
+ * Accepting ('confirmed') also needs endTime: when the job will be over that
+ * day, in Kenya time ('12:00').
+ */
+export async function setBookingStatus(id, artisanId, status, endTime) {
+  await request(`/bookings/${id}/status`, { method: 'PATCH', body: { artisanId, status, endTime } });
+}
+
+/** The artisan's busy times that haven't ended: [{ id, start, end, bookingId, job }]. */
+export function fetchBusyTimes(artisanId) {
+  return request(`/profiles/${artisanId}/availability`);
+}
+
+/** Mark the artisan busy from start to end (Date objects). Uses the API's own route. */
+export async function addBusyTime(artisanId, start, end) {
+  await request(`/artisans/${artisanId}/availability`, {
+    method: 'POST',
+    body: { start: start.toISOString(), end: end.toISOString() },
+  });
+}
+
+/** Free up a busy time the artisan added themselves. */
+export async function removeBusyTime(artisanId, blockId) {
+  await request(`/artisans/${artisanId}/availability/${blockId}`, { method: 'DELETE' });
 }

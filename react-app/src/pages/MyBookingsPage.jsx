@@ -4,6 +4,7 @@ import { fetchMyBookings, cancelBooking } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
+import { kenyaClock } from '../lib/kenyaTime';
 
 const TABS = [
   { key: 'active',    label: 'Upcoming',  match: s => s === 'pending' || s === 'confirmed' },
@@ -11,9 +12,11 @@ const TABS = [
   { key: 'cancelled', label: 'Cancelled & declined', match: s => s === 'cancelled' || s === 'declined' },
 ];
 
+// value is a plain date ('2026-10-22'), which JavaScript reads as midnight UTC.
+// Formatting it in UTC too keeps it the same day on any computer.
 function formatDate(value) {
   return new Date(value).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
   });
 }
 
@@ -118,6 +121,7 @@ export default function MyBookingsPage() {
                 <p className="booking-row-job">{booking.job}</p>
                 <p className="booking-row-when">
                   {formatDate(booking.date)} at {booking.time.slice(0, 5)}
+                  {booking.endsAt && `–${kenyaClock(booking.endsAt)}`}
                   {booking.budget && ` · budget ${booking.budget}`}
                 </p>
               </div>
