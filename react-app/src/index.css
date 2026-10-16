@@ -1773,6 +1773,30 @@ textarea:focus {
 .status-confirmed { background: var(--color-primary-light); color: var(--color-primary-dark); }
 .status-completed { background: var(--color-verified-light); color: var(--color-verified); }
 .status-cancelled { background: #f0ebe4; color: var(--color-text-muted); }
+.status-declined  { background: #f0ebe4; color: var(--color-text-muted); }
+
+/* Accept / Mark complete on the artisan dashboard: a smaller .btn-primary. */
+.booking-action {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.4rem 1rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.booking-action:hover {
+  background: var(--color-primary-dark);
+}
+
+.booking-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 
 .bookings-empty {
   text-align: center;

@@ -63,6 +63,17 @@ export default function Navbar() {
             </Link>
           </li>
         )}
+        {user?.role === "artisan" && (
+          <li>
+            <Link
+              to="/dashboard"
+              className={`nav-link${isActive("/dashboard") ? " active" : ""}`}
+              onClick={() => setMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
+          </li>
+        )}
         {user ? (
           <>
             <li className="nav-email" title={user.email}>

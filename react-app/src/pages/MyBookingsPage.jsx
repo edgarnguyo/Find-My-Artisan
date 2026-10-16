@@ -8,7 +8,7 @@ import Avatar from '../components/Avatar';
 const TABS = [
   { key: 'active',    label: 'Upcoming',  match: s => s === 'pending' || s === 'confirmed' },
   { key: 'completed', label: 'Completed', match: s => s === 'completed' },
-  { key: 'cancelled', label: 'Cancelled', match: s => s === 'cancelled' },
+  { key: 'cancelled', label: 'Cancelled & declined', match: s => s === 'cancelled' || s === 'declined' },
 ];
 
 function formatDate(value) {
@@ -50,7 +50,8 @@ export default function MyBookingsPage() {
         <header className="bookings-header">
           <h1>My bookings</h1>
           <p className="bookings-sub">
-            Bookings are made by clients. You are signed in as an artisan ({user.email}).
+            Bookings are made by clients. You are signed in as an artisan ({user.email}).{' '}
+            <Link to="/dashboard">See the jobs booked with you</Link>
           </p>
         </header>
       </main>
