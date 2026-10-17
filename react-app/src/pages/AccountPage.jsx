@@ -39,7 +39,7 @@ function ClientDetails() {
 
   return (
     <section className="dashboard-card">
-      <h2>Your details</h2>
+      <h2>Your Details</h2>
       <p className="bookings-sub">Your name goes on the reviews you write from now on.</p>
       {loading ? (
         <div className="skeleton-card" />
@@ -82,18 +82,18 @@ function ClientDetailsForm({ client }) {
   return (
     <form className="edit-profile-form" onSubmit={handleSubmit} noValidate>
       <div className="field">
-        <label htmlFor="acc-name">Full name</label>
+        <label htmlFor="acc-name">Full Name</label>
         <input id="acc-name" type="text" maxLength={100} autoComplete="name"
           value={name} onChange={e => setName(e.target.value)} />
       </div>
       <div className="field-row">
         <div className="field">
-          <label htmlFor="acc-phone">Phone (optional)</label>
+          <label htmlFor="acc-phone">Phone (Optional)</label>
           <input id="acc-phone" type="tel" maxLength={30} autoComplete="tel"
             value={phone} onChange={e => setPhone(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor="acc-location">Location (optional)</label>
+          <label htmlFor="acc-location">Location (Optional)</label>
           <input id="acc-location" type="text" maxLength={100} placeholder="e.g. Westlands"
             value={location} onChange={e => setLocation(e.target.value)} />
         </div>
@@ -132,14 +132,14 @@ function ArtisanDetails() {
 
   return (
     <section className="dashboard-card">
-      <h2>Your name</h2>
+      <h2>Your Name</h2>
       <p className="bookings-sub">
         Your area, phone, prices and portfolio are on{' '}
         <Link to="/dashboard/profile">your profile page</Link>.
       </p>
       <form className="edit-profile-form" onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor="acc-name">Name shown to clients</label>
+          <label htmlFor="acc-name">Name Shown to Clients</label>
           <input id="acc-name" type="text" maxLength={100} autoComplete="name"
             value={name} onChange={e => setName(e.target.value)} />
         </div>
@@ -187,18 +187,18 @@ function PasswordForm() {
       <h2>Password</h2>
       <form className="edit-profile-form" onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor="pw-current">Current password</label>
+          <label htmlFor="pw-current">Current Password</label>
           <input id="pw-current" type="password" autoComplete="current-password"
             value={current} onChange={e => setCurrent(e.target.value)} />
         </div>
         <div className="field-row">
           <div className="field">
-            <label htmlFor="pw-new">New password</label>
+            <label htmlFor="pw-new">New Password</label>
             <input id="pw-new" type="password" autoComplete="new-password"
               value={next} onChange={e => setNext(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="pw-repeat">New password again</label>
+            <label htmlFor="pw-repeat">New Password Again</label>
             <input id="pw-repeat" type="password" autoComplete="new-password"
               value={repeat} onChange={e => setRepeat(e.target.value)} />
           </div>
@@ -238,7 +238,7 @@ function DeleteAccount() {
 
   return (
     <section className="dashboard-card danger-card">
-      <h2>Delete account</h2>
+      <h2>Delete Account</h2>
       <p className="bookings-sub">
         {isArtisan
           ? 'Your profile, portfolio, reviews and job history are removed for good. Decline or complete any open jobs first.'
@@ -246,7 +246,7 @@ function DeleteAccount() {
       </p>
       <form className="edit-profile-form" onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor="delete-password">Your password</label>
+          <label htmlFor="delete-password">Your Password</label>
           <input id="delete-password" type="password" autoComplete="current-password"
             value={password} onChange={e => setPassword(e.target.value)} />
         </div>

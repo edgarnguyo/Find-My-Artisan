@@ -14,14 +14,14 @@ export default function ProfileGallery({ worker }) {
 
   return (
     <section className="profile-gallery-card">
-      <h2>Recent work</h2>
+      <h2>Recent Work</h2>
 
       {items.length === 0 ? (
         <p className="gallery-empty">
           {isOwnProfile ? (
             <>
               No photos of your work yet.{" "}
-              <Link to="/dashboard/profile">Add some to your portfolio</Link>
+              <Link to="/dashboard/profile">Add Some to Your Portfolio</Link>
             </>
           ) : (
             `${worker.name} hasn't added photos of their work yet.`

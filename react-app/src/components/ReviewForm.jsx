@@ -50,7 +50,7 @@ export default function ReviewForm({ booking, clientId, onDone, onCancel }) {
         ))}
       </fieldset>
 
-      <label htmlFor={`comment-${booking.id}`}>Comment (optional)</label>
+      <label htmlFor={`comment-${booking.id}`}>Comment (Optional)</label>
       <textarea
         id={`comment-${booking.id}`}
         rows={3}
