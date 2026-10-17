@@ -63,10 +63,30 @@ export default function Navbar() {
             </Link>
           </li>
         )}
+        {user?.role === "artisan" && (
+          <li>
+            <Link
+              to="/dashboard"
+              className={`nav-link${isActive("/dashboard") ? " active" : ""}`}
+              onClick={() => setMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
+          </li>
+        )}
         {user ? (
           <>
-            <li className="nav-email" title={user.email}>
-              {user.email}
+            <li>
+              <Link
+                to="/account"
+                className={`nav-link nav-email${isActive("/account") ? " active" : ""}`}
+                title={`${user.email}: account settings`}
+                onClick={() => setMenuOpen(false)}
+              >
+                {/* The email on wide screens; "Account" in the phone menu. */}
+                <span className="nav-email-text">{user.email}</span>
+                <span className="nav-account-text">Account</span>
+              </Link>
             </li>
             <li>
               <button type="button" className="nav-cta" onClick={handleSignOut}>

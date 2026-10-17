@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createBooking } from '../api/workers';
 import { useAuth } from '../lib/authContext';
+import { busyWindowAt, fromKenya, kenyaClock } from '../lib/kenyaTime';
 
 export default function BookingForm({ worker }) {
   const { user } = useAuth();
@@ -61,6 +62,13 @@ export default function BookingForm({ worker }) {
     }
     if (job.trim() === '') {
       newErrors.job = 'Please describe the job.';
+    }
+    // The profile only knows the next 14 days; the server checks every date.
+    if (!newErrors.date && !newErrors.time) {
+      const clash = busyWindowAt(worker.busy, fromKenya(date, time));
+      if (clash) {
+        newErrors.busy = `${worker.name} is booked from ${kenyaClock(clash.start)} to ${kenyaClock(clash.end)} that day. Please pick another time.`;
+      }
     }
 
     return newErrors;
@@ -176,13 +184,15 @@ export default function BookingForm({ worker }) {
             {errors.time && <small className="error">{errors.time}</small>}
           </div>
         </div>
+        {/* Below the row, not under one field: it's about the date and time together. */}
+        {errors.busy && <small className="error booking-busy-error">{errors.busy}</small>}
 
         <div className="field">
           <label htmlFor="budget">Budget (optional)</label>
           <input
             id="budget"
             type="text"
-            placeholder={`e.g. ${worker.price}`}
+            placeholder={`e.g. ${worker.price ?? 'KES 3,000'}`}
             value={budget}
             onChange={e => setBudget(e.target.value)}
           />

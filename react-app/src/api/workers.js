@@ -16,8 +16,12 @@ function toWorker(row) {
     location: row.location,
     county: row.county,
     bio: row.bio,
-    // DECIMAL arrives as a string ("4.8"), so convert it to a number.
+    phone: row.phone,
+    hourlyRateKes: row.hourly_rate_kes,
+    // The average of the artisan's reviews, or null when nobody has reviewed
+    // them yet. DECIMAL arrives as a string ("4.8"), so convert it to a number.
     rating: row.rating === null ? null : Number(row.rating),
+    reviewCount: row.review_count,
     jobSuccess: row.job_success,
     hoursPerWeek: row.hours_per_week,
     totalEarnings: row.total_earnings,
@@ -36,6 +40,20 @@ function toWorker(row) {
       rating: r.rating,
       comment: r.comment,
     })),
+    // Booked windows in the next 14 days, in UTC: [{ start, end }]. Only the
+    // single-artisan route sends them, like the portfolio below.
+    busy: row.busy ?? [],
+    portfolio: (row.portfolio ?? []).map(toPortfolioItem),
+  };
+}
+
+function toPortfolioItem(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    imageUrl: row.image_url,
+    workDate: row.work_date,
   };
 }
 
@@ -67,11 +85,17 @@ function toBooking(row) {
   return {
     id: row.id,
     status: row.status,
+    // Who asked for the job, as typed into the booking form.
+    clientName: row.name,
     job: row.job,
     budget: row.budget,
     contact: row.contact,
     date: row.booking_date,
     time: row.booking_time,
+    // When the artisan said the job will be over (UTC), once they've accepted.
+    endsAt: row.block_end,
+    // The client's review of the job, once they've left one.
+    review: row.review_rating === null ? null : { rating: row.review_rating, comment: row.review_comment },
     createdAt: row.created_at,
     worker: {
       id: row.artisan_id,
@@ -91,4 +115,59 @@ export async function fetchMyBookings(clientId) {
 /** Cancel one of this client's bookings. */
 export async function cancelBooking(id, clientId) {
   await request(`/bookings/${id}/cancel`, { method: 'PATCH', body: { clientId } });
+}
+
+/** Review a completed job: rating is 1 to 5, comment is optional. */
+export async function reviewBooking(id, clientId, rating, comment) {
+  await request(`/bookings/${id}/review`, { method: 'POST', body: { clientId, rating, comment } });
+}
+
+/** Every booking made with this artisan, newest first. */
+export async function fetchArtisanBookings(artisanId) {
+  const rows = await request(`/bookings?artisanId=${artisanId}`);
+  return rows.map(toBooking);
+}
+
+/**
+ * An artisan's answer to a booking: 'confirmed', 'declined' or 'completed'.
+ * Accepting ('confirmed') also needs endTime: when the job will be over that
+ * day, in Kenya time ('12:00').
+ */
+export async function setBookingStatus(id, artisanId, status, endTime) {
+  await request(`/bookings/${id}/status`, { method: 'PATCH', body: { artisanId, status, endTime } });
+}
+
+/** The artisan's busy times that haven't ended: [{ id, start, end, bookingId, job }]. */
+export function fetchBusyTimes(artisanId) {
+  return request(`/profiles/${artisanId}/availability`);
+}
+
+/** Mark the artisan busy from start to end (Date objects). Uses the API's own route. */
+export async function addBusyTime(artisanId, start, end) {
+  await request(`/artisans/${artisanId}/availability`, {
+    method: 'POST',
+    body: { start: start.toISOString(), end: end.toISOString() },
+  });
+}
+
+/** Free up a busy time the artisan added themselves. */
+export async function removeBusyTime(artisanId, blockId) {
+  await request(`/artisans/${artisanId}/availability/${blockId}`, { method: 'DELETE' });
+}
+
+/**
+ * Save changes to an artisan's own profile. fields holds any of location,
+ * county, phone, price, bio and hourlyRateKes.
+ */
+export async function updateProfile(artisanId, fields) {
+  return toWorker(await request(`/profiles/${artisanId}`, { method: 'PATCH', body: fields }));
+}
+
+/** Add a past job to the portfolio: { title, imageUrl, description?, workDate? }. */
+export async function addPortfolioItem(artisanId, item) {
+  return toPortfolioItem(await request(`/profiles/${artisanId}/portfolio`, { method: 'POST', body: item }));
+}
+
+export async function removePortfolioItem(artisanId, itemId) {
+  await request(`/profiles/${artisanId}/portfolio/${itemId}`, { method: 'DELETE' });
 }

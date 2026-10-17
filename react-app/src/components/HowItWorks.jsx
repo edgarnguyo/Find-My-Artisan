@@ -15,7 +15,7 @@ const steps = [
     icon: "📞",
     title: "Book & get it done",
     description:
-      "Send a booking request directly from the profile page. The artisan contacts you to confirm.",
+      "Send a request from the profile page. The artisan accepts it, and you follow it under My bookings.",
   },
 ];
 

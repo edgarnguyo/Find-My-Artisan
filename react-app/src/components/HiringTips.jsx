@@ -3,19 +3,19 @@ const TIPS = [
     icon: "🛡️",
     title: "Check verification",
     description:
-      "Prefer artisans with the verified badge — it means their identity has been confirmed.",
+      "Prefer artisans with the verified badge: it means their trade certificate has been checked.",
   },
   {
     icon: "💬",
-    title: "Compare quotes",
+    title: "Compare prices",
     description:
-      "Message two or three artisans before committing, so you know a fair price.",
+      "Compare the prices on two or three profiles before you request one, so you know what's fair.",
   },
   {
     icon: "⭐",
-    title: "Read recent reviews",
+    title: "Read the reviews",
     description:
-      "Reviews from the last few months tell you more than an overall rating alone.",
+      "What past clients wrote tells you more than the star rating alone.",
   },
   {
     icon: "📝",

@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { toDbTime, fromDbTime, busyByArtisan, overlapsExistingBlock } = require('../availability');
 
 // The database stores the job title ("Plumber"); the contract promises the
 // trade ("plumbing").
@@ -13,40 +14,13 @@ const TRADES = {
   Painter: 'painting',
 };
 
-const COUNTIES = [
-  'Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa',
-  'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi',
-  'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos',
-  'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', "Murang'a",
-  'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri',
-  'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia',
-  'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot',
-];
+const COUNTIES = require('../counties');
 
 const SELECT_ARTISANS = `
   SELECT a.id, a.name, a.skill, a.county, a.location, a.verified, a.phone, a.hourly_rate_kes,
          v.issuing_body, v.certificate_id, v.expires_on
   FROM artisans a
   LEFT JOIN verifications v ON v.artisan_id = a.id`;
-
-// Each artisan's booked windows from now to 14 days ahead, as { artisanId: [...] }.
-// A window already under way still counts, hence end_at > now, not start_at > now.
-// UTC_TIMESTAMP() because the blocks are stored in UTC.
-async function busyByArtisan(artisanId = null) {
-  const [rows] = await db.query(
-    `SELECT artisan_id, start_at, end_at FROM availability_blocks
-     WHERE end_at > UTC_TIMESTAMP()
-       AND start_at < UTC_TIMESTAMP() + INTERVAL 14 DAY
-       AND (? IS NULL OR artisan_id = ?)
-     ORDER BY start_at`,
-    [artisanId, artisanId]
-  );
-  const busy = {};
-  for (const r of rows) {
-    (busy[r.artisan_id] ??= []).push({ start: fromDbTime(r.start_at), end: fromDbTime(r.end_at) });
-  }
-  return busy;
-}
 
 // The mapping step: database row in, contract shape out (ArtisanSummary).
 // busy is this artisan's list from busyByArtisan(); an empty list means free throughout.
@@ -151,16 +125,6 @@ function isDateTime(value) {
   return new Date(Date.UTC(year, month - 1, day)).getUTCDate() === day;
 }
 
-// Stored in MySQL as UTC text '2026-09-14 09:00:00' (DATETIME has no time zone).
-function toDbTime(value) {
-  return new Date(value).toISOString().slice(0, 19).replace('T', ' ');
-}
-
-// And back out as the contract's '2026-09-14T09:00:00Z'.
-function fromDbTime(value) {
-  return value.replace(' ', 'T') + 'Z';
-}
-
 // The mapping step for AvailabilityBlock.
 function toBlock(row) {
   return {
@@ -176,17 +140,6 @@ const isId = value => /^\d+$/.test(value);
 
 async function artisanExists(id) {
   const [rows] = await db.query('SELECT id FROM artisans WHERE id = ?', [id]);
-  return rows.length > 0;
-}
-
-// Two windows overlap when each starts before the other ends. On PATCH the
-// block being changed is skipped, so it can't clash with its own old window.
-async function overlapsExistingBlock(artisanId, start, end, skipBlockId = null) {
-  const [rows] = await db.query(
-    `SELECT id FROM availability_blocks
-     WHERE artisan_id = ? AND start_at < ? AND end_at > ? AND id <> ?`,
-    [artisanId, end, start, skipBlockId ?? 0]
-  );
   return rows.length > 0;
 }
 

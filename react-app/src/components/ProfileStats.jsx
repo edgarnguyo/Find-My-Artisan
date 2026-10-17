@@ -44,7 +44,7 @@ export default function ProfileStats({ worker }) {
         <div className="stats-item">
           <dt>Verification</dt>
           <dd className={worker.verified ? "stats-verified" : ""}>
-            {worker.verified ? "✓ ID verified" : "Not yet verified"}
+            {worker.verified ? "✓ Certificate verified" : "Not yet verified"}
           </dd>
         </div>
       </dl>
