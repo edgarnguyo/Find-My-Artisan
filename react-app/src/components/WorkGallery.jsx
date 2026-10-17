@@ -8,8 +8,8 @@ export default function WorkGallery({ items }) {
   return (
     <section className="gallery-section" id="gallery">
       <div className="section-header">
-        <span className="section-eyebrow">Recent work</span>
-        <h2 className="section-title">A look at finished jobs</h2>
+        <span className="section-eyebrow">Recent Work</span>
+        <h2 className="section-title">A Look at Finished Jobs</h2>
         <p className="section-sub">From the portfolios of artisans on the platform.</p>
       </div>
 

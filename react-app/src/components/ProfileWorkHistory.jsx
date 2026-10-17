@@ -3,7 +3,7 @@ export default function ProfileWorkHistory({ history }) {
 
   return (
     <section className="profile-history">
-      <h2>Work history</h2>
+      <h2>Work History</h2>
       <ul className="history-list">
         {history.map((job, index) => (
           <li key={index} className="history-item">

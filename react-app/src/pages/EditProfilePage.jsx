@@ -19,13 +19,13 @@ export default function EditProfilePage() {
   return (
     <main className="bookings-page">
       <header className="bookings-header">
-        <h1>Your profile</h1>
+        <h1>Your Profile</h1>
         <p className="bookings-sub">
-          <Link to="/dashboard">Back to your jobs</Link>
+          <Link to="/dashboard">Back to Your Jobs</Link>
           {isArtisan && (
             <>
               {' · '}
-              <Link to={`/profile/${user.id}`}>See it as clients do</Link>
+              <Link to={`/profile/${user.id}`}>See It as Clients Do</Link>
             </>
           )}
         </p>
