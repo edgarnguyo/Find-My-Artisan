@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { kenyaToDbTime, fromDbTime, overlapsExistingBlock } = require('../availability');
+const { inTransaction } = require('../transaction');
 
 // Which status an artisan may move a booking to, from which status. A request
 // starts as pending; the artisan accepts or declines it, and marks an accepted
@@ -22,24 +23,6 @@ function kenyaClock(dbTime) {
   return new Date(fromDbTime(dbTime)).toLocaleTimeString('en-GB', {
     timeZone: 'Africa/Nairobi', hour: '2-digit', minute: '2-digit',
   });
-}
-
-// Runs fn(conn) as one transaction: what it saves is kept only if it finishes
-// without an error; otherwise all of it is undone, so the database never holds
-// half a change (say, a block saved for a booking that was never accepted).
-async function inTransaction(fn) {
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-    const result = await fn(conn);
-    await conn.commit();
-    return result;
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
 }
 
 // GET one client's bookings:   /bookings?clientId=5

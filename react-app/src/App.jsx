@@ -11,6 +11,7 @@ import MyBookingsPage from './pages/MyBookingsPage';
 import ArtisansPage from './pages/ArtisansPage';
 import DashboardPage from './pages/DashboardPage';
 import EditProfilePage from './pages/EditProfilePage';
+import AccountPage from './pages/AccountPage';
 
 export default function App() {
   return (
@@ -36,6 +37,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <EditProfilePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <RequireAuth>
+                <AccountPage />
               </RequireAuth>
             }
           />

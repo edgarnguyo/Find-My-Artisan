@@ -3,6 +3,8 @@ const router = express.Router();
 const db = require('../db');
 const { busyByArtisan, fromDbTime } = require('../availability');
 const COUNTIES = require('../counties');
+const { inTransaction } = require('../transaction');
+const { checkPassword, sentPasswordProblem, changePasswordRoute } = require('../accounts');
 
 // Every column except email and password, which must never be sent to the browser.
 // The artisans.rating column is a fixed number from the sample data, so the
@@ -160,6 +162,7 @@ function isHttpsUrl(value) {
 // The profile fields an artisan can change, with the column each is saved in
 // and the check its value must pass. Sending null clears an optional field.
 const EDITABLE = {
+  name: { column: 'name', ok: v => isText(v, 100) },
   location: { column: 'location', ok: v => isText(v, 100) },
   county: { column: 'county', ok: v => typeof v === 'string' && COUNTIES.includes(v) },
   phone: { column: 'phone', ok: v => isText(v, 20) },
@@ -172,6 +175,7 @@ const EDITABLE = {
 };
 
 const MESSAGES = {
+  name: 'name must be text of at most 100 characters',
   location: 'area must be text of at most 100 characters',
   county: 'county must be one of Kenya\'s 47 counties',
   phone: 'phone must be text of at most 20 characters',
@@ -185,9 +189,9 @@ async function artisanExists(id) {
   return rows.length > 0;
 }
 
-// PATCH /profiles/5  with any of { location, county, phone, price, bio, hourlyRateKes }
-// Only the fields sent are changed. Name and skill aren't editable here: the
-// skill is what an artisan's certificate (verification) is for.
+// PATCH /profiles/5  with any of { name, location, county, phone, price, bio, hourlyRateKes }
+// Only the fields sent are changed. The skill isn't editable: it's what the
+// artisan's certificate (verification) is for.
 router.patch('/:id', async (req, res) => {
   const body = req.body ?? {};
   const fields = Object.keys(body).filter(key => key in EDITABLE);
@@ -279,6 +283,45 @@ router.delete('/:id/portfolio/:itemId', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to remove portfolio item' });
+  }
+});
+
+// PATCH /profiles/5/password  with { currentPassword, newPassword }
+router.patch('/:id/password', changePasswordRoute('artisan'));
+
+// DELETE /profiles/5  with { password }
+// Refused while the artisan has requests or accepted jobs open, so no client's
+// booking disappears without an answer. Otherwise the artisan and everything
+// attached to them (past bookings, reviews, portfolio, busy times) is removed.
+router.delete('/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await checkPassword('artisan', id, req.body?.password);
+    if (sentPasswordProblem(res, result)) return;
+
+    const [[{ open }]] = await db.query(
+      "SELECT COUNT(*) AS open FROM bookings WHERE artisan_id = ? AND status IN ('pending', 'confirmed')",
+      [id]
+    );
+    if (open > 0) {
+      return res.status(409).json({
+        error: `You have ${open} open job${open === 1 ? '' : 's'}. Decline or complete ${open === 1 ? 'it' : 'them'} first.`,
+      });
+    }
+
+    // Rows that point at the artisan (or at their bookings) go first: MySQL
+    // won't delete a row something else still points at.
+    await inTransaction(async conn => {
+      for (const table of ['availability_blocks', 'reviews', 'portfolio_items',
+        'languages', 'work_history', 'verifications', 'bookings']) {
+        await conn.query(`DELETE FROM ${table} WHERE artisan_id = ?`, [id]);
+      }
+      await conn.query('DELETE FROM artisans WHERE id = ?', [id]);
+    });
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete account' });
   }
 });
 

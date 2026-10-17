@@ -75,11 +75,18 @@ describe('PATCH /profiles/:id', () => {
     expect(res.body).toMatchObject({ price: null, bio: null });
   });
 
-  it('ignores fields that are not editable, like name and skill', async () => {
-    const res = await editProfile({ name: 'Someone Else', skill: 'Electrician', phone: '0711222333' });
+  it('ignores fields that are not editable, like skill', async () => {
+    const res = await editProfile({ skill: 'Electrician', phone: '0711222333' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ name: 'Profile Tester', skill: 'Plumber', phone: '0711222333' });
+    expect(res.body).toMatchObject({ skill: 'Plumber', phone: '0711222333' });
+  });
+
+  it('changes the name', async () => {
+    const res = await editProfile({ name: '  Profile Tester Renamed  ' });
+
+    expect(res.body.name).toBe('Profile Tester Renamed');
+    await editProfile({ name: 'Profile Tester' });
   });
 
   it.each([
@@ -89,7 +96,8 @@ describe('PATCH /profiles/:id', () => {
     [{ hourlyRateKes: 0 }],
     [{ hourlyRateKes: '900' }],
     [{ bio: 'x'.repeat(2001) }],
-    [{ name: 'Only a field that cannot be edited' }],
+    [{ name: '' }],
+    [{ skill: 'Only a field that cannot be edited' }],
   ])('rejects %p with 400 and changes nothing', async body => {
     const before = (await request(app).get(`/profiles/${artisanId}`)).body;
 

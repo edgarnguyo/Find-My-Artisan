@@ -1732,6 +1732,10 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.nav-account-text {
+  display: none;
+}
+
 .booking-note {
   font-size: 0.85rem;
   color: var(--color-text-muted);
@@ -1921,6 +1925,13 @@ textarea:focus {
   margin-top: var(--spacing-md);
 }
 
+/* On its own line above the button, not squeezed beside it. */
+.edit-profile-form .error,
+.portfolio-form .error {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
 .saved-note {
   color: var(--color-verified);
   font-size: 0.9rem;
@@ -1963,6 +1974,20 @@ textarea:focus {
   object-fit: cover;
   border-radius: var(--radius-sm);
   margin-bottom: var(--spacing-md);
+}
+
+/* Account page: deleting the account. */
+.danger-card {
+  border-color: var(--color-error);
+}
+
+.booking-action.danger-button {
+  background: var(--color-error);
+}
+
+.booking-action.danger-button:hover {
+  background: var(--color-error);
+  filter: brightness(0.9);
 }
 
 /* Text only screen readers announce, such as "4 stars" behind a ★. */
@@ -2134,7 +2159,17 @@ textarea:focus {
     justify-content: space-between;
   }
 
-  .nav-email {
+  .nav-email-text {
     display: none;
+  }
+
+  .nav-account-text {
+    display: inline;
+  }
+
+  /* In the phone menu it reads "Account", sized like the other links. */
+  .nav-email {
+    font-size: inherit;
+    max-width: none;
   }
 }
