@@ -107,12 +107,12 @@ export default function PortfolioManager({ artisanId, initialItems }) {
       ) : (
         <form className="portfolio-form" onSubmit={handleAdd} noValidate>
           <div className="field">
-            <label htmlFor="item-title">Job title</label>
+            <label htmlFor="item-title">Job Title</label>
             <input id="item-title" type="text" maxLength={100} placeholder="e.g. Bathroom refit in Kilimani"
               value={title} onChange={e => setTitle(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="item-url">Photo link</label>
+            <label htmlFor="item-url">Photo Link</label>
             <input id="item-url" type="url" maxLength={500} placeholder="https://…"
               value={imageUrl}
               onChange={e => {
@@ -130,12 +130,12 @@ export default function PortfolioManager({ artisanId, initialItems }) {
           )}
           <div className="field-row">
             <div className="field">
-              <label htmlFor="item-date">When (optional)</label>
+              <label htmlFor="item-date">When (Optional)</label>
               <input id="item-date" type="date" value={workDate} onChange={e => setWorkDate(e.target.value)} />
             </div>
           </div>
           <div className="field">
-            <label htmlFor="item-description">What you did (optional)</label>
+            <label htmlFor="item-description">What You Did (Optional)</label>
             <textarea id="item-description" rows={2} maxLength={500}
               value={description} onChange={e => setDescription(e.target.value)} />
           </div>

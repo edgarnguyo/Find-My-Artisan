@@ -10,10 +10,10 @@ export default function CtaBanner() {
       />
       <div className="cta-banner-overlay"></div>
       <div className="cta-banner-content">
-        <h2>Got a job that needs doing?</h2>
+        <h2>Got a Job That Needs Doing?</h2>
         <p>Find a verified artisan near you and send a request in a couple of minutes.</p>
         <Link to="/listings" className="btn-primary">
-          Browse artisans
+          Browse Artisans
         </Link>
       </div>
     </section>

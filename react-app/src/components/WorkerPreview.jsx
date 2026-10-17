@@ -14,8 +14,8 @@ export default function WorkerPreview({ workers }) {
   return (
     <section className="worker-preview-section" id="artisans">
       <div className="section-header">
-        <span className="section-eyebrow">Top rated</span>
-        <h2 className="section-title">Artisans clients rate highest</h2>
+        <span className="section-eyebrow">Top Rated</span>
+        <h2 className="section-title">Artisans Clients Rate Highest</h2>
       </div>
 
       {!workers ? (
@@ -32,9 +32,9 @@ export default function WorkerPreview({ workers }) {
               <div className="preview-info">
                 <h3 className="preview-name">{worker.name}</h3>
                 <span className="skill-badge">{worker.skill}</span>
-                <p className="preview-location">📍 {worker.location}, {worker.county}</p>
+                <p className="preview-location">{worker.location}, {worker.county}</p>
                 <p className="preview-rating">
-                  ⭐ {worker.rating.toFixed(1)} · {worker.reviewCount} review
+                  Rating: {worker.rating.toFixed(1)} · {worker.reviewCount} review
                   {worker.reviewCount === 1 ? "" : "s"}
                 </p>
               </div>
@@ -45,7 +45,7 @@ export default function WorkerPreview({ workers }) {
 
       <div className="preview-cta">
         <Link to="/listings" className="btn-primary">
-          View all artisans
+          View All Artisans
         </Link>
       </div>
     </section>

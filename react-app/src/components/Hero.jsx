@@ -31,7 +31,7 @@ export default function Hero({ stats }) {
         </div>
 
         <div className="hero-content">
-          <span className="hero-eyebrow">Trusted artisans, near you</span>
+          <span className="hero-eyebrow">Trusted Artisans, Near You</span>
           <h1 className="hero-heading">
             Find skilled hands for every job at home
           </h1>
@@ -45,7 +45,7 @@ export default function Hero({ stats }) {
               Browse Artisans
             </Link>
             <a href="#how-it-works" className="btn-secondary">
-              See how it works
+              See How It Works
             </a>
           </div>
         </div>
@@ -93,14 +93,14 @@ export default function Hero({ stats }) {
           </select>
         </div>
         <button type="submit" className="btn-primary hero-search-btn">
-          Search artisans
+          Search Artisans
         </button>
       </form>
 
       <div className="hero-stats">
         <div className="stat">
           <span className="stat-number">{stats ? stats.verifiedArtisans : "—"}</span>
-          <span className="stat-label">Verified artisans</span>
+          <span className="stat-label">Verified Artisans</span>
         </div>
         <div className="stat">
           <span className="stat-number">
@@ -112,7 +112,7 @@ export default function Hero({ stats }) {
         </div>
         <div className="stat">
           <span className="stat-number">{stats ? stats.jobsCompleted.toLocaleString() : "—"}</span>
-          <span className="stat-label">Jobs completed</span>
+          <span className="stat-label">Jobs Completed</span>
         </div>
       </div>
     </section>

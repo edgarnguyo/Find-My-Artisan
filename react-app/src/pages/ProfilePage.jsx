@@ -27,7 +27,7 @@ export default function ProfilePage() {
   if (error) {
     return (
       <main className="profile">
-        <h1>Something went wrong</h1>
+        <h1>Something Went Wrong</h1>
         <p>Could not load this artisan: {error.message}</p>
       </main>
     );
@@ -36,7 +36,7 @@ export default function ProfilePage() {
   if (!worker) {
     return (
       <main className="profile">
-        <h1>Worker not found</h1>
+        <h1>Worker Not Found</h1>
         <p>No artisan with id {id} exists.</p>
       </main>
     );

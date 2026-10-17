@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Avatar from "./Avatar";
+import { formatKes } from "../lib/format";
 
 function WorkerCard({ worker }) {
   return (
@@ -22,12 +23,12 @@ function WorkerCard({ worker }) {
       <div className="worker-meta">
         {/* rating is the average of the reviews: null until there is one. */}
         <p className="worker-rating">
-          ⭐ {worker.rating != null ? `${worker.rating.toFixed(1)} (${worker.reviewCount})` : "New"}
+          {worker.rating != null ? `Rating: ${worker.rating.toFixed(1)} (${worker.reviewCount})` : "New Artisan"}
         </p>
         {worker.jobSuccess != null && (
           <p className="worker-success">{worker.jobSuccess}% job success</p>
         )}
-        <p className="worker-price">{worker.price}</p>
+        {worker.price && <p className="worker-price">{formatKes(worker.price)}</p>}
         {worker.hourlyRateKes != null && (
           <p className="worker-rate">KES {worker.hourlyRateKes.toLocaleString()} / hour</p>
         )}

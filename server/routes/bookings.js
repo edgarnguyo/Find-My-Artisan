@@ -64,14 +64,21 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const { artisanId, clientId, name, contact, date, time, budget, job } = req.body;
 
-  if (!artisanId || !name || !contact || !date || !time || !job) {
-    return res.status(400).json({ error: 'artisanId, name, contact, date, time and job are required' });
+  if (!artisanId || !clientId || !name || !contact || !date || !time || !job) {
+    return res.status(400).json({ error: 'artisanId, clientId, name, contact, date, time and job are required' });
   }
   if (!DATE.test(date) || !TIME.test(time)) {
     return res.status(400).json({ error: 'date must look like 2026-10-22 and time like 10:00' });
   }
 
   try {
+    // Only someone with a client account can book, so every request can be
+    // tracked, cancelled and reviewed by the person who made it.
+    const [clients] = await db.query('SELECT id FROM clients WHERE id = ?', [clientId]);
+    if (clients.length === 0) {
+      return res.status(400).json({ error: 'Sign in with a client account to book' });
+    }
+
     // Refuse a start time that falls inside a window the artisan is busy.
     const start = kenyaToDbTime(date, time);
     const [clash] = await db.query(
@@ -89,7 +96,7 @@ router.post('/', async (req, res) => {
     const [result] = await db.query(
       `INSERT INTO bookings (artisan_id, client_id, name, contact, booking_date, booking_time, budget, job)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [artisanId, clientId || null, name, contact, date, time, budget || null, job]
+      [artisanId, clientId, name, contact, date, time, budget || null, job]
     );
     res.status(201).json({ id: result.insertId, status: 'pending' });
   } catch (err) {

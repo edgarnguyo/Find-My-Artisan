@@ -67,7 +67,7 @@ export default function BusyTimes({ artisanId, reloadKey }) {
 
   return (
     <section className="busy-times">
-      <h2>When you're busy</h2>
+      <h2>When You're Busy</h2>
       <p className="bookings-sub">
         Clients can't request you at these times (Kenya time). Accepted jobs are added
         for you; add other work here yourself.

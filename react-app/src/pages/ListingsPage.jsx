@@ -15,12 +15,12 @@ const SKILLS = ["All", "Plumber", "Electrician", "Carpenter", "Painter"];
 const SORTS = {
   recommended: { label: "Recommended", compare: () => 0 },
   rating: {
-    label: "Highest rated",
+    label: "Highest Rated",
     compare: (a, b) =>
       (b.rating ?? -1) - (a.rating ?? -1) || b.reviewCount - a.reviewCount,
   },
   price: {
-    label: "Lowest hourly rate",
+    label: "Lowest Hourly Rate",
     compare: (a, b) =>
       (a.hourlyRateKes ?? Infinity) - (b.hourlyRateKes ?? Infinity),
   },

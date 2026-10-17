@@ -6,11 +6,12 @@ import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
 import ReviewForm from '../components/ReviewForm';
 import { kenyaClock } from '../lib/kenyaTime';
+import { formatKes, capitalize } from '../lib/format';
 
 const TABS = [
   { key: 'active',    label: 'Upcoming',  match: s => s === 'pending' || s === 'confirmed' },
   { key: 'completed', label: 'Completed', match: s => s === 'completed' },
-  { key: 'cancelled', label: 'Cancelled & declined', match: s => s === 'cancelled' || s === 'declined' },
+  { key: 'cancelled', label: 'Cancelled & Declined', match: s => s === 'cancelled' || s === 'declined' },
 ];
 
 // value is a plain date ('2026-10-22'), which JavaScript reads as midnight UTC.
@@ -54,10 +55,10 @@ export default function MyBookingsPage() {
     return (
       <main className="bookings-page">
         <header className="bookings-header">
-          <h1>My bookings</h1>
+          <h1>My Bookings</h1>
           <p className="bookings-sub">
             Bookings are made by clients. You are signed in as an artisan ({user.email}).{' '}
-            <Link to="/dashboard">See the jobs booked with you</Link>
+            <Link to="/dashboard">See the Jobs Booked with You</Link>
           </p>
         </header>
       </main>
@@ -75,7 +76,7 @@ export default function MyBookingsPage() {
   return (
     <main className="bookings-page">
       <header className="bookings-header">
-        <h1>My bookings</h1>
+        <h1>My Bookings</h1>
         <p className="bookings-sub">Signed in as {user.email}</p>
       </header>
 
@@ -101,7 +102,7 @@ export default function MyBookingsPage() {
       ) : visible.length === 0 ? (
         <div className="bookings-empty">
           <p>No {active.label.toLowerCase()} bookings yet.</p>
-          <Link to="/listings" className="btn-primary">Find an artisan</Link>
+          <Link to="/listings" className="btn-primary">Find an Artisan</Link>
         </div>
       ) : (
         <div className="bookings-list">
@@ -121,12 +122,14 @@ export default function MyBookingsPage() {
                   {booking.worker?.skill}
                   {booking.worker?.location && ` · ${booking.worker.location}`}
                 </p>
-                <p className="booking-row-job">{booking.job}</p>
+                <p className="booking-row-job">{capitalize(booking.job)}</p>
                 <p className="booking-row-when">
                   {formatDate(booking.date)} at {booking.time.slice(0, 5)}
                   {booking.endsAt && `–${kenyaClock(booking.endsAt)}`}
-                  {booking.budget && ` · budget ${booking.budget}`}
                 </p>
+                {booking.budget && (
+                  <p className="booking-row-budget">Budget: {formatKes(booking.budget)}</p>
+                )}
 
                 {booking.review && (
                   <p className="booking-review">
@@ -153,7 +156,7 @@ export default function MyBookingsPage() {
 
               <div className="booking-row-side">
                 <span className={`status-pill status-${booking.status}`}>
-                  {booking.status}
+                  {capitalize(booking.status)}
                 </span>
                 {(booking.status === 'pending' || booking.status === 'confirmed') && (
                   <button
@@ -166,7 +169,7 @@ export default function MyBookingsPage() {
                 )}
                 {booking.status === 'completed' && !booking.review && reviewing !== booking.id && (
                   <button className="booking-action" onClick={() => setReviewing(booking.id)}>
-                    Leave a review
+                    Leave a Review
                   </button>
                 )}
               </div>

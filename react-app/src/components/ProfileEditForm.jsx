@@ -59,7 +59,7 @@ export default function ProfileEditForm({ worker }) {
 
   return (
     <section className="dashboard-card">
-      <h2>Your details</h2>
+      <h2>Your Details</h2>
       <p className="bookings-sub">Shown on your public profile.</p>
 
       <form className="edit-profile-form" onSubmit={handleSubmit} noValidate>
@@ -85,20 +85,20 @@ export default function ProfileEditForm({ worker }) {
               value={phone} onChange={e => setPhone(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="edit-rate">Hourly rate, KES (optional)</label>
+            <label htmlFor="edit-rate">Hourly Rate, KES (Optional)</label>
             <input id="edit-rate" type="number" min={1} max={100000} step={1} inputMode="numeric"
               value={rate} onChange={e => setRate(e.target.value)} />
           </div>
         </div>
 
         <div className="field">
-          <label htmlFor="edit-price">Price per job (optional)</label>
+          <label htmlFor="edit-price">Price per Job (Optional)</label>
           <input id="edit-price" type="text" maxLength={50} placeholder="e.g. KES 2,000 – 6,000 / job"
             value={price} onChange={e => setPrice(e.target.value)} />
         </div>
 
         <div className="field">
-          <label htmlFor="edit-bio">About your work (optional)</label>
+          <label htmlFor="edit-bio">About Your Work (Optional)</label>
           <textarea id="edit-bio" rows={4} maxLength={2000}
             value={bio} onChange={e => setBio(e.target.value)} />
         </div>
