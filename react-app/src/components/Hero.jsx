@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { RATING_OPTIONS } from "../data/ratings";
 
-export default function Hero() {
+// stats comes from GET /stats, or is null while it loads (shown as a dash).
+export default function Hero({ stats }) {
   const [location, setLocation] = useState("");
   const [skill, setSkill] = useState("All");
+  const [minRating, setMinRating] = useState("");
   const navigate = useNavigate();
 
   function handleSearch(e) {
@@ -11,6 +14,7 @@ export default function Hero() {
     const params = new URLSearchParams();
     if (location) params.set("location", location);
     if (skill && skill !== "All") params.set("skill", skill);
+    if (minRating) params.set("minRating", minRating);
     navigate(`/listings?${params.toString()}`);
   }
 
@@ -76,6 +80,18 @@ export default function Hero() {
             <option>Painter</option>
           </select>
         </div>
+        <div className="hero-search-field">
+          <label htmlFor="hero-search-rating">Rating</label>
+          <select
+            id="hero-search-rating"
+            value={minRating}
+            onChange={(e) => setMinRating(e.target.value)}
+          >
+            {RATING_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
         <button type="submit" className="btn-primary hero-search-btn">
           Search artisans
         </button>
@@ -83,15 +99,19 @@ export default function Hero() {
 
       <div className="hero-stats">
         <div className="stat">
-          <span className="stat-number">200+</span>
+          <span className="stat-number">{stats ? stats.verifiedArtisans : "—"}</span>
           <span className="stat-label">Verified artisans</span>
         </div>
         <div className="stat">
-          <span className="stat-number">4.8★</span>
-          <span className="stat-label">Average rating</span>
+          <span className="stat-number">
+            {stats?.averageRating != null ? `${stats.averageRating.toFixed(1)}★` : "—"}
+          </span>
+          <span className="stat-label">
+            Average of {stats ? stats.reviewCount.toLocaleString() : "all"} reviews
+          </span>
         </div>
         <div className="stat">
-          <span className="stat-number">1,000+</span>
+          <span className="stat-number">{stats ? stats.jobsCompleted.toLocaleString() : "—"}</span>
           <span className="stat-label">Jobs completed</span>
         </div>
       </div>

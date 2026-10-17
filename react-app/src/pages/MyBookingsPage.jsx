@@ -4,16 +4,20 @@ import { fetchMyBookings, cancelBooking } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
+import ReviewForm from '../components/ReviewForm';
+import { kenyaClock } from '../lib/kenyaTime';
 
 const TABS = [
   { key: 'active',    label: 'Upcoming',  match: s => s === 'pending' || s === 'confirmed' },
   { key: 'completed', label: 'Completed', match: s => s === 'completed' },
-  { key: 'cancelled', label: 'Cancelled', match: s => s === 'cancelled' },
+  { key: 'cancelled', label: 'Cancelled & declined', match: s => s === 'cancelled' || s === 'declined' },
 ];
 
+// value is a plain date ('2026-10-22'), which JavaScript reads as midnight UTC.
+// Formatting it in UTC too keeps it the same day on any computer.
 function formatDate(value) {
   return new Date(value).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
   });
 }
 
@@ -22,6 +26,8 @@ export default function MyBookingsPage() {
   const [tab, setTab] = useState('active');
   const [reloadKey, setReloadKey] = useState(0);
   const [cancelling, setCancelling] = useState(null);
+  // The completed booking whose review form is open, or null.
+  const [reviewing, setReviewing] = useState(null);
 
   // Bookings belong to clients. An artisan's id could match some client's id,
   // so only ask for bookings when the signed-in user really is a client.
@@ -50,7 +56,8 @@ export default function MyBookingsPage() {
         <header className="bookings-header">
           <h1>My bookings</h1>
           <p className="bookings-sub">
-            Bookings are made by clients. You are signed in as an artisan ({user.email}).
+            Bookings are made by clients. You are signed in as an artisan ({user.email}).{' '}
+            <Link to="/dashboard">See the jobs booked with you</Link>
           </p>
         </header>
       </main>
@@ -117,8 +124,31 @@ export default function MyBookingsPage() {
                 <p className="booking-row-job">{booking.job}</p>
                 <p className="booking-row-when">
                   {formatDate(booking.date)} at {booking.time.slice(0, 5)}
+                  {booking.endsAt && `–${kenyaClock(booking.endsAt)}`}
                   {booking.budget && ` · budget ${booking.budget}`}
                 </p>
+
+                {booking.review && (
+                  <p className="booking-review">
+                    You rated this{' '}
+                    <span className="review-stars" aria-label={`${booking.review.rating} out of 5 stars`}>
+                      {'★'.repeat(booking.review.rating) + '☆'.repeat(5 - booking.review.rating)}
+                    </span>
+                    {booking.review.comment && ` · “${booking.review.comment}”`}
+                  </p>
+                )}
+
+                {reviewing === booking.id && (
+                  <ReviewForm
+                    booking={booking}
+                    clientId={user.id}
+                    onCancel={() => setReviewing(null)}
+                    onDone={() => {
+                      setReviewing(null);
+                      setReloadKey(k => k + 1);
+                    }}
+                  />
+                )}
               </div>
 
               <div className="booking-row-side">
@@ -132,6 +162,11 @@ export default function MyBookingsPage() {
                     disabled={cancelling === booking.id}
                   >
                     {cancelling === booking.id ? 'Cancelling…' : 'Cancel'}
+                  </button>
+                )}
+                {booking.status === 'completed' && !booking.review && reviewing !== booking.id && (
+                  <button className="booking-action" onClick={() => setReviewing(booking.id)}>
+                    Leave a review
                   </button>
                 )}
               </div>

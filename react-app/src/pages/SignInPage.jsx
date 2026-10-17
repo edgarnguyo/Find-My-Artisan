@@ -26,7 +26,7 @@ export default function SignInPage() {
   const location = useLocation();
 
   // Send the user back where they were headed before we interrupted them.
-  const next = location.state?.from ?? '/my-bookings';
+  const from = location.state?.from;
   const isSignup = mode === 'signup';
   const isClient = isSignup && role === 'client';
   const isArtisan = isSignup && role === 'artisan';
@@ -74,8 +74,9 @@ export default function SignInPage() {
       } else {
         signedIn = await signIn(email, password);
       }
-      // Clients go on to their bookings. Artisans don't book, so they go home.
-      navigate(signedIn.role === 'client' ? next : (location.state?.from ?? '/'), { replace: true });
+      // Otherwise clients go to their bookings and artisans to the jobs booked with them.
+      const home = signedIn.role === 'client' ? '/my-bookings' : '/dashboard';
+      navigate(from ?? home, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -106,7 +107,7 @@ export default function SignInPage() {
         <p className="auth-sub">
           {isSignup
             ? 'Join as a client to book artisans, or as an artisan to list your services.'
-            : 'Sign in to see the artisans you have booked.'}
+            : 'Sign in to see your bookings, or the jobs booked with you.'}
         </p>
 
         <form onSubmit={handleSubmit} noValidate>

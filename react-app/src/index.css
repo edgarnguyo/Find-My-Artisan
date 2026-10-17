@@ -328,6 +328,30 @@ button {
   object-fit: cover;
 }
 
+.profile-gallery-item {
+  margin: 0;
+  min-width: 0;
+}
+
+.profile-gallery-tile {
+  background: var(--color-bg);
+}
+
+.profile-gallery-item figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.profile-gallery-item figcaption p {
+  margin-top: 0.2rem;
+  color: var(--color-text-muted);
+}
+
+.gallery-date,
+.gallery-empty {
+  color: var(--color-text-muted);
+}
+
 .history-list {
   list-style: none;
   display: flex;
@@ -462,6 +486,34 @@ button {
   font-size: 0.92rem;
 }
 
+/* The 14-day strip: weekday over the day of the month. */
+.availability .availability-day {
+  width: 46px;
+  height: 52px;
+  flex-direction: column;
+  line-height: 1.15;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+}
+
+.availability-weekday {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.availability-day.is-busy {
+  background: #fdf1dc;
+  border-color: #e3b866;
+  color: #8a5a10;
+}
+
+.availability-busy {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.92rem;
+}
+
 label {
   font-size: 0.8rem;
   font-weight: 600;
@@ -494,6 +546,11 @@ textarea:focus {
   color: var(--color-error);
   font-size: 0.8rem;
   min-height: 1em;
+}
+
+.booking-busy-error {
+  display: block;
+  margin: calc(-1 * var(--spacing-sm)) 0 var(--spacing-md);
 }
 
 .submit-btn {
@@ -608,7 +665,32 @@ textarea:focus {
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Rating filter and sort order, under the skill buttons. */
+.listings-controls {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
   margin-bottom: var(--spacing-xl);
+}
+
+.listings-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.listings-controls select {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-size: 0.9rem;
+  text-transform: none;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .filter-btn {
@@ -704,6 +786,11 @@ textarea:focus {
   color: var(--color-text);
   font-weight: 600;
   font-size: 0.92rem;
+}
+
+.worker-rate {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
 }
 
 .worker-location {
@@ -1100,12 +1187,16 @@ textarea:focus {
 }
 
 .preview-card {
+  display: block;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   text-align: center;
   transition: transform 0.2s, box-shadow 0.2s;
+  /* Each card links to the artisan's profile. */
+  color: inherit;
+  text-decoration: none;
 }
 
 .preview-card:hover {
@@ -1251,7 +1342,8 @@ textarea:focus {
   aspect-ratio: 4 / 3;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  cursor: default;
+  /* Each photo links to the profile of the artisan who did the work. */
+  text-decoration: none;
 }
 
 .gallery-tile img {
@@ -1270,6 +1362,11 @@ textarea:focus {
   background: rgba(36, 29, 23, 0.55);
   border-radius: var(--radius-full);
   font-size: 0.9rem;
+  /* Long titles stay inside the photo. */
+  max-width: calc(100% - 2 * var(--spacing-md));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tips-section {
@@ -1608,7 +1705,8 @@ textarea:focus {
   accent-color: var(--color-primary);
 }
 
-.auth-card select {
+.auth-card select,
+.edit-profile-form select {
   width: 100%;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -1619,7 +1717,8 @@ textarea:focus {
   outline: none;
 }
 
-.auth-card select:focus {
+.auth-card select:focus,
+.edit-profile-form select:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px var(--color-primary-light);
 }
@@ -1631,6 +1730,10 @@ textarea:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.nav-account-text {
+  display: none;
 }
 
 .booking-note {
@@ -1773,6 +1876,263 @@ textarea:focus {
 .status-confirmed { background: var(--color-primary-light); color: var(--color-primary-dark); }
 .status-completed { background: var(--color-verified-light); color: var(--color-verified); }
 .status-cancelled { background: #f0ebe4; color: var(--color-text-muted); }
+.status-declined  { background: #f0ebe4; color: var(--color-text-muted); }
+
+/* Accept / Mark complete on the artisan dashboard: a smaller .btn-primary. */
+.booking-action {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.4rem 1rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.booking-action:hover {
+  background: var(--color-primary-dark);
+}
+
+.booking-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Accepting a request: when the job will be over. */
+.accept-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.accept-form label {
+  text-transform: none;
+  font-size: 0.875rem;
+}
+
+.accept-form input {
+  width: auto;
+}
+
+/* The artisan's profile page: details form and portfolio. */
+.edit-profile-form,
+.portfolio-form {
+  margin-top: var(--spacing-md);
+}
+
+/* On its own line above the button, not squeezed beside it. */
+.edit-profile-form .error,
+.portfolio-form .error {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.saved-note {
+  color: var(--color-verified);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+}
+
+.portfolio-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-md) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.portfolio-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.portfolio-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  flex-shrink: 0;
+}
+
+.portfolio-list-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.portfolio-preview {
+  max-width: 220px;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Account page: deleting the account. */
+.danger-card {
+  border-color: var(--color-error);
+}
+
+.booking-action.danger-button {
+  background: var(--color-error);
+}
+
+.booking-action.danger-button:hover {
+  background: var(--color-error);
+  filter: brightness(0.9);
+}
+
+/* Text only screen readers announce, such as "4 stars" behind a ★. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* My bookings: the review a client gave, and the form to leave one. */
+.booking-review {
+  margin-top: var(--spacing-sm);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.booking-review .review-stars {
+  margin: 0;
+}
+
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.star-picker {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-sm);
+  min-width: 0;
+}
+
+.star-picker legend {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.star-picker label {
+  position: relative;
+  display: inline-block;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--color-border);
+  cursor: pointer;
+  text-transform: none;
+  padding: 0 0.1rem;
+}
+
+.star-picker label.is-on {
+  color: var(--color-star);
+}
+
+/* The radio itself is hidden; the star is what's clicked. */
+.star-picker input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.star-picker label:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.review-form-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+/* Cards on the artisan's pages: "When you're busy", profile details, portfolio. */
+.busy-times,
+.dashboard-card {
+  margin-top: var(--spacing-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+}
+
+.busy-times h2,
+.dashboard-card h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.busy-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-md) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.busy-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.busy-reason {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.busy-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--spacing-sm);
+  align-items: end;
+  margin-top: var(--spacing-md);
+}
+
+.busy-form .field {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.busy-form .booking-action {
+  padding: 0.7rem 1.1rem;
+}
+
+@media (max-width: 640px) {
+  .busy-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .busy-form .field:first-child,
+  .busy-form .booking-action {
+    grid-column: 1 / -1;
+  }
+}
 
 .bookings-empty {
   text-align: center;
@@ -1799,7 +2159,17 @@ textarea:focus {
     justify-content: space-between;
   }
 
-  .nav-email {
+  .nav-email-text {
     display: none;
+  }
+
+  .nav-account-text {
+    display: inline;
+  }
+
+  /* In the phone menu it reads "Account", sized like the other links. */
+  .nav-email {
+    font-size: inherit;
+    max-width: none;
   }
 }

@@ -1,6 +1,4 @@
 import { Link } from "react-router-dom";
-import { fetchWorkers } from "../api/workers";
-import { useAsync } from "../hooks/useAsync";
 
 const CITIES = [
   { name: "Nairobi", seed: "nairobi-city" },
@@ -9,9 +7,8 @@ const CITIES = [
   { name: "Nakuru", seed: "nakuru-city" },
 ];
 
-export default function LocationsGrid() {
-  const { data: workers } = useAsync(fetchWorkers);
-
+// workers is the landing page's list of artisans, or null while it loads.
+export default function LocationsGrid({ workers }) {
   const locations = CITIES.map((city) => ({
     ...city,
     count: (workers ?? []).filter((worker) =>
