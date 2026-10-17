@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { createBooking } from '../api/workers';
+import { fetchClient } from '../api/account';
 import { useAuth } from '../lib/authContext';
 import { busyWindowAt, fromKenya, kenyaClock } from '../lib/kenyaTime';
 
 export default function BookingForm({ worker }) {
   const { user } = useAuth();
-  const [name,      setName]      = useState('');
-  const [contact,   setContact]   = useState('');
+  const location = useLocation();
+  const isClient = user?.role === 'client';
+  // Start from the signed-in client's own details; they can still change them.
+  const [name,      setName]      = useState(isClient ? user.name : '');
+  const [contact,   setContact]   = useState(isClient ? user.email : '');
   const [date,      setDate]      = useState('');
   const [time,      setTime]      = useState('');
   const [budget,    setBudget]    = useState('');
@@ -17,12 +21,25 @@ export default function BookingForm({ worker }) {
   const [sending,   setSending]   = useState(false);
   const [sendError, setSendError] = useState(null);
 
+  // The phone number isn't kept with the sign-in, so fetch it. A phone is what
+  // an artisan is most likely to call, so it replaces the email when there is one.
+  useEffect(() => {
+    if (!isClient) return;
+    let current = true;
+    fetchClient(user.id)
+      .then(client => {
+        if (current && client.phone) {
+          setContact(c => (c === user.email ? client.phone : c));
+        }
+      })
+      .catch(() => {});
+    return () => { current = false; };
+  }, [isClient, user?.id, user?.email]);
+
   useEffect(() => {
     if (!submitted) return;
 
     const timer = setTimeout(() => {
-      setName('');
-      setContact('');
       setDate('');
       setTime('');
       setBudget('');
@@ -90,8 +107,7 @@ export default function BookingForm({ worker }) {
     try {
       await createBooking({
         workerId: worker.id,
-        // Link the booking to the signed-in client, if any (artisans don't book).
-        clientId: user?.role === 'client' ? user.id : null,
+        clientId: user.id,
         name,
         contact,
         date,
@@ -111,17 +127,33 @@ export default function BookingForm({ worker }) {
     return (
       <section className="booking">
         <div className="confirmation">
-          ✅ Your request has been sent. The artisan will contact you shortly.
+          Your request has been sent. The artisan will contact you shortly.
         </div>
+        <p className="booking-note">
+          <Link to="/my-bookings">Track It Under My Bookings</Link>
+        </p>
+      </section>
+    );
+  }
+
+  // Booking needs a client account, so the request is tied to someone who can
+  // track it, cancel it and review the job afterwards.
+  if (!isClient) {
+    return (
+      <section className="booking">
+        <h2>Request This Artisan</h2>
         {user ? (
           <p className="booking-note">
-            <Link to="/my-bookings">Track it under My bookings</Link>
+            You are signed in as an artisan. Requests are sent from a client
+            account, so sign out and sign in (or sign up) as a client to book.
           </p>
         ) : (
-          <p className="booking-note">
-            <Link to="/signin">Sign in</Link> before booking next time and you
-            can track your requests here.
-          </p>
+          <>
+            <p className="booking-note">You need an account to send a request.</p>
+            <Link to="/signin" state={{ from: location.pathname }} className="submit-btn">
+              Sign In to Book
+            </Link>
+          </>
         )}
       </section>
     );
@@ -129,18 +161,11 @@ export default function BookingForm({ worker }) {
 
   return (
     <section className="booking">
-      <h2>Request this artisan</h2>
-
-      {!user && (
-        <p className="booking-note">
-          <Link to="/signin">Sign in</Link> to keep track of this booking
-          afterwards.
-        </p>
-      )}
+      <h2>Request This Artisan</h2>
 
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor="name">Your name</label>
+          <label htmlFor="name">Your Name</label>
           <input
             id="name"
             type="text"
@@ -151,7 +176,7 @@ export default function BookingForm({ worker }) {
         </div>
 
         <div className="field">
-          <label htmlFor="contact">Email or phone</label>
+          <label htmlFor="contact">Email or Phone</label>
           <input
             id="contact"
             type="text"
@@ -163,7 +188,7 @@ export default function BookingForm({ worker }) {
 
         <div className="field-row">
           <div className="field">
-            <label htmlFor="date">Preferred date</label>
+            <label htmlFor="date">Preferred Date</label>
             <input
               id="date"
               type="date"
@@ -174,7 +199,7 @@ export default function BookingForm({ worker }) {
           </div>
 
           <div className="field">
-            <label htmlFor="time">Preferred time</label>
+            <label htmlFor="time">Preferred Time</label>
             <input
               id="time"
               type="time"
@@ -188,18 +213,18 @@ export default function BookingForm({ worker }) {
         {errors.busy && <small className="error booking-busy-error">{errors.busy}</small>}
 
         <div className="field">
-          <label htmlFor="budget">Budget (optional)</label>
+          <label htmlFor="budget">Budget in KES (Optional)</label>
           <input
             id="budget"
             type="text"
-            placeholder={`e.g. ${worker.price ?? 'KES 3,000'}`}
+            placeholder="e.g. 3000"
             value={budget}
             onChange={e => setBudget(e.target.value)}
           />
         </div>
 
         <div className="field">
-          <label htmlFor="job">Describe the job</label>
+          <label htmlFor="job">Describe the Job</label>
           <textarea
             id="job"
             rows={4}
@@ -216,7 +241,7 @@ export default function BookingForm({ worker }) {
         )}
 
         <button type="submit" className="submit-btn" disabled={sending}>
-          {sending ? 'Sending…' : 'Send request'}
+          {sending ? 'Sending…' : 'Send Request'}
         </button>
       </form>
     </section>

@@ -6,6 +6,7 @@ import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
 import BusyTimes from '../components/BusyTimes';
 import { kenyaClock } from '../lib/kenyaTime';
+import { formatKes, capitalize } from '../lib/format';
 
 // A booking moves pending -> confirmed -> completed, or pending -> declined.
 // A client can cancel it while it's pending or confirmed.
@@ -13,7 +14,7 @@ const TABS = [
   { key: 'requests',  label: 'Requests',  match: s => s === 'pending' },
   { key: 'upcoming',  label: 'Upcoming',  match: s => s === 'confirmed' },
   { key: 'completed', label: 'Completed', match: s => s === 'completed' },
-  { key: 'closed',    label: 'Declined & cancelled', match: s => s === 'declined' || s === 'cancelled' },
+  { key: 'closed',    label: 'Declined & Cancelled', match: s => s === 'declined' || s === 'cancelled' },
 ];
 
 // The buttons each status gets. confirm is the question asked first, for the
@@ -26,7 +27,7 @@ const ACTIONS = {
       confirm: 'Decline this request? The client will see it as declined.' },
   ],
   confirmed: [
-    { status: 'completed', label: 'Mark complete', busyLabel: 'Saving…',
+    { status: 'completed', label: 'Mark Complete', busyLabel: 'Saving…',
       confirm: 'Mark this job as completed?' },
   ],
 };
@@ -93,10 +94,10 @@ export default function DashboardPage() {
     return (
       <main className="bookings-page">
         <header className="bookings-header">
-          <h1>Artisan dashboard</h1>
+          <h1>Artisan Dashboard</h1>
           <p className="bookings-sub">
             This page is for artisans. You are signed in as a client ({user.email}).{' '}
-            <Link to="/my-bookings">See your bookings</Link>
+            <Link to="/my-bookings">See Your Bookings</Link>
           </p>
         </header>
       </main>
@@ -114,10 +115,10 @@ export default function DashboardPage() {
   return (
     <main className="bookings-page">
       <header className="bookings-header">
-        <h1>Your jobs</h1>
+        <h1>Your Jobs</h1>
         <p className="bookings-sub">
-          Signed in as {user.email} · <Link to="/dashboard/profile">Edit your profile &amp; portfolio</Link>
-          {' · '}<Link to={`/profile/${user.id}`}>View your public profile</Link>
+          Signed in as {user.email} · <Link to="/dashboard/profile">Edit Your Profile &amp; Portfolio</Link>
+          {' · '}<Link to={`/profile/${user.id}`}>View Your Public Profile</Link>
         </p>
       </header>
 
@@ -159,12 +160,14 @@ export default function DashboardPage() {
                 <p className="booking-row-skill">
                   <a href={contactHref(booking.contact)}>{booking.contact}</a>
                 </p>
-                <p className="booking-row-job">{booking.job}</p>
+                <p className="booking-row-job">{capitalize(booking.job)}</p>
                 <p className="booking-row-when">
                   {formatDate(booking.date)} at {booking.time.slice(0, 5)}
                   {booking.endsAt && `–${kenyaClock(booking.endsAt)}`}
-                  {booking.budget && ` · budget ${booking.budget}`}
                 </p>
+                {booking.budget && (
+                  <p className="booking-row-budget">Budget: {formatKes(booking.budget)}</p>
+                )}
 
                 {accepting?.id === booking.id && (
                   <form
@@ -174,7 +177,7 @@ export default function DashboardPage() {
                       handleAction(booking, ACTIONS.pending[0], accepting.endTime);
                     }}
                   >
-                    <label htmlFor={`end-${booking.id}`}>Job will be over by</label>
+                    <label htmlFor={`end-${booking.id}`}>Job Will Be Over by</label>
                     <input
                       id={`end-${booking.id}`}
                       type="time"
@@ -194,7 +197,7 @@ export default function DashboardPage() {
 
               <div className="booking-row-side">
                 <span className={`status-pill status-${booking.status}`}>
-                  {booking.status}
+                  {capitalize(booking.status)}
                 </span>
                 {accepting?.id !== booking.id && (ACTIONS[booking.status] ?? []).map(action => (
                   <button

@@ -19,8 +19,8 @@ export default function LocationsGrid({ workers }) {
   return (
     <section className="locations" id="locations">
       <div className="section-header">
-        <span className="section-eyebrow">Where we work</span>
-        <h2 className="section-title">Popular locations</h2>
+        <span className="section-eyebrow">Where We Work</span>
+        <h2 className="section-title">Popular Locations</h2>
         <p className="section-sub">
           Artisans ready to help across Kenya's biggest cities.
         </p>

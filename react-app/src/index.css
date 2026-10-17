@@ -1723,17 +1723,14 @@ textarea:focus {
   box-shadow: 0 0 0 4px var(--color-primary-light);
 }
 
-.nav-email {
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-  max-width: 15ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.profile-meta-label {
+  font-weight: 600;
 }
 
-.nav-account-text {
-  display: none;
+.booking-row-budget {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .booking-note {
@@ -2158,18 +2155,11 @@ textarea:focus {
     width: 100%;
     justify-content: space-between;
   }
+}
 
-  .nav-email-text {
-    display: none;
-  }
-
-  .nav-account-text {
-    display: inline;
-  }
-
-  /* In the phone menu it reads "Account", sized like the other links. */
-  .nav-email {
-    font-size: inherit;
-    max-width: none;
-  }
+/* "Sign In to Book": a link styled like the form's submit button. */
+a.submit-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
 }

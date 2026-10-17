@@ -178,16 +178,21 @@ returns `404`, because the review is gone.
 `start` and `end` are both required, and each needs a time zone: either `Z` for
 UTC or an offset such as `+03:00`. `end` has to be after `start`.
 
+**Before you run this, replace `YYYY-MM-DD` with a date in the next 14 days**,
+for example tomorrow. The server also accepts a date in the past, but a window
+that has already ended never shows up in the artisan's `busy` list, so you
+couldn't see that it worked.
+
 ```bash
 curl -X POST https://find-my-artisan.onrender.com/artisans/1/availability \
   -H "Content-Type: application/json" \
-  -d '{"start": "2026-10-20T06:00:00Z", "end": "2026-10-20T10:00:00Z"}'
+  -d '{"start": "YYYY-MM-DDT06:00:00Z", "end": "YYYY-MM-DDT10:00:00Z"}'
 ```
 
-`201 Created`
+`201 Created`, with your date in place of `YYYY-MM-DD`:
 
 ```json
-{"id":17,"artisanId":1,"start":"2026-10-20T06:00:00Z","end":"2026-10-20T10:00:00Z","createdAt":"2026-10-12T13:59:21Z"}
+{"id":17,"artisanId":1,"start":"YYYY-MM-DDT06:00:00Z","end":"YYYY-MM-DDT10:00:00Z","createdAt":"2026-10-12T13:59:21Z"}
 ```
 
 Two windows for the same artisan cannot overlap. **If someone has already booked
@@ -198,23 +203,23 @@ again.
 {"code":"invalid_body","message":"This window overlaps an existing block."}
 ```
 
-Use a time in the next 14 days if you want to see it appear in that artisan's
-`busy` list. Note the `id` in your response for the next two requests.
+Note the `id` in your response for the next two requests.
 
 ### Change a booked window
 
-Send `start`, `end`, or both. Replace `17` with your block's `id`.
+Send `start`, `end`, or both. Replace `17` with your block's `id`, and
+`YYYY-MM-DD` with the same date you used above.
 
 ```bash
 curl -X PATCH https://find-my-artisan.onrender.com/artisans/1/availability/17 \
   -H "Content-Type: application/json" \
-  -d '{"end": "2026-10-20T12:00:00Z"}'
+  -d '{"end": "YYYY-MM-DDT12:00:00Z"}'
 ```
 
 `200 OK`
 
 ```json
-{"id":17,"artisanId":1,"start":"2026-10-20T06:00:00Z","end":"2026-10-20T12:00:00Z","createdAt":"2026-10-12T13:59:21Z"}
+{"id":17,"artisanId":1,"start":"YYYY-MM-DDT06:00:00Z","end":"YYYY-MM-DDT12:00:00Z","createdAt":"2026-10-12T13:59:21Z"}
 ```
 
 ### Remove a booked window

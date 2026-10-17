@@ -23,8 +23,8 @@ export default function HowItWorks() {
   return (
     <section className="how-it-works" id="how-it-works">
       <div className="section-header">
-        <span className="section-eyebrow">Simple process</span>
-        <h2 className="section-title">How it works</h2>
+        <span className="section-eyebrow">Simple Process</span>
+        <h2 className="section-title">How It Works</h2>
         <p className="section-sub">
           Three steps from search to sorted.
         </p>

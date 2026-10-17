@@ -289,6 +289,15 @@ describe('Busy times from accepted bookings', () => {
     expect(res.status).toBe(400);
   });
 
+  it('refuses a booking without a client account', async () => {
+    const missing = await postBooking({ date: freshDate(), clientId: null });
+    expect(missing.status).toBe(400);
+
+    const unknown = await postBooking({ date: freshDate(), clientId: clientId + 1000 });
+    expect(unknown.status).toBe(400);
+    expect(unknown.body.error).toBe('Sign in with a client account to book');
+  });
+
   it("shows an accepted job in Meditrac's busy list and on the profile", async () => {
     // Tomorrow in Kenya, early, so it's inside the 14-day busy window.
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)

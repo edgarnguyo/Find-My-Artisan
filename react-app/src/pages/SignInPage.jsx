@@ -103,7 +103,7 @@ export default function SignInPage() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <h1>{isSignup ? 'Create an account' : 'Sign in'}</h1>
+        <h1>{isSignup ? 'Create an Account' : 'Sign In'}</h1>
         <p className="auth-sub">
           {isSignup
             ? 'Join as a client to book artisans, or as an artisan to list your services.'
@@ -114,7 +114,7 @@ export default function SignInPage() {
           {isSignup && (
             <>
               <div className="field">
-                <label htmlFor="name">Full name</label>
+                <label htmlFor="name">Full Name</label>
                 <input
                   id="name"
                   type="text"
@@ -178,7 +178,7 @@ export default function SignInPage() {
           {isClient && (
             <div className="field-row">
               <div className="field">
-                <label htmlFor="phone">Phone (optional)</label>
+                <label htmlFor="phone">Phone (Optional)</label>
                 <input
                   id="phone"
                   type="tel"
@@ -232,7 +232,7 @@ export default function SignInPage() {
               </div>
 
               <div className="field">
-                <label htmlFor="price">Price (optional)</label>
+                <label htmlFor="price">Price (Optional)</label>
                 <input
                   id="price"
                   type="text"
@@ -244,7 +244,7 @@ export default function SignInPage() {
               </div>
 
               <div className="field">
-                <label htmlFor="bio">About your work (optional)</label>
+                <label htmlFor="bio">About Your Work (Optional)</label>
                 <textarea
                   id="bio"
                   rows={3}
@@ -258,7 +258,7 @@ export default function SignInPage() {
           {error && <small className="error">{error}</small>}
 
           <button type="submit" className="submit-btn" disabled={busy}>
-            {busy ? 'Please wait…' : isSignup ? 'Create account' : 'Sign in'}
+            {busy ? 'Please wait…' : isSignup ? 'Create Account' : 'Sign In'}
           </button>
         </form>
 
@@ -277,7 +277,7 @@ export default function SignInPage() {
         </p>
 
         <p className="auth-switch">
-          <Link to="/listings">Browse artisans without an account</Link>
+          <Link to="/listings">Browse Artisans Without an Account</Link>
         </p>
       </section>
     </main>

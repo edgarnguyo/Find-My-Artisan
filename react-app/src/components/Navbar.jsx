@@ -59,7 +59,7 @@ export default function Navbar() {
               className={`nav-link${isActive("/my-bookings") ? " active" : ""}`}
               onClick={() => setMenuOpen(false)}
             >
-              My bookings
+              My Bookings
             </Link>
           </li>
         )}
@@ -79,18 +79,16 @@ export default function Navbar() {
             <li>
               <Link
                 to="/account"
-                className={`nav-link nav-email${isActive("/account") ? " active" : ""}`}
-                title={`${user.email}: account settings`}
+                className={`nav-link${isActive("/account") ? " active" : ""}`}
+                title={`Signed in as ${user.email}`}
                 onClick={() => setMenuOpen(false)}
               >
-                {/* The email on wide screens; "Account" in the phone menu. */}
-                <span className="nav-email-text">{user.email}</span>
-                <span className="nav-account-text">Account</span>
+                Account
               </Link>
             </li>
             <li>
               <button type="button" className="nav-cta" onClick={handleSignOut}>
-                Sign out
+                Sign Out
               </button>
             </li>
           </>
@@ -101,7 +99,7 @@ export default function Navbar() {
               className="nav-cta"
               onClick={() => setMenuOpen(false)}
             >
-              Sign in
+              Sign In
             </Link>
           </li>
         )}

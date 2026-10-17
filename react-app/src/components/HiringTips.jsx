@@ -29,8 +29,8 @@ export default function HiringTips() {
   return (
     <section className="tips-section" id="tips">
       <div className="section-header">
-        <span className="section-eyebrow">Before you book</span>
-        <h2 className="section-title">Hire smart</h2>
+        <span className="section-eyebrow">Before You Book</span>
+        <h2 className="section-title">Hire Smart</h2>
         <p className="section-sub">
           A few things worth checking before you confirm a job.
         </p>
