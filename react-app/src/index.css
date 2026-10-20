@@ -2163,3 +2163,80 @@ a.submit-btn {
   text-align: center;
   text-decoration: none;
 }
+
+/* Scrap Materials: Kanairo-Klean's stock and prices, fetched through our server. */
+.materials-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.materials-page h1 {
+  font-size: 2.1rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.materials-intro {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.materials-page .filter-btn {
+  text-transform: capitalize;
+}
+
+.materials-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.materials-table th,
+.materials-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.materials-table th {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.materials-table td:nth-child(2) {
+  text-transform: capitalize;
+}
+
+/* "1,100 kg" and "KES 28.5 / kg" stay on one line. */
+.materials-table td:nth-child(3),
+.materials-table td:nth-child(4) {
+  white-space: nowrap;
+}
+
+.materials-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* The partner is down: a clear message instead of an empty table. */
+.materials-unavailable {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.materials-unavailable p {
+  margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 600px) {
+  .materials-table th,
+  .materials-table td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.9rem;
+  }
+}

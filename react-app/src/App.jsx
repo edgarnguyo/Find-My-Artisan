@@ -12,6 +12,7 @@ import ArtisansPage from './pages/ArtisansPage';
 import DashboardPage from './pages/DashboardPage';
 import EditProfilePage from './pages/EditProfilePage';
 import AccountPage from './pages/AccountPage';
+import MaterialsPage from './pages/MaterialsPage';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/profile/:id" element={<ProfilePage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/artisans-table" element={<ArtisansPage />} />
+          <Route path="/materials" element={<MaterialsPage />} />
           <Route
             path="/dashboard"
             element={

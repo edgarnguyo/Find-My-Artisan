@@ -370,6 +370,29 @@ To build it, run `npm install` and then `npm run build` inside `react-app/`,
 and open http://localhost:5001. [TEAM-SETUP.md](TEAM-SETUP.md) has the full
 developer setup.
 
+#### Scrap Materials page (our upstream partner)
+
+The website's **Materials** page shows second-hand materials in stock at
+Kanairo-Klean (Team 13), with prices per kg, from their live API. The browser
+asks our server (`GET /partner/materials`, optional `?type=`), and our server
+calls Kanairo with the token, so the token never reaches the browser. This route
+is website-only and not part of our contract.
+
+It needs two values in `server/.env` (placeholders are in `.env.example`):
+
+- `PARTNER_URL`: Kanairo-Klean's base URL
+- `PARTNER_API_KEY`: the token they sent us privately (never commit it)
+
+Without them, or while Kanairo's server is off, the page says the prices are
+unavailable and the rest of the site keeps working. To try the page without
+Kanairo, run their example data on port 5050 in another terminal:
+
+```bash
+npm run partner:standin
+```
+
+then set `PARTNER_URL=http://localhost:5050` and `PARTNER_API_KEY=standin-token`.
+
 ## More
 
 - [`openapi.yaml`](openapi.yaml): the contract, with every field and its type
