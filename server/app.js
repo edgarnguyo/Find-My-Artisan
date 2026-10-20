@@ -44,6 +44,10 @@ app.use('/bookings', bookingRoutes);
 const statsRoutes = require('./routes/stats');
 app.use('/stats', statsRoutes);
 
+// Website-only: material prices from our upstream partner, Kanairo-Klean.
+const partnerRoutes = require('./routes/partner');
+app.use('/partner', partnerRoutes);
+
 // Everything that isn't an API address is the React site. express.static sends back the
 // file that was asked for (JavaScript, CSS, images) from the build folder.
 app.use(express.static(reactBuild));
@@ -52,7 +56,7 @@ app.use(express.static(reactBuild));
 // reads the address and picks the page. So for any other GET, send index.html.
 // API addresses are skipped, so a mistyped API URL still gets "Cannot GET".
 // Old /api/... URLs are included, so anything still calling them gets a 404.
-const API_PATHS = /^\/(artisans|profiles|clients|login|bookings|stats|docs|api)(\/|$)/;
+const API_PATHS = /^\/(artisans|profiles|clients|login|bookings|stats|partner|docs|api)(\/|$)/;
 
 app.use((req, res, next) => {
   if (req.method !== 'GET' || API_PATHS.test(req.path)) return next();

@@ -52,6 +52,15 @@ export default function Navbar() {
             Find Artisans
           </Link>
         </li>
+        <li>
+          <Link
+            to="/materials"
+            className={`nav-link${isActive("/materials") ? " active" : ""}`}
+            onClick={() => setMenuOpen(false)}
+          >
+            Materials
+          </Link>
+        </li>
         {user?.role === "client" && (
           <li>
             <Link
