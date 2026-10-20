@@ -7,12 +7,6 @@
         {
             "type": "editor-browser",
             "request": "launch",
-            "name": "Open profile.html",
-            "url": "file:///Users/edgarnguyo/Code/FInd%20My%20Artisan/Find%20My%20Artisan/profile.html"
-        },
-        {
-            "type": "editor-browser",
-            "request": "launch",
             "name": "Artisans page (React)",
             "url": "http://localhost:5001/artisans-table",
             "webRoot": "${workspaceFolder}/react-app"
