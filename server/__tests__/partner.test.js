@@ -1,8 +1,10 @@
-// Automated tests for GET /partner/materials, the page's route to Kanairo-Klean.
+// Automated tests for the website's routes to Kanairo-Klean: /partner/materials,
+// /partner/collection-locations and /partner/drop-offs.
 // The partner's server isn't needed: global.fetch is replaced with a fake that
 // answers the way their contract (or a broken network) would.
 const request = require('supertest');
 const app = require('../app');
+const db = require('../db');
 
 const realFetch = global.fetch;
 const env = { ...process.env };
@@ -98,5 +100,132 @@ describe('GET /partner/materials', () => {
     const logged = console.error.mock.calls.flat().join(' ');
     expect(logged).toContain('500');
     expect(logged).not.toContain('test-token');
+  });
+});
+
+describe('GET /partner/collection-locations', () => {
+  it('returns each yard in our shape', async () => {
+    global.fetch = partnerAnswers(200, [
+      { location_id: '2', name: 'Gikomba', area: 'Gikomba', county: 'Nairobi', is_active: true },
+    ]);
+
+    const res = await request(app).get('/partner/collection-locations');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([{ id: '2', name: 'Gikomba', area: 'Gikomba', county: 'Nairobi' }]);
+  });
+
+  it('answers 502 when the partner is down', async () => {
+    global.fetch = connectionRefused();
+
+    const res = await request(app).get('/partner/collection-locations');
+
+    expect(res.status).toBe(502);
+  });
+});
+
+describe('POST /partner/drop-offs', () => {
+  const valid = { artisanId: 3, bookingId: 12, locationId: '2', materialType: 'metal', quantityKg: 12.5 };
+
+  // The booking lookup answers as if booking 12 is artisan 3's, with this status.
+  function bookingIs(status) {
+    jest.spyOn(db, 'query').mockResolvedValue([status ? [{ status, skill: 'Plumber' }] : []]);
+  }
+
+  it('sends the contract body to the right yard and returns the drop-off', async () => {
+    bookingIs('completed');
+    global.fetch = partnerAnswers(201, {
+      drop_off_id: 'drop-0001', location_id: '2', material_type: 'metal', quantity_kg: 12.5,
+      source: 'Find My Artisan, plumber job #12', notes: 'Copper offcuts',
+      status: 'pending', created_at: '2026-10-20T10:30:00Z',
+    });
+
+    const res = await request(app).post('/partner/drop-offs').send({ ...valid, notes: ' Copper offcuts ' });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual({
+      id: 'drop-0001', locationId: '2', materialType: 'metal', quantityKg: 12.5,
+      status: 'pending', createdAt: '2026-10-20T10:30:00Z',
+    });
+    const [url, options] = global.fetch.mock.calls[0];
+    expect(String(url)).toBe('http://partner.test/collection-locations/2/drop-offs');
+    expect(options.method).toBe('POST');
+    expect(options.headers.Authorization).toBe('Bearer test-token');
+    expect(JSON.parse(options.body)).toEqual({
+      material_type: 'metal', quantity_kg: 12.5, source: 'Find My Artisan, plumber job #12', notes: 'Copper offcuts',
+    });
+  });
+
+  it('leaves out blank notes, which their contract does not allow', async () => {
+    bookingIs('completed');
+    global.fetch = partnerAnswers(201, { drop_off_id: 'drop-0002', location_id: '2', status: 'pending' });
+
+    await request(app).post('/partner/drop-offs').send({ ...valid, notes: '   ' });
+
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).not.toHaveProperty('notes');
+  });
+
+  it.each([
+    ['an unknown material', { materialType: 'wood' }],
+    ['a weight of 0', { quantityKg: 0 }],
+    ['a weight sent as text', { quantityKg: '12' }],
+    ['no yard', { locationId: '' }],
+    ['no booking', { bookingId: undefined }],
+  ])('rejects %s without calling the partner', async (_, change) => {
+    global.fetch = jest.fn();
+
+    const res = await request(app).post('/partner/drop-offs').send({ ...valid, ...change });
+
+    expect(res.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 for a job that is not this artisan\'s', async () => {
+    bookingIs(null);
+    global.fetch = jest.fn();
+
+    const res = await request(app).post('/partner/drop-offs').send(valid);
+
+    expect(res.status).toBe(404);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('answers 409 for a job that is not completed yet', async () => {
+    bookingIs('confirmed');
+    global.fetch = jest.fn();
+
+    const res = await request(app).post('/partner/drop-offs').send(valid);
+
+    expect(res.status).toBe(409);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 when the partner says the yard is not active', async () => {
+    bookingIs('completed');
+    global.fetch = partnerAnswers(404, { code: 404, message: 'Collection location 2 not found' });
+
+    const res = await request(app).post('/partner/drop-offs').send(valid);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toMatch(/no longer taking drop-offs/);
+  });
+
+  it("passes on the partner's reason when they refuse the body", async () => {
+    bookingIs('completed');
+    global.fetch = partnerAnswers(400, { code: 400, message: 'source must be 1 to 120 characters' });
+
+    const res = await request(app).post('/partner/drop-offs').send(valid);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/source must be 1 to 120 characters/);
+  });
+
+  it('answers 502 when the partner is down', async () => {
+    bookingIs('completed');
+    global.fetch = connectionRefused();
+
+    const res = await request(app).post('/partner/drop-offs').send(valid);
+
+    expect(res.status).toBe(502);
   });
 });

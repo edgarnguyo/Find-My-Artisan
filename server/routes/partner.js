@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const db = require('../db');
 
 // Website-only: data from our upstream partner, Kanairo-Klean (Team 13). Their
 // contract is openapi.yaml in github.com/berur874/Kanairo-cleaan (v1.1.0).
@@ -8,7 +9,7 @@ const router = express.Router();
 // in the page's JavaScript where anyone can read it. So the page asks this server,
 // and this server adds the token from server/.env.
 
-// The fixed list from their contract (MaterialType). Checked here so a bad filter
+// The fixed list from their contract (MaterialType). Checked here so a bad value
 // gets our own 400 instead of using up a call to the partner.
 const MATERIAL_TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
 
@@ -16,7 +17,63 @@ const MATERIAL_TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
 // instead of an error, so the terminal says which field to look for.
 const MATERIAL_FIELDS = ['material_id', 'name', 'type', 'quantity_kg', 'unit_price_kes'];
 
-const UNAVAILABLE = { error: 'Material prices from Kanairo-Klean are unavailable right now. Try again later.' };
+const UNAVAILABLE = 'Kanairo-Klean is unavailable right now. Try again later.';
+
+// Thrown by callPartner when no usable answer came back: the settings are
+// missing, nothing answered, or the answer wasn't JSON.
+class PartnerUnavailable extends Error {}
+
+/**
+ * Call Kanairo-Klean and return { status, body }. `path` is their path, like
+ * '/materials'. Throws PartnerUnavailable when there is no usable answer, after
+ * logging why. A 4xx or 5xx answer is returned, not thrown: each route decides
+ * what that status means for the page.
+ */
+async function callPartner(path, { method = 'GET', body } = {}) {
+  // Read on every request, not at startup, so the tests can change them.
+  const partnerUrl = process.env.PARTNER_URL;
+  const partnerKey = process.env.PARTNER_API_KEY;
+  if (!partnerUrl || !partnerKey) {
+    console.error('Kanairo-Klean: PARTNER_URL or PARTNER_API_KEY is not set in server/.env');
+    throw new PartnerUnavailable();
+  }
+
+  const url = new URL(path, partnerUrl);
+  const label = `Kanairo-Klean ${method} ${url.pathname}${url.search}`;
+
+  let r;
+  try {
+    r = await fetch(url, {
+      method,
+      headers: {
+        // Their README's header, not the X-API-Key in the lab handout.
+        Authorization: `Bearer ${partnerKey}`,
+        // ngrok's free plan answers a first visit with an HTML warning page
+        // unless this header is sent. Their hosted URL is on ngrok.
+        'ngrok-skip-browser-warning': 'true',
+        ...(body && { 'Content-Type': 'application/json' }),
+      },
+      body: body && JSON.stringify(body),
+    });
+  } catch (err) {
+    // fetch throws when no response came back at all. err.cause.code says why:
+    // ECONNREFUSED = nothing listening at that address (server off, wrong port),
+    // ENOTFOUND = the hostname doesn't exist (misspelt, or the ngrok URL changed).
+    console.error('Kanairo-Klean call failed:', err.cause?.code || err.message);
+    throw new PartnerUnavailable();
+  }
+
+  // Log the status, never the token.
+  if (!r.ok) console.error(`${label} returned ${r.status}`);
+
+  try {
+    return { status: r.status, body: await r.json() };
+  } catch {
+    // ngrok's "endpoint offline" page is HTML, not JSON.
+    console.error(`${label}: the answer was not JSON (status ${r.status})`);
+    throw new PartnerUnavailable();
+  }
+}
 
 // GET /partner/materials?type=metal
 router.get('/materials', async (req, res) => {
@@ -25,38 +82,14 @@ router.get('/materials', async (req, res) => {
     return res.status(400).json({ error: `type must be one of: ${MATERIAL_TYPES.join(', ')}` });
   }
 
-  // Read on every request, not at startup, so the tests can change them.
-  const partnerUrl = process.env.PARTNER_URL;
-  const partnerKey = process.env.PARTNER_API_KEY;
-  if (!partnerUrl || !partnerKey) {
-    console.error('Kanairo-Klean: PARTNER_URL or PARTNER_API_KEY is not set in server/.env');
-    return res.status(502).json(UNAVAILABLE);
-  }
-
-  const url = new URL('/materials', partnerUrl);
-  if (type) url.searchParams.set('type', type);
-
   try {
-    const r = await fetch(url, {
-      headers: {
-        // Their README's header, not the X-API-Key in the lab handout.
-        Authorization: `Bearer ${partnerKey}`,
-        // ngrok's free plan answers a first visit with an HTML warning page
-        // unless this header is sent. Their hosted URL is on ngrok.
-        'ngrok-skip-browser-warning': 'true',
-      },
-    });
-
-    if (!r.ok) {
-      // Log the status, never the token.
-      console.error(`Kanairo-Klean GET ${url.pathname}${url.search} returned ${r.status}`);
-      return res.status(502).json(UNAVAILABLE);
-    }
-
-    const materials = await r.json();
+    const { status, body: materials } = await callPartner(
+      type ? `/materials?type=${encodeURIComponent(type)}` : '/materials'
+    );
+    if (status !== 200) return res.status(502).json({ error: UNAVAILABLE });
     if (!Array.isArray(materials)) {
       console.error('Kanairo-Klean GET /materials: expected an array, got', typeof materials);
-      return res.status(502).json(UNAVAILABLE);
+      return res.status(502).json({ error: UNAVAILABLE });
     }
 
     const missing = MATERIAL_FIELDS.filter(field => materials.some(m => m[field] === undefined));
@@ -75,11 +108,106 @@ router.get('/materials', async (req, res) => {
       }))
     );
   } catch (err) {
-    // fetch throws when no response came back at all. err.cause.code says why:
-    // ECONNREFUSED = nothing listening at that address (server off, wrong port),
-    // ENOTFOUND = the hostname doesn't exist (misspelt, or the ngrok URL changed).
-    console.error('Kanairo-Klean call failed:', err.cause?.code || err.message);
-    res.status(502).json(UNAVAILABLE);
+    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    res.status(502).json({ error: UNAVAILABLE });
+  }
+});
+
+// GET /partner/collection-locations: the yards that take scrap drop-offs.
+// Kanairo lists only active ones, so is_active is left out.
+router.get('/collection-locations', async (req, res) => {
+  try {
+    const { status, body: locations } = await callPartner('/collection-locations');
+    if (status !== 200 || !Array.isArray(locations)) {
+      return res.status(502).json({ error: UNAVAILABLE });
+    }
+    res.json(
+      locations.map(l => ({ id: l.location_id, name: l.name, area: l.area, county: l.county }))
+    );
+  } catch (err) {
+    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    res.status(502).json({ error: UNAVAILABLE });
+  }
+});
+
+// POST /partner/drop-offs: an artisan reports scrap left over from a completed job.
+// Body: { artisanId, bookingId, locationId, materialType, quantityKg, notes? }
+// Sent on to Kanairo's POST /collection-locations/{location_id}/drop-offs.
+router.post('/drop-offs', async (req, res) => {
+  const { artisanId, bookingId, locationId, materialType, quantityKg, notes } = req.body ?? {};
+
+  // Validate first, so a mistake costs no call to Kanairo. The limits are theirs.
+  if (!artisanId || !bookingId) {
+    return res.status(400).json({ error: 'artisanId and bookingId are required' });
+  }
+  if (typeof locationId !== 'string' || !locationId) {
+    return res.status(400).json({ error: 'Choose a collection yard' });
+  }
+  if (!MATERIAL_TYPES.includes(materialType)) {
+    return res.status(400).json({ error: `materialType must be one of: ${MATERIAL_TYPES.join(', ')}` });
+  }
+  if (typeof quantityKg !== 'number' || !(quantityKg > 0)) {
+    return res.status(400).json({ error: 'quantityKg must be a number above 0' });
+  }
+  if (notes !== undefined && (typeof notes !== 'string' || notes.length > 500)) {
+    return res.status(400).json({ error: 'notes must be text of at most 500 characters' });
+  }
+
+  try {
+    // Only the artisan who did the job, and only once it's completed: the scrap
+    // has to come from a real finished job on our site.
+    const [[booking]] = await db.query(
+      `SELECT bookings.status, artisans.skill
+       FROM bookings JOIN artisans ON artisans.id = bookings.artisan_id
+       WHERE bookings.id = ? AND bookings.artisan_id = ?`,
+      [bookingId, artisanId]
+    );
+    if (!booking) return res.status(404).json({ error: 'No job of yours has that id' });
+    if (booking.status !== 'completed') {
+      return res.status(409).json({ error: 'Scrap can only be reported for a completed job' });
+    }
+
+    // Kanairo's free-text "who is dropping this off", at most 120 characters.
+    const source = `Find My Artisan, ${booking.skill.toLowerCase()} job #${bookingId}`.slice(0, 120);
+    // Their notes must be at least 1 character when sent, so a blank isn't sent.
+    const trimmedNotes = notes?.trim();
+
+    const { status, body } = await callPartner(
+      `/collection-locations/${encodeURIComponent(locationId)}/drop-offs`,
+      {
+        method: 'POST',
+        body: {
+          material_type: materialType,
+          quantity_kg: quantityKg,
+          source,
+          ...(trimmedNotes && { notes: trimmedNotes }),
+        },
+      }
+    );
+
+    if (status === 201) {
+      return res.status(201).json({
+        id: body.drop_off_id,
+        locationId: body.location_id,
+        materialType: body.material_type,
+        quantityKg: body.quantity_kg,
+        status: body.status,
+        createdAt: body.created_at,
+      });
+    }
+    // Their 404: the yard closed after the form loaded its list.
+    if (status === 404) {
+      return res.status(404).json({ error: 'That collection yard is no longer taking drop-offs. Pick another.' });
+    }
+    // Their 400 after our own checks passed means the two sides read the
+    // contract differently. Show their reason; it belongs in the integration log.
+    if (status === 400) {
+      return res.status(400).json({ error: `Kanairo-Klean refused it: ${body?.message ?? 'invalid drop-off'}` });
+    }
+    res.status(502).json({ error: UNAVAILABLE });
+  } catch (err) {
+    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    res.status(502).json({ error: UNAVAILABLE });
   }
 });
 
