@@ -29,3 +29,9 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      # Kanairo-Klean (Team 13), our upstream partner: their base URL and the
+      # token they sent us. Typed into Render's dashboard, like the database values.
+      - key: PARTNER_URL
+        sync: false
+      - key: PARTNER_API_KEY
+        sync: false
