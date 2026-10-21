@@ -16,6 +16,11 @@ and supporting our downstream partner, **Meditrac (Team 2)**.
   `material_type`, `quantity_kg`, and `source` = "Find My Artisan, <trade> job #<id>",
   plus optional `notes`. Our server first checks that the job is the artisan's
   own and is completed.
+- **Each report is also saved on our side** (`scrap_drop_offs`), with Kanairo's
+  `drop_off_id`. The dashboard lists past reports, and a material can be sent
+  once per job. The row is reserved *before* the call to Kanairo, so a double
+  click or a second tab can't send them the same scrap twice. If Kanairo doesn't
+  accept it, the row is removed so the artisan can try again.
 - Route: the page calls our `GET /partner/materials?type=`. Our server calls
   Kanairo's `GET /materials` with `Authorization: Bearer <token>`. The token comes
   from `server/.env` (`PARTNER_API_KEY`) and never reaches the browser.
@@ -82,6 +87,7 @@ One row per bug or surprise. Every row is something that actually happened.
 | Unknown type (`/partner/materials?type=wood`) | Our server answers `400`, listing the five types, and does not call Kanairo (automated test) |
 | Wrong token | _TODO: run against their server; expect their 401, our page shows the unavailable message, terminal logs `returned 401`_ |
 | Drop-off (stand-in) | A test artisan with a completed job reported 12.5 kg of metal at Gikomba. The page showed "Reported to Kanairo-Klean: 12.5 kg metal at Gikomba (pending)", and the stand-in logged `drop-0001` with source "Find My Artisan, plumber job #114". _TODO: repeat against their real server and confirm with them that it arrived._ |
+| Same material twice for one job (stand-in) | After a full page reload, the dashboard still listed "12.5 kg metal at Gikomba (pending)", and the form no longer offered metal. Sending metal again straight to our route gave `409` "You already reported metal for this job". The stand-in received only one drop-off. |
 | Drop-off form with partner stopped | The yard list could not load. The form showed "Kanairo-Klean is unavailable right now." with Try again and Back |
 | Field-shape check | _TODO: our server logs any required Material field that's missing; note whether their real response triggered it_ |
 

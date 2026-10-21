@@ -292,7 +292,8 @@ router.patch('/:id/password', changePasswordRoute('artisan'));
 // DELETE /profiles/5  with { password }
 // Refused while the artisan has requests or accepted jobs open, so no client's
 // booking disappears without an answer. Otherwise the artisan and everything
-// attached to them (past bookings, reviews, portfolio, busy times) is removed.
+// attached to them (past bookings, reviews, portfolio, busy times, scrap
+// reports) is removed.
 router.delete('/:id', async (req, res) => {
   const id = req.params.id;
   try {
@@ -313,7 +314,7 @@ router.delete('/:id', async (req, res) => {
     // won't delete a row something else still points at.
     await inTransaction(async conn => {
       for (const table of ['availability_blocks', 'reviews', 'portfolio_items',
-        'languages', 'work_history', 'verifications', 'bookings']) {
+        'languages', 'work_history', 'verifications', 'scrap_drop_offs', 'bookings']) {
         await conn.query(`DELETE FROM ${table} WHERE artisan_id = ?`, [id]);
       }
       await conn.query('DELETE FROM artisans WHERE id = ?', [id]);

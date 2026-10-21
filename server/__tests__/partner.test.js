@@ -127,13 +127,25 @@ describe('GET /partner/collection-locations', () => {
 describe('POST /partner/drop-offs', () => {
   const valid = { artisanId: 3, bookingId: 12, locationId: '2', materialType: 'metal', quantityKg: 12.5 };
 
-  // The booking lookup answers as if booking 12 is artisan 3's, with this status.
-  function bookingIs(status) {
-    jest.spyOn(db, 'query').mockResolvedValue([status ? [{ status, skill: 'Plumber' }] : []]);
+  // A fake database: the booking lookup answers as if booking 12 is artisan 3's,
+  // with this status. The reserving INSERT gets row id 7, or fails as a duplicate.
+  // Returns the mock, so a test can check which statements ran.
+  function bookingIs(status, { duplicate = false } = {}) {
+    return jest.spyOn(db, 'query').mockImplementation(async sql => {
+      if (sql.trim().startsWith('SELECT')) return [status ? [{ status, skill: 'Plumber' }] : []];
+      if (sql.trim().startsWith('INSERT')) {
+        if (duplicate) throw Object.assign(new Error('Duplicate entry'), { code: 'ER_DUP_ENTRY' });
+        return [{ insertId: 7 }];
+      }
+      return [{ affectedRows: 1 }];
+    });
   }
 
+  // The statements the route ran, by their first word: ['SELECT', 'INSERT', ...].
+  const statements = query => query.mock.calls.map(([sql]) => sql.trim().split(/\s/)[0]);
+
   it('sends the contract body to the right yard and returns the drop-off', async () => {
-    bookingIs('completed');
+    const query = bookingIs('completed');
     global.fetch = partnerAnswers(201, {
       drop_off_id: 'drop-0001', location_id: '2', material_type: 'metal', quantity_kg: 12.5,
       source: 'Find My Artisan, plumber job #12', notes: 'Copper offcuts',
@@ -154,6 +166,20 @@ describe('POST /partner/drop-offs', () => {
     expect(JSON.parse(options.body)).toEqual({
       material_type: 'metal', quantity_kg: 12.5, source: 'Find My Artisan, plumber job #12', notes: 'Copper offcuts',
     });
+    // Reserved before the call, then filled in with Kanairo's id and status.
+    expect(statements(query)).toEqual(['SELECT', 'INSERT', 'UPDATE']);
+    expect(query.mock.calls[2][1]).toEqual(['drop-0001', 'pending', 7]);
+  });
+
+  it('refuses a material already reported for the job, without calling the partner', async () => {
+    bookingIs('completed', { duplicate: true });
+    global.fetch = jest.fn();
+
+    const res = await request(app).post('/partner/drop-offs').send(valid);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/already reported metal/);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('leaves out blank notes, which their contract does not allow', async () => {
@@ -169,6 +195,7 @@ describe('POST /partner/drop-offs', () => {
     ['an unknown material', { materialType: 'wood' }],
     ['a weight of 0', { quantityKg: 0 }],
     ['a weight sent as text', { quantityKg: '12' }],
+    ['a weight too big for the column', { quantityKg: 1e6 }],
     ['no yard', { locationId: '' }],
     ['no booking', { bookingId: undefined }],
   ])('rejects %s without calling the partner', async (_, change) => {
@@ -220,12 +247,23 @@ describe('POST /partner/drop-offs', () => {
     expect(res.body.error).toMatch(/source must be 1 to 120 characters/);
   });
 
-  it('answers 502 when the partner is down', async () => {
-    bookingIs('completed');
+  it('answers 502 when the partner is down, and frees the reserved row', async () => {
+    const query = bookingIs('completed');
     global.fetch = connectionRefused();
 
     const res = await request(app).post('/partner/drop-offs').send(valid);
 
     expect(res.status).toBe(502);
+    expect(statements(query)).toEqual(['SELECT', 'INSERT', 'DELETE']);
+    expect(query.mock.calls[2][1]).toEqual([7]);
+  });
+
+  it('frees the reserved row when the partner refuses it, so it can be sent again', async () => {
+    const query = bookingIs('completed');
+    global.fetch = partnerAnswers(404, { code: 404, message: 'Collection location 2 not found' });
+
+    await request(app).post('/partner/drop-offs').send(valid);
+
+    expect(statements(query)).toEqual(['SELECT', 'INSERT', 'DELETE']);
   });
 });
