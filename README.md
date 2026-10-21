@@ -381,7 +381,9 @@ is website-only and not part of our contract.
 Artisans can also report scrap left over from a completed job, from the
 **Completed** tab of their dashboard ("Report Leftover Scrap"). Our server checks
 the job is theirs and finished, then sends it to one of Kanairo's collection
-yards (`GET /partner/collection-locations`, `POST /partner/drop-offs`).
+yards (`GET /partner/collection-locations`, `POST /partner/drop-offs`). A copy
+of each report is kept in the `scrap_drop_offs` table, so the dashboard lists
+what was already sent, and each material can be reported once per job.
 
 Both need two values in `server/.env` (placeholders are in `.env.example`):
 
