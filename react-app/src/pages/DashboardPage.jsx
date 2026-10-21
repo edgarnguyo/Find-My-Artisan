@@ -171,7 +171,12 @@ export default function DashboardPage() {
                 )}
 
                 {booking.status === 'completed' && (
-                  <ScrapDropOffForm artisanId={user.id} bookingId={booking.id} />
+                  <ScrapDropOffForm
+                    artisanId={user.id}
+                    bookingId={booking.id}
+                    reports={booking.scrapDropOffs}
+                    onReported={() => setReloadKey(k => k + 1)}
+                  />
                 )}
 
                 {accepting?.id === booking.id && (

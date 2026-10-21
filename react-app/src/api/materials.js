@@ -17,7 +17,8 @@ export function fetchCollectionLocations() {
 
 /**
  * Report scrap left over from a completed job, at one of Kanairo-Klean's yards.
- * details: { artisanId, bookingId, locationId, materialType, quantityKg, notes? }.
+ * details: { artisanId, bookingId, locationId, locationName, materialType, quantityKg, notes? }.
+ * A 409 means this material was already reported for the job.
  * Returns their record: { id, locationId, materialType, quantityKg, status, createdAt }.
  */
 export function reportDropOff(details) {
