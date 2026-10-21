@@ -378,7 +378,12 @@ asks our server (`GET /partner/materials`, optional `?type=`), and our server
 calls Kanairo with the token, so the token never reaches the browser. This route
 is website-only and not part of our contract.
 
-It needs two values in `server/.env` (placeholders are in `.env.example`):
+Artisans can also report scrap left over from a completed job, from the
+**Completed** tab of their dashboard ("Report Leftover Scrap"). Our server checks
+the job is theirs and finished, then sends it to one of Kanairo's collection
+yards (`GET /partner/collection-locations`, `POST /partner/drop-offs`).
+
+Both need two values in `server/.env` (placeholders are in `.env.example`):
 
 - `PARTNER_URL`: Kanairo-Klean's base URL
 - `PARTNER_API_KEY`: the token they sent us privately (never commit it)
