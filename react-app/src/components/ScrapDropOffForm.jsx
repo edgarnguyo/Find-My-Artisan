@@ -6,44 +6,54 @@ import { useAsync } from '../hooks/useAsync';
 const TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
 
 /**
- * On a completed job: report the scrap left over to Kanairo-Klean, so one of
- * their yards can reuse it. Opens from a button, so the yards are only fetched
- * when an artisan actually wants to report something.
+ * On a completed job: the scrap already reported to Kanairo-Klean, and a form to
+ * report more, so one of their yards can reuse it. Each material can be reported
+ * once per job, so only the ones not yet sent are offered. The form opens from a
+ * button, so the yards are only fetched when an artisan wants to report something.
+ * onReported runs after Kanairo accepts one; the dashboard then reloads the jobs,
+ * and the new report comes back from our database in `reports`.
  */
-export default function ScrapDropOffForm({ artisanId, bookingId }) {
+export default function ScrapDropOffForm({ artisanId, bookingId, reports, onReported }) {
   const [open, setOpen] = useState(false);
-  // What Kanairo sent back once the drop-off was recorded.
-  const [reported, setReported] = useState(null);
+  const reported = new Set(reports.map(r => r.materialType));
+  const remaining = TYPES.filter(t => !reported.has(t));
 
-  if (reported) {
-    return (
-      <p className="saved-note">
-        Reported to Kanairo-Klean: {reported.quantityKg} kg {reported.materialType} at{' '}
-        {reported.locationName} ({reported.status}).
-      </p>
-    );
-  }
-  if (!open) {
-    return (
-      <button type="button" className="link-button scrap-open" onClick={() => setOpen(true)}>
-        Report Leftover Scrap
-      </button>
-    );
-  }
   return (
-    <DropOffFields
-      artisanId={artisanId}
-      bookingId={bookingId}
-      onCancel={() => setOpen(false)}
-      onReported={setReported}
-    />
+    <>
+      {reports.length > 0 && (
+        <ul className="scrap-reports">
+          {reports.map(r => (
+            <li key={r.id}>
+              Scrap reported to Kanairo-Klean: {r.quantityKg} kg {r.materialType} at {r.locationName}{' '}
+              ({r.status === 'sending' ? 'not confirmed by Kanairo' : r.status})
+            </li>
+          ))}
+        </ul>
+      )}
+      {remaining.length > 0 && (open ? (
+        <DropOffFields
+          artisanId={artisanId}
+          bookingId={bookingId}
+          materials={remaining}
+          onCancel={() => setOpen(false)}
+          onReported={() => {
+            setOpen(false);
+            onReported();
+          }}
+        />
+      ) : (
+        <button type="button" className="link-button scrap-open" onClick={() => setOpen(true)}>
+          {reports.length > 0 ? 'Report More Scrap' : 'Report Leftover Scrap'}
+        </button>
+      ))}
+    </>
   );
 }
 
-function DropOffFields({ artisanId, bookingId, onCancel, onReported }) {
+function DropOffFields({ artisanId, bookingId, materials, onCancel, onReported }) {
   const [attempt, setAttempt] = useState(0);
   const { data: locations, error: loadError, loading } = useAsync(fetchCollectionLocations, [attempt]);
-  const [form, setForm] = useState({ locationId: '', materialType: 'metal', quantityKg: '', notes: '' });
+  const [form, setForm] = useState({ locationId: '', materialType: materials[0], quantityKg: '', notes: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -54,16 +64,17 @@ function DropOffFields({ artisanId, bookingId, onCancel, onReported }) {
     setError('');
     setSaving(true);
     try {
-      const dropOff = await reportDropOff({
+      await reportDropOff({
         artisanId,
         bookingId,
         locationId: form.locationId,
+        // Saved with the report, so the dashboard can name the yard later.
+        locationName: locations.find(l => l.id === form.locationId)?.name,
         materialType: form.materialType,
         quantityKg: Number(form.quantityKg),
         notes: form.notes.trim() || undefined,
       });
-      const location = locations.find(l => l.id === dropOff.locationId);
-      onReported({ ...dropOff, locationName: location?.name ?? `yard ${dropOff.locationId}` });
+      onReported();
     } catch (err) {
       setError(err.message);
       setSaving(false);
@@ -100,7 +111,7 @@ function DropOffFields({ artisanId, bookingId, onCancel, onReported }) {
         <label htmlFor={id('type')}>
           Material
           <select id={id('type')} className="scrap-material" value={form.materialType} onChange={set('materialType')}>
-            {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {materials.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
         <label htmlFor={id('kg')}>

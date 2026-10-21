@@ -50,9 +50,23 @@ router.get('/', async (req, res) => {
        ORDER BY bookings.id DESC`,
       [clientId || artisanId]
     );
+    // For an artisan, also the scrap they reported to Kanairo-Klean from each
+    // job, so the dashboard shows it and offers only materials not yet sent.
+    const scrapByBooking = {};
+    if (artisanId) {
+      const [scrap] = await db.query(
+        `SELECT id, booking_id, kanairo_drop_off_id, location_id, location_name,
+                material_type, quantity_kg, status, created_at
+         FROM scrap_drop_offs WHERE artisan_id = ? ORDER BY id`,
+        [artisanId]
+      );
+      for (const s of scrap) (scrapByBooking[s.booking_id] ??= []).push(s);
+    }
+
     res.json(rows.map(row => ({
       ...row,
       block_end: row.block_end && fromDbTime(row.block_end),
+      ...(artisanId && { scrap_drop_offs: scrapByBooking[row.id] ?? [] }),
     })));
   } catch (err) {
     console.error(err);

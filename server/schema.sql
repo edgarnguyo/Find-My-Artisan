@@ -365,3 +365,32 @@ CREATE TABLE IF NOT EXISTS portfolio_items (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (artisan_id) REFERENCES artisans(id)
 );
+
+-- ---------------------------------------------------------------------------
+-- Week 10: scrap an artisan reported to Kanairo-Klean (Team 13) from a
+-- completed job. Kanairo keeps the real record; this copy lets the dashboard
+-- show what was already reported, so the same scrap isn't sent twice.
+-- UNIQUE (booking_id, material_type): one report per material per job, so a
+-- job can still send metal and plastic, but not metal twice.
+-- The row is written as 'sending' before the call to Kanairo and filled in
+-- with their drop_off_id and status once they accept it (see routes/partner.js).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS scrap_drop_offs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  booking_id INT NOT NULL,
+  artisan_id INT NOT NULL,
+  -- Kanairo's id for it, e.g. 'drop-0001'. NULL while 'sending'.
+  kanairo_drop_off_id VARCHAR(50),
+  location_id VARCHAR(50) NOT NULL,
+  -- The yard's name when it was reported, to show without asking Kanairo again.
+  location_name VARCHAR(100),
+  material_type VARCHAR(20) NOT NULL,
+  quantity_kg DECIMAL(8, 2) NOT NULL,
+  notes VARCHAR(500),
+  -- 'sending', then Kanairo's status when they accepted it ('pending').
+  status VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY one_report_per_material (booking_id, material_type),
+  FOREIGN KEY (booking_id) REFERENCES bookings(id),
+  FOREIGN KEY (artisan_id) REFERENCES artisans(id)
+);

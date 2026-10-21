@@ -97,6 +97,16 @@ function toBooking(row) {
     // The client's review of the job, once they've left one.
     review: row.review_rating === null ? null : { rating: row.review_rating, comment: row.review_comment },
     createdAt: row.created_at,
+    // Scrap the artisan reported to Kanairo-Klean from this job (artisan view only).
+    scrapDropOffs: (row.scrap_drop_offs ?? []).map(d => ({
+      id: d.id,
+      kanairoId: d.kanairo_drop_off_id,
+      locationName: d.location_name ?? `yard ${d.location_id}`,
+      materialType: d.material_type,
+      // DECIMAL arrives from MySQL as text ("12.50").
+      quantityKg: Number(d.quantity_kg),
+      status: d.status,
+    })),
     worker: {
       id: row.artisan_id,
       name: row.artisan_name,
