@@ -2240,3 +2240,49 @@ a.submit-btn {
     font-size: 0.9rem;
   }
 }
+
+/* Completed jobs: report leftover scrap to Kanairo-Klean. */
+.scrap-open {
+  margin-top: var(--spacing-sm);
+  font-size: 0.875rem;
+}
+
+.scrap-form {
+  margin-top: var(--spacing-sm);
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.scrap-note {
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.scrap-form .scrap-note {
+  margin-top: 0;
+}
+
+.scrap-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.scrap-form label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  text-transform: none;
+}
+
+/* "metal", "e-waste" read as Metal, E-Waste. Only the material list. */
+.scrap-form select.scrap-material {
+  text-transform: capitalize;
+}
+
+.scrap-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}

@@ -8,6 +8,14 @@ and supporting our downstream partner, **Meditrac (Team 2)**.
 - Feature: the website's **Materials** page (`/materials`). It lists scrap
   materials in stock at Kanairo-Klean, with prices per kg and a type filter.
   It meets API_NEEDS #2 (material costs) and #3 (filtered access to materials).
+- Second feature: **Report Leftover Scrap** on each completed job in the artisan
+  dashboard. It meets API_NEEDS #4. The form lists Kanairo's yards (our
+  `GET /partner/collection-locations` → their `GET /collection-locations`), then
+  sends the drop-off (our `POST /partner/drop-offs` → their
+  `POST /collection-locations/{location_id}/drop-offs`). The body is
+  `material_type`, `quantity_kg`, and `source` = "Find My Artisan, <trade> job #<id>",
+  plus optional `notes`. Our server first checks that the job is the artisan's
+  own and is completed.
 - Route: the page calls our `GET /partner/materials?type=`. Our server calls
   Kanairo's `GET /materials` with `Authorization: Bearer <token>`. The token comes
   from `server/.env` (`PARTNER_API_KEY`) and never reaches the browser.
@@ -69,10 +77,12 @@ One row per bug or surprise. Every row is something that actually happened.
 
 | Test | What happened |
 |---|---|
-| Partner stopped (stand-in off) | Page: "Material prices from Kanairo-Klean are unavailable right now." Our server stayed up and still answered `/docs` (200). Terminal: `Kanairo-Klean call failed: ECONNREFUSED`. _TODO: repeat with their real server stopped._ |
+| Partner stopped (stand-in off) | Page: "Material prices from Kanairo-Klean are unavailable right now." (now worded "Kanairo-Klean is unavailable right now. Try again later.", shared by all three routes) Our server stayed up and still answered `/docs` (200). Terminal: `Kanairo-Klean call failed: ECONNREFUSED`. _TODO: repeat with their real server stopped._ |
 | Partner restarted | "Try again" (or a reload) showed the materials again, with no code change. _TODO: repeat with their real server._ |
 | Unknown type (`/partner/materials?type=wood`) | Our server answers `400`, listing the five types, and does not call Kanairo (automated test) |
 | Wrong token | _TODO: run against their server; expect their 401, our page shows the unavailable message, terminal logs `returned 401`_ |
+| Drop-off (stand-in) | A test artisan with a completed job reported 12.5 kg of metal at Gikomba. The page showed "Reported to Kanairo-Klean: 12.5 kg metal at Gikomba (pending)", and the stand-in logged `drop-0001` with source "Find My Artisan, plumber job #114". _TODO: repeat against their real server and confirm with them that it arrived._ |
+| Drop-off form with partner stopped | The yard list could not load. The form showed "Kanairo-Klean is unavailable right now." with Try again and Back |
 | Field-shape check | _TODO: our server logs any required Material field that's missing; note whether their real response triggered it_ |
 
 `server/__tests__/partner.test.js` covers the same cases with a fake partner:
@@ -83,6 +93,13 @@ One row per bug or surprise. Every row is something that actually happened.
 - partner 401 → 502
 - missing settings → 502
 - the token is never written to the log
+- yards are mapped to our shape
+- a drop-off sends their exact body to the right yard
+- blank notes are left out (their contract needs at least 1 character)
+- a bad material, weight or yard → 400, with no call to Kanairo
+- someone else's job → 404; a job not yet completed → 409
+- their 404 (yard inactive) and 400 (their reason) are passed on
+- partner down → 502
 
 ## Part E — Supporting Meditrac (downstream)
 
