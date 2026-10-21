@@ -5,6 +5,7 @@ import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
 import BusyTimes from '../components/BusyTimes';
+import ScrapDropOffForm from '../components/ScrapDropOffForm';
 import { kenyaClock } from '../lib/kenyaTime';
 import { formatKes, capitalize } from '../lib/format';
 
@@ -167,6 +168,10 @@ export default function DashboardPage() {
                 </p>
                 {booking.budget && (
                   <p className="booking-row-budget">Budget: {formatKes(booking.budget)}</p>
+                )}
+
+                {booking.status === 'completed' && (
+                  <ScrapDropOffForm artisanId={user.id} bookingId={booking.id} />
                 )}
 
                 {accepting?.id === booking.id && (
