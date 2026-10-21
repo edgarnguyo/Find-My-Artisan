@@ -2286,3 +2286,12 @@ a.submit-btn {
   align-items: center;
   gap: var(--spacing-md);
 }
+
+/* Scrap already reported from a completed job. */
+.scrap-reports {
+  list-style: none;
+  margin-top: var(--spacing-sm);
+  color: var(--color-verified);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
