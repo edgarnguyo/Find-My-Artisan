@@ -139,7 +139,7 @@ async function artisanExists(id) {
 }
 
 // POST /artisans/1/availability   body: { "start": "...", "end": "..." }
-router.post('/:id/availability', async (req, res) => {
+async function createBlock(req, res) {
   const artisanId = req.params.id;
   const { start, end } = req.body ?? {};
 
@@ -174,7 +174,8 @@ router.post('/:id/availability', async (req, res) => {
     console.error(err);
     sendError(res, 500, 'server_error', 'Failed to create availability block.');
   }
-});
+}
+router.post('/:id/availability', createBlock);
 
 // Finds a block that belongs to this artisan, or null.
 async function findBlock(artisanId, blockId) {
@@ -228,7 +229,7 @@ router.patch('/:id/availability/:blockId', async (req, res) => {
 });
 
 // DELETE /artisans/1/availability/7
-router.delete('/:id/availability/:blockId', async (req, res) => {
+async function deleteBlock(req, res) {
   const { id: artisanId, blockId } = req.params;
 
   try {
@@ -243,7 +244,8 @@ router.delete('/:id/availability/:blockId', async (req, res) => {
     console.error(err);
     sendError(res, 500, 'server_error', 'Failed to delete availability block.');
   }
-});
+}
+router.delete('/:id/availability/:blockId', deleteBlock);
 
 // ---------------------------------------------------------------------------
 // Reviews: Meditrac rates an artisan after a job, and can fix or remove its own reviews.
@@ -373,3 +375,6 @@ router.delete('/:id/reviews/:reviewId', async (req, res) => {
 });
 
 module.exports = router;
+// The website's /profiles/:id/availability routes reuse these without an API key.
+module.exports.createBlock = createBlock;
+module.exports.deleteBlock = deleteBlock;

@@ -35,3 +35,7 @@ services:
         sync: false
       - key: PARTNER_API_KEY
         sync: false
+      # Who may call our partner API, as name:key pairs (see server/.env.example).
+      # Without it every /artisans request gets 401; the website still works.
+      - key: API_KEYS
+        sync: false
