@@ -176,6 +176,7 @@ export default function DashboardPage() {
                   <ScrapDropOffForm
                     artisanId={user.id}
                     bookingId={booking.id}
+                    county={booking.worker.county}
                     reports={booking.scrapDropOffs}
                     onReported={() => setReloadKey(k => k + 1)}
                   />

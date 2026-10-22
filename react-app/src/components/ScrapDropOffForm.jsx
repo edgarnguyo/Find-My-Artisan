@@ -12,8 +12,9 @@ const TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
  * button, so the yards are only fetched when an artisan wants to report something.
  * onReported runs after Kanairo accepts one; the dashboard then reloads the jobs,
  * and the new report comes back from our database in `reports`.
+ * county is the artisan's own county: yards there are listed first.
  */
-export default function ScrapDropOffForm({ artisanId, bookingId, reports, onReported }) {
+export default function ScrapDropOffForm({ artisanId, bookingId, county, reports, onReported }) {
   const [open, setOpen] = useState(false);
   const reported = new Set(reports.map(r => r.materialType));
   const remaining = TYPES.filter(t => !reported.has(t));
@@ -34,6 +35,7 @@ export default function ScrapDropOffForm({ artisanId, bookingId, reports, onRepo
         <DropOffFields
           artisanId={artisanId}
           bookingId={bookingId}
+          county={county}
           materials={remaining}
           onCancel={() => setOpen(false)}
           onReported={() => {
@@ -50,7 +52,15 @@ export default function ScrapDropOffForm({ artisanId, bookingId, reports, onRepo
   );
 }
 
-function DropOffFields({ artisanId, bookingId, materials, onCancel, onReported }) {
+/** Split Kanairo's yards into the ones in this county and the rest, each kept in Kanairo's order. */
+function splitByCounty(locations, county) {
+  const isHere = l => county && l.county.toLowerCase() === county.toLowerCase();
+  return { here: locations.filter(isHere), elsewhere: locations.filter(l => !isHere(l)) };
+}
+
+const yardOption = l => <option key={l.id} value={l.id}>{l.name}, {l.county}</option>;
+
+function DropOffFields({ artisanId, bookingId, county, materials, onCancel, onReported }) {
   const [attempt, setAttempt] = useState(0);
   const { data: locations, error: loadError, loading } = useAsync(fetchCollectionLocations, [attempt]);
   const [form, setForm] = useState({ locationId: '', materialType: materials[0], quantityKg: '', notes: '' });
@@ -95,6 +105,7 @@ function DropOffFields({ artisanId, bookingId, materials, onCancel, onReported }
   }
 
   const id = field => `${field}-${bookingId}`;
+  const { here, elsewhere } = splitByCounty(locations, county);
   return (
     <form className="scrap-form" onSubmit={handleSubmit}>
       <p className="scrap-note">Leftover scrap goes to a Kanairo-Klean yard for reuse.</p>
@@ -103,9 +114,16 @@ function DropOffFields({ artisanId, bookingId, materials, onCancel, onReported }
           Yard
           <select id={id('yard')} value={form.locationId} onChange={set('locationId')} required>
             <option value="" disabled>Choose a yard</option>
-            {locations.map(l => (
-              <option key={l.id} value={l.id}>{l.name}, {l.county}</option>
-            ))}
+            {here.length > 0 ? (
+              <>
+                <optgroup label={`In ${county}`}>{here.map(yardOption)}</optgroup>
+                {elsewhere.length > 0 && (
+                  <optgroup label="Other counties">{elsewhere.map(yardOption)}</optgroup>
+                )}
+              </>
+            ) : (
+              elsewhere.map(yardOption)
+            )}
           </select>
         </label>
         <label htmlFor={id('type')}>
