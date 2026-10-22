@@ -52,6 +52,14 @@ function createApiKeyCheck({ keys = '', perMinute = 60, log = console.log } = {}
 
   if (consumers.length === 0) {
     log(`[api] API_KEYS is not set, so every /artisans request will get 401.`);
+  } else {
+    // Names and key lengths only, so a mistyped value can be spotted in the
+    // log (a quote, a missing character) without the key ever being printed.
+    const loaded = consumers.map(c => {
+      const quoted = /^["']|["']$/.test(c.name) || /^["']|["']$/.test(c.key);
+      return `${c.name} (${c.key.length} characters${quoted ? ', has a quote mark' : ''})`;
+    });
+    log(`[api] API keys loaded for: ${loaded.join(', ')}`);
   }
 
   return function requireApiKey(req, res, next) {
