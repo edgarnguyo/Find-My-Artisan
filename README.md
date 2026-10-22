@@ -2,7 +2,7 @@
 
 Find My Artisan lists skilled tradespeople in Kenya: electricians, plumbers,
 carpenters and painters. This API gives other systems read access to those
-artisans (who they are, where they work, whether their certificate is verified,
+artisans (who they are, where they work, whether they have earned the verified badge,
 and when they are already booked), and lets a caller leave a review after a job.
 It was built for Meditrac, a pharmacy team that uses it to find and vet artisans
 for maintenance work, but anyone can call it.
@@ -24,7 +24,7 @@ curl https://find-my-artisan.onrender.com/artisans/1
 You get back one artisan:
 
 ```json
-{"id":1,"name":"Wanjiru Kamau","trade":"electrical","area":"Westlands","county":"Nairobi","verified":true,"busy":[],"phone":"+254712000001","hourlyRateKes":900,"verification":{"issuingBody":"National Industrial Training Authority","certificateId":"NITA-EL-2024-00001","expiresOn":"2027-03-01"}}
+{"id":1,"name":"Wanjiru Kamau","trade":"electrical","area":"Westlands","county":"Nairobi","verified":true,"busy":[],"phone":"+254712000001","hourlyRateKes":900}
 ```
 
 Two things that can catch you out:
@@ -53,7 +53,7 @@ to send and where to get it.
 | Method | Path | What it does |
 |---|---|---|
 | `GET` | `/artisans` | List artisans, optionally filtered by `trade` and `county` |
-| `GET` | `/artisans/{id}` | One artisan's full profile, including phone and certificate |
+| `GET` | `/artisans/{id}` | One artisan's full profile, including phone and hourly rate |
 | `POST` | `/artisans/{id}/reviews` | Leave a review of an artisan |
 | `PATCH` | `/artisans/{id}/reviews/{reviewId}` | Change a review you posted |
 | `DELETE` | `/artisans/{id}/reviews/{reviewId}` | Remove a review you posted |
@@ -85,7 +85,7 @@ curl "https://find-my-artisan.onrender.com/artisans?trade=plumbing&county=Nairob
 `200 OK`
 
 ```json
-[{"id":3,"name":"Achieng Nyambura","trade":"plumbing","area":"Embakasi","county":"Nairobi","verified":true,"busy":[]},{"id":4,"name":"Kevin Mwangi","trade":"plumbing","area":"Ngong Road","county":"Nairobi","verified":false,"busy":[]}]
+[{"id":3,"name":"Achieng Nyambura","trade":"plumbing","area":"Embakasi","county":"Nairobi","verified":false,"busy":[]},{"id":4,"name":"Kevin Mwangi","trade":"plumbing","area":"Ngong Road","county":"Nairobi","verified":false,"busy":[]}]
 ```
 
 Your list may have more entries than this one: it grows when someone signs up
@@ -113,11 +113,16 @@ curl https://find-my-artisan.onrender.com/artisans/1
 `200 OK`
 
 ```json
-{"id":1,"name":"Wanjiru Kamau","trade":"electrical","area":"Westlands","county":"Nairobi","verified":true,"busy":[],"phone":"+254712000001","hourlyRateKes":900,"verification":{"issuingBody":"National Industrial Training Authority","certificateId":"NITA-EL-2024-00001","expiresOn":"2027-03-01"}}
+{"id":1,"name":"Wanjiru Kamau","trade":"electrical","area":"Westlands","county":"Nairobi","verified":true,"busy":[],"phone":"+254712000001","hourlyRateKes":900}
 ```
 
-`phone` is only on this full profile, not in the list. `verification` is present
-only when `verified` is `true`.
+`phone` is only on this full profile, not in the list.
+
+`verified` is earned on the site, not checked against a certificate: it is
+`true` once an artisan has been signed up for at least 30 days and has at least
+3 reviews averaging 4.3 or more. It is worked out on every request, so it can
+turn `false` again if the average drops. The contract's optional
+`verification` object (certificate details) is therefore never sent.
 
 ### Leave a review
 
