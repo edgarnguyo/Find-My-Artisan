@@ -396,6 +396,18 @@ CREATE TABLE IF NOT EXISTS scrap_drop_offs (
 );
 
 -- ---------------------------------------------------------------------------
+-- "Verified" is now earned on the site instead of read from a certificate:
+-- 30 days since sign-up and at least 3 reviews averaging 4.3 or more (see
+-- server/verified.js). artisans.verified and the verifications table above
+-- are no longer read; they stay so nothing that refers to them breaks.
+-- The sample artisans stand for tradespeople who have been on the site for a
+-- while, so their sign-up date is moved back. Only ever moves it earlier, so
+-- running this file again changes nothing.
+-- ---------------------------------------------------------------------------
+UPDATE artisans SET created_at = '2025-01-15 09:00:00'
+  WHERE id BETWEEN 1 AND 23 AND created_at > '2025-01-15 09:00:00';
+
+-- ---------------------------------------------------------------------------
 -- Week 10: the materials a client expects a job to need, priced from
 -- Kanairo-Klean (Team 13) when the booking was made. The price is copied here
 -- because Kanairo's price changes; the estimate should show what the client
