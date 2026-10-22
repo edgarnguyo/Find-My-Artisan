@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { updateProfile } from '../api/workers';
 import { COUNTIES } from '../data/counties';
+import AreaField from './AreaField';
 
 /**
  * The details an artisan can change about themselves. Phone, area, county and
@@ -20,8 +21,8 @@ export default function ProfileEditForm({ worker }) {
 
   // Same checks as the server, for a quicker message.
   function validate() {
-    if (!location.trim()) return 'Please enter the area you work in.';
     if (!county) return 'Please choose your county.';
+    if (!location.trim()) return 'Please choose or type the area you work in.';
     if (!phone.trim()) return 'Please enter your phone number.';
     if (rate !== '' && (!Number.isInteger(Number(rate)) || Number(rate) < 1 || Number(rate) > 100000)) {
       return 'Hourly rate must be a whole number of shillings, from 1 to 100,000.';
@@ -65,16 +66,19 @@ export default function ProfileEditForm({ worker }) {
       <form className="edit-profile-form" onSubmit={handleSubmit} noValidate>
         <div className="field-row">
           <div className="field">
-            <label htmlFor="edit-location">Area</label>
-            <input id="edit-location" type="text" maxLength={100} placeholder="e.g. Westlands"
-              value={location} onChange={e => setLocation(e.target.value)} />
-          </div>
-          <div className="field">
             <label htmlFor="edit-county">County</label>
-            <select id="edit-county" value={county} onChange={e => setCounty(e.target.value)}>
+            <select id="edit-county" value={county} onChange={e => {
+              setCounty(e.target.value);
+              setLocation('');
+            }}>
               <option value="">Choose…</option>
               {COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
+          </div>
+          <div className="field">
+            <label htmlFor="edit-location">Area</label>
+            <AreaField key={county} id="edit-location" county={county}
+              value={location} onChange={setLocation} />
           </div>
         </div>
 

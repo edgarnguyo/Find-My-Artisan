@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../lib/authContext';
 import { COUNTIES } from '../data/counties';
+import AreaField from '../components/AreaField';
 
 // Same trades as the listings filter.
 const SKILLS = ['Plumber', 'Electrician', 'Carpenter', 'Painter'];
@@ -41,8 +42,8 @@ export default function SignInPage() {
     if (isArtisan && !skill) return 'Please choose your skill.';
     // Meditrac books artisans by phone, so the API contract requires a number.
     if (isArtisan && !phone.trim()) return 'Please enter your phone number.';
-    if (isArtisan && !workLocation.trim()) return 'Please enter the area you work in.';
     if (isArtisan && !county) return 'Please choose your county.';
+    if (isArtisan && !workLocation.trim()) return 'Please choose or type the area you work in.';
     return null;
   }
 
@@ -84,11 +85,10 @@ export default function SignInPage() {
     }
   }
 
+  // Clients type their location; artisans pick a county, then an area in it.
   const locationField = (
     <div className="field">
-      <label htmlFor="work-location">
-        {isArtisan ? 'Area' : 'Location (optional)'}
-      </label>
+      <label htmlFor="work-location">Location (optional)</label>
       <input
         id="work-location"
         type="text"
@@ -205,17 +205,28 @@ export default function SignInPage() {
                     ))}
                   </select>
                 </div>
-                {locationField}
+                <div className="field">
+                  <label htmlFor="county">County</label>
+                  <select
+                    id="county"
+                    value={county}
+                    onChange={e => {
+                      setCounty(e.target.value);
+                      setWorkLocation('');
+                    }}
+                  >
+                    <option value="">Choose…</option>
+                    {COUNTIES.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="field">
-                <label htmlFor="county">County</label>
-                <select id="county" value={county} onChange={e => setCounty(e.target.value)}>
-                  <option value="">Choose…</option>
-                  {COUNTIES.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                <label htmlFor="work-location">Area</label>
+                <AreaField key={county} id="work-location" county={county}
+                  value={workLocation} onChange={setWorkLocation} />
               </div>
 
               <div className="field">
