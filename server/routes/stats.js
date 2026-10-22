@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { verifiedSql } = require('../verified');
 
 // Website-only: the real numbers and recent work shown on the landing page, in
 // place of the made-up "200+ artisans" and stock photos it used to have.
@@ -12,7 +13,7 @@ router.get('/', async (req, res) => {
     // artisan started with, plus the jobs finished through the site.
     const [[totals]] = await db.query(
       `SELECT
-         (SELECT COUNT(*) FROM artisans WHERE verified = TRUE) AS verified_artisans,
+         (SELECT COUNT(*) FROM artisans a WHERE ${verifiedSql('a')}) AS verified_artisans,
          (SELECT ROUND(AVG(rating), 1) FROM reviews) AS average_rating,
          (SELECT COUNT(*) FROM reviews) AS review_count,
          (SELECT COALESCE(SUM(jobs_completed), 0) FROM artisans)

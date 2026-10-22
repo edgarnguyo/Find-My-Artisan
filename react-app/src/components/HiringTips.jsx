@@ -3,7 +3,7 @@ const TIPS = [
     icon: "🛡️",
     title: "Check verification",
     description:
-      "Prefer artisans with the verified badge: it means their trade certificate has been checked.",
+      "Prefer artisans with the verified badge: they have been on Find My Artisan for at least a month and clients rate them 4.3 or higher.",
   },
   {
     icon: "💬",
