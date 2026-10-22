@@ -127,6 +127,7 @@ function toBooking(row) {
       name: row.artisan_name,
       skill: row.artisan_skill,
       location: row.artisan_location,
+      county: row.artisan_county,
     },
   };
 }

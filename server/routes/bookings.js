@@ -63,12 +63,13 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    // JOINs add the artisan's name, skill and location, the end of the time
+    // JOINs add the artisan's name, skill, area and county, the end of the time
     // the artisan blocked out when accepting, and the client's review of the
     // job (both NULL until there is one).
     const [rows] = await db.query(
       `SELECT bookings.*, artisans.name AS artisan_name,
               artisans.skill AS artisan_skill, artisans.location AS artisan_location,
+              artisans.county AS artisan_county,
               availability_blocks.end_at AS block_end,
               reviews.rating AS review_rating, reviews.comment AS review_comment
        FROM bookings
