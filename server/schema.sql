@@ -406,3 +406,23 @@ CREATE TABLE IF NOT EXISTS scrap_drop_offs (
 -- ---------------------------------------------------------------------------
 UPDATE artisans SET created_at = '2025-01-15 09:00:00'
   WHERE id BETWEEN 1 AND 23 AND created_at > '2025-01-15 09:00:00';
+
+-- ---------------------------------------------------------------------------
+-- Week 10: the materials a client expects a job to need, priced from
+-- Kanairo-Klean (Team 13) when the booking was made. The price is copied here
+-- because Kanairo's price changes; the estimate should show what the client
+-- was quoted, not today's price. One row per material per booking.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS booking_materials (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  booking_id INT NOT NULL,
+  -- Kanairo's material_id, e.g. 'HDPE'.
+  material_id VARCHAR(50) NOT NULL,
+  -- Kanairo's name and type at the time, so the estimate shows without asking them.
+  name VARCHAR(100) NOT NULL,
+  material_type VARCHAR(20) NOT NULL,
+  quantity_kg DECIMAL(8, 2) NOT NULL,
+  price_per_kg_kes DECIMAL(10, 2) NOT NULL,
+  UNIQUE KEY one_row_per_material (booking_id, material_id),
+  FOREIGN KEY (booking_id) REFERENCES bookings(id)
+);
