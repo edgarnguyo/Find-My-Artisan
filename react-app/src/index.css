@@ -309,6 +309,15 @@ button {
   font-weight: 600;
 }
 
+/* The rule behind the badge, under "Verified" or "Not yet verified". */
+.stats-hint {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
 .profile-gallery-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
