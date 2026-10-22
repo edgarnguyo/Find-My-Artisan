@@ -1,5 +1,5 @@
 // The built site is served by the same Express server as the API, so paths like
-// '/artisans' need no address in front: the browser uses the one the page came
+// '/profiles' need no address in front: the browser uses the one the page came
 // from, whether that is localhost or the hosted site. Only Vite's own dev server
 // (npm run dev in react-app/) is on a different port and has to name the API.
 export const API_URL = import.meta.env.DEV ? 'http://localhost:5001' : '';
