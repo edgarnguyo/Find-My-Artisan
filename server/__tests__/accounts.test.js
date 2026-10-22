@@ -3,6 +3,7 @@
 // deleted by the tests themselves or at the end.
 const request = require('supertest');
 const app = require('../app');
+const { TEST_API_KEY } = require('../jest.setup');
 const db = require('../db');
 
 const PASSWORD = 'secret1';
@@ -168,7 +169,7 @@ describe('Artisan account', () => {
 
     expect(res.status).toBe(204);
     expect((await request(app).get(`/profiles/${artisan.id}`)).status).toBe(404);
-    expect((await request(app).get(`/artisans/${artisan.id}`)).status).toBe(404);
+    expect((await request(app).get(`/artisans/${artisan.id}`).set('X-API-Key', TEST_API_KEY)).status).toBe(404);
     expect((await login(artisan)).status).toBe(401);
     for (const table of ['bookings', 'reviews', 'portfolio_items']) {
       const [rows] = await db.query(`SELECT id FROM ${table} WHERE artisan_id = ?`, [artisan.id]);

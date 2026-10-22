@@ -167,9 +167,9 @@ export function fetchBusyTimes(artisanId) {
   return request(`/profiles/${artisanId}/availability`);
 }
 
-/** Mark the artisan busy from start to end (Date objects). Uses the API's own route. */
+/** Mark the artisan busy from start to end (Date objects). */
 export async function addBusyTime(artisanId, start, end) {
-  await request(`/artisans/${artisanId}/availability`, {
+  await request(`/profiles/${artisanId}/availability`, {
     method: 'POST',
     body: { start: start.toISOString(), end: end.toISOString() },
   });
@@ -177,7 +177,7 @@ export async function addBusyTime(artisanId, start, end) {
 
 /** Free up a busy time the artisan added themselves. */
 export async function removeBusyTime(artisanId, blockId) {
-  await request(`/artisans/${artisanId}/availability/${blockId}`, { method: 'DELETE' });
+  await request(`/profiles/${artisanId}/availability/${blockId}`, { method: 'DELETE' });
 }
 
 /**

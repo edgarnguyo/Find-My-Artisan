@@ -6,6 +6,7 @@ const COUNTIES = require('../counties');
 const { inTransaction } = require('../transaction');
 const { checkPassword, sentPasswordProblem, changePasswordRoute } = require('../accounts');
 const { verifiedSql } = require('../verified');
+const { createBlock, deleteBlock } = require('./artisans');
 
 // Every column except email and password, which must never be sent to the browser.
 // The artisans.rating column is a fixed number from the sample data, so the
@@ -79,7 +80,7 @@ router.get('/:id', async (req, res) => {
 
 // GET the artisan's own busy times that haven't ended yet, for their dashboard.
 // Unlike the contract's busy list, each one has its id (so it can be removed
-// with DELETE /artisans/:id/availability/:blockId) and, if it was made by
+// with DELETE /profiles/:id/availability/:blockId) and, if it was made by
 // accepting a booking, that booking's id and job.
 router.get('/:id/availability', async (req, res) => {
   try {
@@ -104,6 +105,12 @@ router.get('/:id/availability', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch busy times' });
   }
 });
+
+// The dashboard adds and removes busy times here. These run the same code as
+// POST and DELETE /artisans/:id/availability, but without the partners' API
+// key, which must never be put in the website's JavaScript.
+router.post('/:id/availability', createBlock);
+router.delete('/:id/availability/:blockId', deleteBlock);
 
 // POST a new artisan (the sign-up form, "An artisan")
 router.post('/', async (req, res) => {

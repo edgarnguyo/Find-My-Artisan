@@ -5,7 +5,8 @@ carpenters and painters. This API gives other systems read access to those
 artisans (who they are, where they work, whether they have earned the verified badge,
 and when they are already booked), and lets a caller leave a review after a job.
 It was built for Meditrac, a pharmacy team that uses it to find and vet artisans
-for maintenance work, but anyone can call it.
+for maintenance work. Every request needs an API key we issue (see
+[Authentication](#authentication)).
 
 | | |
 |---|---|
@@ -15,10 +16,17 @@ for maintenance work, but anyone can call it.
 
 ## Quickstart
 
-Copy, paste, run. Nothing to install and nothing to sign up for.
+Nothing to install. You need the API key we sent your team. Put it in a
+variable once per terminal, so the examples below can be copied as they are:
 
 ```bash
-curl https://find-my-artisan.onrender.com/artisans/1
+API_KEY=the-key-we-sent-you
+```
+
+(Windows PowerShell: `$API_KEY = 'the-key-we-sent-you'`.) Then:
+
+```bash
+curl -H "X-API-Key: $API_KEY" https://find-my-artisan.onrender.com/artisans/1
 ```
 
 You get back one artisan:
@@ -37,16 +45,30 @@ Two things that can catch you out:
   that send a JSON body, the easiest route on Windows is the "Try it out" button
   on the [docs page](https://edgarnguyo.github.io/Find-My-Artisan/), or Git Bash.
 
-You can also paste the URL into a browser's address bar: the two `GET` endpoints
-work there.
-
 ## Authentication
 
-There is none yet. Send no token, no key and no extra header: every request in
-this README works exactly as written.
+Every request needs an API key in the `X-API-Key` header:
 
-Authentication is planned for Week 9. When it lands, this section will say what
-to send and where to get it.
+```http
+X-API-Key: <your-api-key>
+```
+
+- **Getting a key:** ask the Find My Artisan team. Each team gets its own key,
+  sent privately. Keys are never in this repository.
+- **Keep it on your server.** Don't put the key in a web page's JavaScript,
+  where anyone can read it. Have your backend call us and pass on only what
+  your page needs.
+- **Missing or wrong key:** `401` with `{"code":"unauthorized", ...}`. Check the
+  header name is exactly `X-API-Key` and the key has no extra space or newline.
+- **Rate limit:** 60 requests a minute per key. Request number 61 gets `429`
+  with a `Retry-After` header: the number of seconds until the minute resets.
+  Every answer carries `RateLimit-Limit` and `RateLimit-Remaining` headers, so
+  you can see how close you are.
+- **From a browser on another site:** the preflight `OPTIONS` request needs no
+  key and is answered with the CORS headers, so a browser won't block the call.
+
+On the [docs page](https://edgarnguyo.github.io/Find-My-Artisan/), press
+**Authorize** and paste your key before using "Try it out".
 
 ## Endpoints
 
@@ -79,7 +101,7 @@ Both filters are optional and can be combined. Neither is case-sensitive.
   `Kisumu` or `Nakuru`. A name that is not a Kenyan county returns a `400`.
 
 ```bash
-curl "https://find-my-artisan.onrender.com/artisans?trade=plumbing&county=Nairobi"
+curl -H "X-API-Key: $API_KEY" "https://find-my-artisan.onrender.com/artisans?trade=plumbing&county=Nairobi"
 ```
 
 `200 OK`
@@ -107,7 +129,7 @@ All times are UTC.
 ### Get one artisan
 
 ```bash
-curl https://find-my-artisan.onrender.com/artisans/1
+curl -H "X-API-Key: $API_KEY" https://find-my-artisan.onrender.com/artisans/1
 ```
 
 `200 OK`
@@ -130,7 +152,7 @@ turn `false` again if the average drops. The contract's optional
 are required. `comment` (text, up to 1000 characters) is optional.
 
 ```bash
-curl -X POST https://find-my-artisan.onrender.com/artisans/3/reviews \
+curl -H "X-API-Key: $API_KEY" -X POST https://find-my-artisan.onrender.com/artisans/3/reviews \
   -H "Content-Type: application/json" \
   -d '{"author": "Meditrac - Westlands branch", "rating": 5, "comment": "Fixed the leaking sink the same afternoon."}'
 ```
@@ -150,7 +172,7 @@ Send only the fields you are changing. Replace `242` with the `id` you got back
 when you posted the review.
 
 ```bash
-curl -X PATCH https://find-my-artisan.onrender.com/artisans/3/reviews/242 \
+curl -H "X-API-Key: $API_KEY" -X PATCH https://find-my-artisan.onrender.com/artisans/3/reviews/242 \
   -H "Content-Type: application/json" \
   -d '{"rating": 4}'
 ```
@@ -169,7 +191,7 @@ came with the sample data return `404`.
 Replace `242` with your review's `id`.
 
 ```bash
-curl -i -X DELETE https://find-my-artisan.onrender.com/artisans/3/reviews/242
+curl -H "X-API-Key: $API_KEY" -i -X DELETE https://find-my-artisan.onrender.com/artisans/3/reviews/242
 ```
 
 `204 No Content`
@@ -189,7 +211,7 @@ that has already ended never shows up in the artisan's `busy` list, so you
 couldn't see that it worked.
 
 ```bash
-curl -X POST https://find-my-artisan.onrender.com/artisans/1/availability \
+curl -H "X-API-Key: $API_KEY" -X POST https://find-my-artisan.onrender.com/artisans/1/availability \
   -H "Content-Type: application/json" \
   -d '{"start": "YYYY-MM-DDT06:00:00Z", "end": "YYYY-MM-DDT10:00:00Z"}'
 ```
@@ -216,7 +238,7 @@ Send `start`, `end`, or both. Replace `17` with your block's `id`, and
 `YYYY-MM-DD` with the same date you used above.
 
 ```bash
-curl -X PATCH https://find-my-artisan.onrender.com/artisans/1/availability/17 \
+curl -H "X-API-Key: $API_KEY" -X PATCH https://find-my-artisan.onrender.com/artisans/1/availability/17 \
   -H "Content-Type: application/json" \
   -d '{"end": "YYYY-MM-DDT12:00:00Z"}'
 ```
@@ -232,7 +254,7 @@ curl -X PATCH https://find-my-artisan.onrender.com/artisans/1/availability/17 \
 Replace `17` with your block's `id`.
 
 ```bash
-curl -i -X DELETE https://find-my-artisan.onrender.com/artisans/1/availability/17
+curl -H "X-API-Key: $API_KEY" -i -X DELETE https://find-my-artisan.onrender.com/artisans/1/availability/17
 ```
 
 `204 No Content`, with no body.
@@ -253,16 +275,28 @@ person to read, and its wording may change.
 |---|---|---|
 | `400` | `invalid_query` | A query parameter has a bad value |
 | `400` | `invalid_body` | The JSON body is missing a field, has a wrong value, or is not valid JSON |
+| `401` | `unauthorized` | The `X-API-Key` header is missing, or the key is not one we issued |
 | `404` | `not_found` | No artisan, review or block has that id |
+| `429` | `rate_limited` | This key made more than 60 requests this minute; wait `Retry-After` seconds |
 | `500` | `server_error` | Something failed on our side |
 
 A successful request returns `200`, `201` or `204`. So the status code alone
 tells you whether it worked: anything starting with `2` did.
 
-Real examples of each:
+Real examples:
 
 ```bash
-curl https://find-my-artisan.onrender.com/artisans/9999
+curl https://find-my-artisan.onrender.com/artisans/1
+```
+
+`401 Unauthorized` (no key sent)
+
+```json
+{"code":"unauthorized","message":"Send your API key in the X-API-Key header."}
+```
+
+```bash
+curl -H "X-API-Key: $API_KEY" https://find-my-artisan.onrender.com/artisans/9999
 ```
 
 `404 Not Found`
@@ -272,7 +306,7 @@ curl https://find-my-artisan.onrender.com/artisans/9999
 ```
 
 ```bash
-curl "https://find-my-artisan.onrender.com/artisans?county=Atlantis"
+curl -H "X-API-Key: $API_KEY" "https://find-my-artisan.onrender.com/artisans?county=Atlantis"
 ```
 
 `400 Bad Request`
@@ -282,7 +316,7 @@ curl "https://find-my-artisan.onrender.com/artisans?county=Atlantis"
 ```
 
 ```bash
-curl -X POST https://find-my-artisan.onrender.com/artisans/3/reviews \
+curl -H "X-API-Key: $API_KEY" -X POST https://find-my-artisan.onrender.com/artisans/3/reviews \
   -H "Content-Type: application/json" \
   -d '{"author": "Meditrac - Westlands branch", "rating": 9}'
 ```
@@ -323,7 +357,15 @@ cp .env.example .env
 ```
 
 If your MySQL `root` user has a password, open `server/.env` now and put it
-after `DB_PASSWORD=`. If it has none, leave the file as it is.
+after `DB_PASSWORD=`. If it has none, leave it empty.
+
+In the same file, `API_KEYS` lists who may call your copy, as `name:key` pairs
+separated by commas. The example file has `local:local-dev-key`, so locally
+your key is `local-dev-key`:
+
+```bash
+API_KEY=local-dev-key
+```
 
 ```bash
 mysql -u root -p -e "source schema.sql"
@@ -340,7 +382,7 @@ When the terminal shows `Server running on port 5001`, open a second terminal
 and try it:
 
 ```bash
-curl http://localhost:5001/artisans/1
+curl -H "X-API-Key: $API_KEY" http://localhost:5001/artisans/1
 ```
 
 Every example in this README works locally if you swap
