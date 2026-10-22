@@ -3,6 +3,7 @@
 const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
+const { verifiedSql } = require('../verified');
 
 let artisanId;
 
@@ -31,7 +32,7 @@ describe('GET /stats', () => {
     const res = await request(app).get('/stats');
 
     const [[expected]] = await db.query(
-      `SELECT (SELECT COUNT(*) FROM artisans WHERE verified = TRUE) AS verified,
+      `SELECT (SELECT COUNT(*) FROM artisans a WHERE ${verifiedSql('a')}) AS verified,
               (SELECT ROUND(AVG(rating), 1) FROM reviews) AS rating,
               (SELECT COUNT(*) FROM reviews) AS reviews,
               (SELECT SUM(jobs_completed) FROM artisans) AS seeded,
