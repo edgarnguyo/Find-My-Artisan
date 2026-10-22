@@ -5,13 +5,15 @@ const { busyByArtisan, fromDbTime } = require('../availability');
 const COUNTIES = require('../counties');
 const { inTransaction } = require('../transaction');
 const { checkPassword, sentPasswordProblem, changePasswordRoute } = require('../accounts');
+const { verifiedSql } = require('../verified');
 
 // Every column except email and password, which must never be sent to the browser.
 // The artisans.rating column is a fixed number from the sample data, so the
 // rating is worked out from the reviews instead: their average to one decimal,
 // or NULL (shown as "New") when there are none yet. jobs_completed adds the
 // jobs finished through the site to the count the artisan started with.
-const COLUMNS = `id, name, skill, verified, price, photo, location, county, bio, phone, hourly_rate_kes,
+// verified is earned from time on the site and reviews (see verified.js).
+const COLUMNS = `id, name, skill, ${verifiedSql('artisans')} AS verified, price, photo, location, county, bio, phone, hourly_rate_kes,
   (SELECT ROUND(AVG(r.rating), 1) FROM reviews r WHERE r.artisan_id = artisans.id) AS rating,
   (SELECT COUNT(*) FROM reviews r WHERE r.artisan_id = artisans.id) AS review_count,
   job_success, hours_per_week, total_earnings, hours_worked,
@@ -190,8 +192,8 @@ async function artisanExists(id) {
 }
 
 // PATCH /profiles/5  with any of { name, location, county, phone, price, bio, hourlyRateKes }
-// Only the fields sent are changed. The skill isn't editable: it's what the
-// artisan's certificate (verification) is for.
+// Only the fields sent are changed. The skill isn't editable: the artisan's
+// reviews and verified badge were earned in that trade.
 router.patch('/:id', async (req, res) => {
   const body = req.body ?? {};
   const fields = Object.keys(body).filter(key => key in EDITABLE);
