@@ -5,6 +5,7 @@
 // deleted at the end.
 const request = require('supertest');
 const app = require('../app');
+const { TEST_API_KEY } = require('../jest.setup');
 const db = require('../db');
 
 // Sample artisans from schema.sql, so they exist on any machine that ran it.
@@ -309,7 +310,7 @@ describe('Busy times from accepted bookings', () => {
       end: `${tomorrow}T03:00:00Z`,
     };
 
-    const api = await request(app).get(`/artisans/${ARTISAN_ID}`);
+    const api = await request(app).get(`/artisans/${ARTISAN_ID}`).set('X-API-Key', TEST_API_KEY);
     expect(api.body.busy).toContainEqual(window);
 
     const profile = await request(app).get(`/profiles/${ARTISAN_ID}`);
@@ -405,9 +406,9 @@ describe('POST /bookings/:id/review', () => {
     const posted = await review(bookingId, { rating: 5 });
 
     const patch = await request(app)
-      .patch(`/artisans/${ARTISAN_ID}/reviews/${posted.body.id}`)
+      .patch(`/artisans/${ARTISAN_ID}/reviews/${posted.body.id}`).set('X-API-Key', TEST_API_KEY)
       .send({ rating: 1 });
-    const del = await request(app).delete(`/artisans/${ARTISAN_ID}/reviews/${posted.body.id}`);
+    const del = await request(app).delete(`/artisans/${ARTISAN_ID}/reviews/${posted.body.id}`).set('X-API-Key', TEST_API_KEY);
 
     expect(patch.status).toBe(404);
     expect(del.status).toBe(404);

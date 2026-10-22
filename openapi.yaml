@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API
-  version: 2.1.0
+  version: 2.2.0
   description: >
     Access to artisan profiles. Meditrac (Team 2) uses the two GET
     endpoints to find and vet artisans, and the /artisans/{id}/reviews
@@ -11,11 +11,20 @@ info:
     Meditrac never creates, edits, or holds a booking record on our side.
     The three availability endpoints are used only by our own artisans.
 
+    Every request needs an API key in the X-API-Key header. Each partner
+    team gets its own key from us privately; it is never in this file or the
+    repo. A missing or wrong key gets 401. Each key may make 60 requests a
+    minute; more than that gets 429 with a Retry-After header saying how many
+    seconds to wait.
+
 servers:
   - url: https://find-my-artisan.onrender.com
     description: Hosted server (no setup needed; the first request after a quiet spell takes about a minute)
   - url: http://localhost:5001
     description: Local development server
+
+security:
+  - ApiKeyAuth: []
 
 paths:
   /artisans:
@@ -71,6 +80,10 @@ paths:
               example:
                 code: "invalid_query"
                 message: "county must be a known Kenyan county name."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /artisans/{id}:
     get:
@@ -115,6 +128,10 @@ paths:
               example:
                 code: "not_found"
                 message: "No artisan with id 1."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /artisans/{id}/reviews:
     post:
@@ -172,6 +189,10 @@ paths:
               example:
                 code: "not_found"
                 message: "No artisan with id 999."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /artisans/{id}/reviews/{reviewId}:
     patch:
@@ -234,6 +255,10 @@ paths:
               example:
                 code: "not_found"
                 message: "No review with id 58 for artisan 3."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
     delete:
       summary: Remove a review Meditrac posted earlier
@@ -264,6 +289,10 @@ paths:
               example:
                 code: "not_found"
                 message: "No review with id 58 for artisan 3."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /artisans/{id}/availability:
     post:
@@ -318,6 +347,10 @@ paths:
               example:
                 code: "not_found"
                 message: "No artisan with id 999."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /artisans/{id}/availability/{blockId}:
     patch:
@@ -379,6 +412,10 @@ paths:
               example:
                 code: "not_found"
                 message: "No availability block with id 1."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
     delete:
       summary: Remove an unavailability block entirely — the job it was for isn't happening
@@ -411,8 +448,51 @@ paths:
               example:
                 code: "not_found"
                 message: "No availability block with id 1."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
 components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: The key we sent your team privately. Never put it in browser code.
+
+  responses:
+    Unauthorized:
+      description: The X-API-Key header is missing, or the key is not one we issued.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            missing:
+              value:
+                code: "unauthorized"
+                message: "Send your API key in the X-API-Key header."
+            wrong:
+              value:
+                code: "unauthorized"
+                message: "That API key is not valid."
+    TooManyRequests:
+      description: This key has made more than 60 requests in the current minute.
+      headers:
+        Retry-After:
+          description: Seconds to wait before the next request will be accepted.
+          schema:
+            type: integer
+            example: 42
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "rate_limited"
+            message: "Too many requests: the limit is 60 a minute. Try again in 42 seconds."
+
   schemas:
     ArtisanSummary:
       type: object

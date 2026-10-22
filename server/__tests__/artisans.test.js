@@ -4,6 +4,7 @@
 // contract, so they're out of scope for this file.
 const request = require('supertest');
 const app = require('../app');
+const { TEST_API_KEY } = require('../jest.setup');
 const db = require('../db');
 
 // Artisan 1 (Wanjiru Kamau) is one of the 23 sample rows schema.sql always
@@ -20,7 +21,7 @@ afterAll(async () => {
 
 describe('GET /artisans', () => {
   it('returns 200 with every artisan in the ArtisanSummary shape', async () => {
-    const res = await request(app).get('/artisans');
+    const res = await request(app).get('/artisans').set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -41,7 +42,7 @@ describe('GET /artisans', () => {
   });
 
   it('filters by trade and by county together', async () => {
-    const res = await request(app).get('/artisans').query({ trade: 'plumbing', county: 'Nairobi' });
+    const res = await request(app).get('/artisans').set('X-API-Key', TEST_API_KEY).query({ trade: 'plumbing', county: 'Nairobi' });
 
     expect(res.status).toBe(200);
     expect(res.body.length).toBeGreaterThan(0);
@@ -53,14 +54,14 @@ describe('GET /artisans', () => {
 
   it('returns an empty array when no artisan matches the filters', async () => {
     // No sample artisan is based in Turkana, so this combination should never match.
-    const res = await request(app).get('/artisans').query({ county: 'Turkana' });
+    const res = await request(app).get('/artisans').set('X-API-Key', TEST_API_KEY).query({ county: 'Turkana' });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
   });
 
   it('rejects an unknown county with 400 invalid_query', async () => {
-    const res = await request(app).get('/artisans').query({ county: 'Narnia' });
+    const res = await request(app).get('/artisans').set('X-API-Key', TEST_API_KEY).query({ county: 'Narnia' });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
@@ -72,7 +73,7 @@ describe('GET /artisans', () => {
 
 describe('GET /artisans/:id', () => {
   it('returns 200 with the full Artisan profile', async () => {
-    const res = await request(app).get(`/artisans/${REAL_ARTISAN_ID}`);
+    const res = await request(app).get(`/artisans/${REAL_ARTISAN_ID}`).set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -88,7 +89,7 @@ describe('GET /artisans/:id', () => {
   });
 
   it('returns 404 not_found for an id that does not exist', async () => {
-    const res = await request(app).get(`/artisans/${MISSING_ARTISAN_ID}`);
+    const res = await request(app).get(`/artisans/${MISSING_ARTISAN_ID}`).set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({
@@ -98,7 +99,7 @@ describe('GET /artisans/:id', () => {
   });
 
   it('returns 404 for a non-numeric id rather than crashing', async () => {
-    const res = await request(app).get('/artisans/not-a-number');
+    const res = await request(app).get('/artisans/not-a-number').set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(404);
     expect(res.body).toHaveProperty('code', 'not_found');
@@ -114,7 +115,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
   let blockId;
 
   it('rejects a request missing start/end with 400 invalid_body', async () => {
-    const res = await request(app).post(`/artisans/${REAL_ARTISAN_ID}/availability`).send({ start });
+    const res = await request(app).post(`/artisans/${REAL_ARTISAN_ID}/availability`).set('X-API-Key', TEST_API_KEY).send({ start });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ code: 'invalid_body', message: expect.any(String) });
@@ -122,7 +123,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
 
   it('rejects end before start with 400 invalid_body', async () => {
     const res = await request(app)
-      .post(`/artisans/${REAL_ARTISAN_ID}/availability`)
+      .post(`/artisans/${REAL_ARTISAN_ID}/availability`).set('X-API-Key', TEST_API_KEY)
       .send({ start: end, end: start });
 
     expect(res.status).toBe(400);
@@ -131,7 +132,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
 
   it('returns 404 when the artisan does not exist', async () => {
     const res = await request(app)
-      .post(`/artisans/${MISSING_ARTISAN_ID}/availability`)
+      .post(`/artisans/${MISSING_ARTISAN_ID}/availability`).set('X-API-Key', TEST_API_KEY)
       .send({ start, end });
 
     expect(res.status).toBe(404);
@@ -140,7 +141,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
 
   it('creates the block and returns 201 with the AvailabilityBlock shape', async () => {
     const res = await request(app)
-      .post(`/artisans/${REAL_ARTISAN_ID}/availability`)
+      .post(`/artisans/${REAL_ARTISAN_ID}/availability`).set('X-API-Key', TEST_API_KEY)
       .send({ start, end });
 
     expect(res.status).toBe(201);
@@ -152,7 +153,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
 
   it('rejects a second block that overlaps the one just created', async () => {
     const res = await request(app)
-      .post(`/artisans/${REAL_ARTISAN_ID}/availability`)
+      .post(`/artisans/${REAL_ARTISAN_ID}/availability`).set('X-API-Key', TEST_API_KEY)
       .send({ start, end });
 
     expect(res.status).toBe(400);
@@ -162,7 +163,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
   it('updates the block with PATCH and returns the new end time', async () => {
     const newEnd = new Date(base.getTime() + 4 * 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, 'Z');
     const res = await request(app)
-      .patch(`/artisans/${REAL_ARTISAN_ID}/availability/${blockId}`)
+      .patch(`/artisans/${REAL_ARTISAN_ID}/availability/${blockId}`).set('X-API-Key', TEST_API_KEY)
       .send({ end: newEnd });
 
     expect(res.status).toBe(200);
@@ -170,7 +171,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
   });
 
   it('rejects a PATCH with no fields with 400 invalid_body', async () => {
-    const res = await request(app).patch(`/artisans/${REAL_ARTISAN_ID}/availability/${blockId}`).send({});
+    const res = await request(app).patch(`/artisans/${REAL_ARTISAN_ID}/availability/${blockId}`).set('X-API-Key', TEST_API_KEY).send({});
 
     expect(res.status).toBe(400);
     expect(res.body.code).toBe('invalid_body');
@@ -178,7 +179,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
 
   it('returns 404 for PATCH on a block id that does not exist', async () => {
     const res = await request(app)
-      .patch(`/artisans/${REAL_ARTISAN_ID}/availability/999999`)
+      .patch(`/artisans/${REAL_ARTISAN_ID}/availability/999999`).set('X-API-Key', TEST_API_KEY)
       .send({ end });
 
     expect(res.status).toBe(404);
@@ -186,14 +187,14 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
   });
 
   it('deletes the block and returns 204 with no body', async () => {
-    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/availability/${blockId}`);
+    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/availability/${blockId}`).set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(204);
     expect(res.body).toEqual({});
   });
 
   it('returns 404 deleting the same block a second time', async () => {
-    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/availability/${blockId}`);
+    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/availability/${blockId}`).set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(404);
     expect(res.body.code).toBe('not_found');
@@ -217,7 +218,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
   it('rejects a missing rating with 400 invalid_body', async () => {
     const res = await request(app)
-      .post(`/artisans/${REAL_ARTISAN_ID}/reviews`)
+      .post(`/artisans/${REAL_ARTISAN_ID}/reviews`).set('X-API-Key', TEST_API_KEY)
       .send({ author: 'Meditrac — Test branch' });
 
     expect(res.status).toBe(400);
@@ -226,7 +227,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
   it('rejects a rating outside 1-5 with 400 invalid_body', async () => {
     const res = await request(app)
-      .post(`/artisans/${REAL_ARTISAN_ID}/reviews`)
+      .post(`/artisans/${REAL_ARTISAN_ID}/reviews`).set('X-API-Key', TEST_API_KEY)
       .send({ author: 'Meditrac — Test branch', rating: 6 });
 
     expect(res.status).toBe(400);
@@ -235,7 +236,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
   it('returns 404 when the artisan does not exist', async () => {
     const res = await request(app)
-      .post(`/artisans/${MISSING_ARTISAN_ID}/reviews`)
+      .post(`/artisans/${MISSING_ARTISAN_ID}/reviews`).set('X-API-Key', TEST_API_KEY)
       .send({ author: 'Meditrac — Test branch', rating: 5 });
 
     expect(res.status).toBe(404);
@@ -244,7 +245,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
   it('creates the review and returns 201 with the Review shape', async () => {
     const res = await request(app)
-      .post(`/artisans/${REAL_ARTISAN_ID}/reviews`)
+      .post(`/artisans/${REAL_ARTISAN_ID}/reviews`).set('X-API-Key', TEST_API_KEY)
       .send({ author: 'Meditrac — Test branch', rating: 5, comment: 'Great job.' });
 
     expect(res.status).toBe(201);
@@ -261,7 +262,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
   it('updates just the rating with PATCH, leaving other fields unchanged', async () => {
     const res = await request(app)
-      .patch(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`)
+      .patch(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`).set('X-API-Key', TEST_API_KEY)
       .send({ rating: 3 });
 
     expect(res.status).toBe(200);
@@ -269,7 +270,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
   });
 
   it('rejects a PATCH with no fields with 400 invalid_body', async () => {
-    const res = await request(app).patch(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`).send({});
+    const res = await request(app).patch(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`).set('X-API-Key', TEST_API_KEY).send({});
 
     expect(res.status).toBe(400);
     expect(res.body.code).toBe('invalid_body');
@@ -277,7 +278,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
   it('returns 404 trying to PATCH a review that did not come through the API', async () => {
     const res = await request(app)
-      .patch(`/artisans/${REAL_ARTISAN_ID}/reviews/${seededReviewId}`)
+      .patch(`/artisans/${REAL_ARTISAN_ID}/reviews/${seededReviewId}`).set('X-API-Key', TEST_API_KEY)
       .send({ rating: 1 });
 
     expect(res.status).toBe(404);
@@ -285,21 +286,21 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
   });
 
   it('deletes the review and returns 204 with no body', async () => {
-    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`);
+    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`).set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(204);
     expect(res.body).toEqual({});
   });
 
   it('returns 404 deleting the same review a second time', async () => {
-    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`);
+    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`).set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(404);
     expect(res.body.code).toBe('not_found');
   });
 
   it('returns 404 trying to DELETE a review that did not come through the API', async () => {
-    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/reviews/${seededReviewId}`);
+    const res = await request(app).delete(`/artisans/${REAL_ARTISAN_ID}/reviews/${seededReviewId}`).set('X-API-Key', TEST_API_KEY);
 
     expect(res.status).toBe(404);
     expect(res.body.code).toBe('not_found');
@@ -309,8 +310,8 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 describe('verified: 30 days on the site and 3+ reviews averaging 4.3 or more', () => {
   let id;
   const review = rating =>
-    request(app).post(`/artisans/${id}/reviews`).send({ author: 'artisans.test.js', rating });
-  const profile = async () => (await request(app).get(`/artisans/${id}`)).body;
+    request(app).post(`/artisans/${id}/reviews`).set('X-API-Key', TEST_API_KEY).send({ author: 'artisans.test.js', rating });
+  const profile = async () => (await request(app).get(`/artisans/${id}`).set('X-API-Key', TEST_API_KEY)).body;
   const signedUpDaysAgo = days =>
     db.query('UPDATE artisans SET created_at = NOW() - INTERVAL ? DAY WHERE id = ?', [days, id]);
 
@@ -346,7 +347,7 @@ describe('verified: 30 days on the site and 3+ reviews averaging 4.3 or more', (
     expect((await profile()).verified).toBe(true);
 
     // The list and the website's profile agree.
-    const list = await request(app).get('/artisans');
+    const list = await request(app).get('/artisans').set('X-API-Key', TEST_API_KEY);
     expect(list.body.find(a => a.id === id).verified).toBe(true);
     const site = await request(app).get(`/profiles/${id}`);
     expect(site.body.verified).toBe(1);
@@ -357,7 +358,7 @@ describe('verified: 30 days on the site and 3+ reviews averaging 4.3 or more', (
 
     expect((await profile()).verified).toBe(false);
 
-    await request(app).delete(`/artisans/${id}/reviews/${bad.body.id}`);
+    await request(app).delete(`/artisans/${id}/reviews/${bad.body.id}`).set('X-API-Key', TEST_API_KEY);
     expect((await profile()).verified).toBe(true);
   });
 

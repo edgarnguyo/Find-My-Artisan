@@ -11,6 +11,8 @@ const reactBuild = path.join(__dirname, '..', 'react-app', 'dist');
 
 // Lets a page from another port call this API (for example the lab's separate
 // React dev server). Pages served by this server don't need it, but it's harmless.
+// It must stay above the API key check: a browser's preflight (OPTIONS) request
+// carries no key, so cors() has to answer it before the check sends a 401.
 app.use(cors());
 app.use(express.json());
 
@@ -25,8 +27,11 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(contract));
 // No route has an /api prefix, so page addresses must not reuse these names:
 // the React pages that were at /artisans and /bookings moved to /artisans-table
 // and /my-bookings.
+// These are the routes partners call, so each request needs a partner's API key
+// (see apiKey.js). The website never uses them: it has its own /profiles routes.
+const { requireApiKey } = require('./apiKey');
 const artisanRoutes = require('./routes/artisans');
-app.use('/artisans', artisanRoutes);
+app.use('/artisans', requireApiKey, artisanRoutes);
 
 // Website-only: the extra profile data (photos, reviews...) and artisan sign-up.
 const profileRoutes = require('./routes/profiles');

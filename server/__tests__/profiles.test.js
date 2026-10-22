@@ -3,6 +3,7 @@
 // so the sample artisans are never changed.
 const request = require('supertest');
 const app = require('../app');
+const { TEST_API_KEY } = require('../jest.setup');
 const db = require('../db');
 
 const PHOTO = 'https://example.com/photos/kitchen-sink.jpg';
@@ -62,7 +63,7 @@ describe('PATCH /profiles/:id', () => {
   it("shows the change in Meditrac's GET /artisans/:id", async () => {
     await editProfile({ location: 'Kilimani', county: 'Kiambu', phone: '0799000111', hourlyRateKes: 1200 });
 
-    const res = await request(app).get(`/artisans/${artisanId}`);
+    const res = await request(app).get(`/artisans/${artisanId}`).set('X-API-Key', TEST_API_KEY);
 
     expect(res.body).toMatchObject({ area: 'Kilimani', county: 'Kiambu', phone: '0799000111', hourlyRateKes: 1200 });
   });
