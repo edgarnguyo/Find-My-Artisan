@@ -8,7 +8,8 @@
     "dev": "concurrently --names api,react --prefix-colors blue,magenta \"nodemon index.js\" \"npm --prefix ../react-app run build -- --watch\"",
     "build": "npm --prefix ../react-app run build",
     "test": "jest --runInBand",
-    "partner:standin": "node partner-standin.js"
+    "partner:standin": "node partner-standin.js",
+    "demo:availability": "node demo-availability.js"
   },
   "keywords": [],
   "author": "",
