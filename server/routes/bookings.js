@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const { kenyaToDbTime, fromDbTime, overlapsExistingBlock } = require('../availability');
 const { inTransaction } = require('../transaction');
+const { UNAVAILABLE, PartnerUnavailable, fetchMaterials } = require('../kanairo');
 
 // Which status an artisan may move a booking to, from which status. A request
 // starts as pending; the artisan accepts or declines it, and marks an accepted
@@ -17,6 +18,34 @@ const ARTISAN_MOVES = {
 // What the booking form sends: <input type="date"> and <input type="time">.
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^\d{2}:\d{2}(:\d{2})?$/;
+
+// A booking can list up to this many Kanairo-Klean materials for its estimate.
+const MAX_MATERIALS = 10;
+
+/**
+ * Checks the optional materials list on a new booking: [{ materialId, quantityKg }].
+ * Returns an error message, or null when it's fine (or missing).
+ */
+function materialsError(materials) {
+  if (materials === undefined) return null;
+  if (!Array.isArray(materials) || materials.length > MAX_MATERIALS) {
+    return `materials must be a list of at most ${MAX_MATERIALS} items`;
+  }
+  const seen = new Set();
+  for (const item of materials) {
+    const { materialId, quantityKg } = item ?? {};
+    if (typeof materialId !== 'string' || !materialId || materialId.length > 50) {
+      return 'Each material needs a materialId';
+    }
+    // DECIMAL(8, 2) holds up to 999999.99.
+    if (typeof quantityKg !== 'number' || !(quantityKg > 0) || quantityKg >= 1e6) {
+      return 'Each material needs a quantityKg above 0 and below 1,000,000';
+    }
+    if (seen.has(materialId)) return `${materialId} is listed twice`;
+    seen.add(materialId);
+  }
+  return null;
+}
 
 // '2026-10-22 07:00:00' (UTC, from MySQL) as Kenya time: '10:00'.
 function kenyaClock(dbTime) {
@@ -63,9 +92,21 @@ router.get('/', async (req, res) => {
       for (const s of scrap) (scrapByBooking[s.booking_id] ??= []).push(s);
     }
 
+    // The material estimate each booking was made with, priced from Kanairo-Klean.
+    const materialsByBooking = {};
+    if (rows.length > 0) {
+      const [materials] = await db.query(
+        `SELECT booking_id, material_id, name, material_type, quantity_kg, price_per_kg_kes
+         FROM booking_materials WHERE booking_id IN (?) ORDER BY id`,
+        [rows.map(row => row.id)]
+      );
+      for (const m of materials) (materialsByBooking[m.booking_id] ??= []).push(m);
+    }
+
     res.json(rows.map(row => ({
       ...row,
       block_end: row.block_end && fromDbTime(row.block_end),
+      materials: materialsByBooking[row.id] ?? [],
       ...(artisanId && { scrap_drop_offs: scrapByBooking[row.id] ?? [] }),
     })));
   } catch (err) {
@@ -74,9 +115,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST a new booking (the "Request this artisan" form)
+// POST a new booking (the "Request this artisan" form). Optional
+// materials: [{ materialId, quantityKg }], Kanairo-Klean materials the client
+// expects the job to need. This server looks up their prices at Kanairo, so
+// the estimate can't be changed in the browser, and saves them with the booking.
 router.post('/', async (req, res) => {
-  const { artisanId, clientId, name, contact, date, time, budget, job } = req.body;
+  const { artisanId, clientId, name, contact, date, time, budget, job, materials = [] } = req.body;
 
   if (!artisanId || !clientId || !name || !contact || !date || !time || !job) {
     return res.status(400).json({ error: 'artisanId, clientId, name, contact, date, time and job are required' });
@@ -84,6 +128,8 @@ router.post('/', async (req, res) => {
   if (!DATE.test(date) || !TIME.test(time)) {
     return res.status(400).json({ error: 'date must look like 2026-10-22 and time like 10:00' });
   }
+  const badMaterials = materialsError(req.body.materials);
+  if (badMaterials) return res.status(400).json({ error: badMaterials });
 
   try {
     // Only someone with a client account can book, so every request can be
@@ -107,12 +153,51 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const [result] = await db.query(
-      `INSERT INTO bookings (artisan_id, client_id, name, contact, booking_date, booking_time, budget, job)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [artisanId, clientId, name, contact, date, time, budget || null, job]
-    );
-    res.status(201).json({ id: result.insertId, status: 'pending' });
+    // Price the materials last, so a request refused above costs no call to Kanairo.
+    let priced = [];
+    if (materials.length > 0) {
+      let stock;
+      try {
+        stock = await fetchMaterials();
+      } catch (err) {
+        if (!(err instanceof PartnerUnavailable)) throw err;
+        return res.status(502).json({
+          error: `${UNAVAILABLE} Remove the materials to send the request without an estimate.`,
+        });
+      }
+      const byId = new Map(stock.map(m => [m.id, m]));
+      const gone = materials.find(item => !byId.has(item.materialId));
+      if (gone) {
+        return res.status(400).json({ error: `Kanairo-Klean no longer lists ${gone.materialId}. Remove it and try again.` });
+      }
+      priced = materials.map(({ materialId, quantityKg }) => ({ ...byId.get(materialId), quantityKg }));
+    }
+
+    // The booking and its materials are saved together or not at all.
+    const bookingId = await inTransaction(async conn => {
+      const [result] = await conn.query(
+        `INSERT INTO bookings (artisan_id, client_id, name, contact, booking_date, booking_time, budget, job)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [artisanId, clientId, name, contact, date, time, budget || null, job]
+      );
+      if (priced.length > 0) {
+        await conn.query(
+          `INSERT INTO booking_materials
+             (booking_id, material_id, name, material_type, quantity_kg, price_per_kg_kes)
+           VALUES ?`,
+          [priced.map(m => [result.insertId, m.id, m.name, m.type, m.quantityKg, m.pricePerKgKes])]
+        );
+      }
+      return result.insertId;
+    });
+
+    res.status(201).json({
+      id: bookingId,
+      status: 'pending',
+      materials: priced.map(m => ({
+        materialId: m.id, name: m.name, type: m.type, quantityKg: m.quantityKg, pricePerKgKes: m.pricePerKgKes,
+      })),
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create booking' });

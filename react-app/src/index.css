@@ -2304,3 +2304,99 @@ a.submit-btn {
   font-size: 0.875rem;
   font-weight: 600;
 }
+
+/* Booking form: Kanairo-Klean materials with live prices and a running total. */
+.material-estimate {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+  margin: 0 0 var(--spacing-md);
+  min-width: 0;
+}
+
+.material-estimate legend {
+  font-weight: 600;
+  padding: 0 0.35rem;
+}
+
+.material-estimate-note {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.material-estimate-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.material-estimate-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.material-estimate-list label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* Undo the uppercase form-label style: these are material names. */
+  font-size: 0.95rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-text);
+}
+
+.material-estimate-name {
+  font-weight: 500;
+}
+
+.material-estimate-price {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.material-estimate-kg {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.material-estimate-kg input {
+  width: 5.5rem;
+}
+
+.material-estimate-total {
+  margin: var(--spacing-sm) 0 0;
+  text-align: right;
+}
+
+.material-estimate-unavailable p {
+  font-size: 0.85rem;
+  margin: 0 0 var(--spacing-sm);
+}
+
+/* My bookings and the dashboard: the estimate saved with a request. */
+.booking-materials {
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.booking-materials summary {
+  cursor: pointer;
+}
+
+.booking-materials ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.booking-materials p {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+}
