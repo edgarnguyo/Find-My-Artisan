@@ -71,7 +71,7 @@ describe('GET /artisans', () => {
 });
 
 describe('GET /artisans/:id', () => {
-  it('returns 200 with the full Artisan profile, including verification', async () => {
+  it('returns 200 with the full Artisan profile', async () => {
     const res = await request(app).get(`/artisans/${REAL_ARTISAN_ID}`);
 
     expect(res.status).toBe(200);
@@ -83,11 +83,8 @@ describe('GET /artisans/:id', () => {
       phone: '+254712000001',
     });
     expect(typeof res.body.hourlyRateKes).toBe('number');
-    expect(res.body.verification).toMatchObject({
-      issuingBody: expect.any(String),
-      certificateId: expect.any(String),
-      expiresOn: expect.any(String),
-    });
+    // The contract's verification is optional, and there are no certificates.
+    expect(res.body).not.toHaveProperty('verification');
   });
 
   it('returns 404 not_found for an id that does not exist', async () => {
@@ -306,5 +303,67 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.code).toBe('not_found');
+  });
+});
+
+describe('verified: 30 days on the site and 3+ reviews averaging 4.3 or more', () => {
+  let id;
+  const review = rating =>
+    request(app).post(`/artisans/${id}/reviews`).send({ author: 'artisans.test.js', rating });
+  const profile = async () => (await request(app).get(`/artisans/${id}`)).body;
+  const signedUpDaysAgo = days =>
+    db.query('UPDATE artisans SET created_at = NOW() - INTERVAL ? DAY WHERE id = ?', [days, id]);
+
+  beforeAll(async () => {
+    const res = await request(app).post('/profiles').send({
+      name: 'Verified Tester',
+      email: `verified-test-${Date.now()}@example.com`,
+      password: 'secret1',
+      skill: 'Painter',
+      location: 'Kilimani',
+      county: 'Nairobi',
+      phone: '0700000002',
+    });
+    id = res.body.id;
+    await signedUpDaysAgo(31);
+  });
+
+  afterAll(async () => {
+    await db.query('DELETE FROM reviews WHERE artisan_id = ?', [id]);
+    await db.query('DELETE FROM artisans WHERE id = ?', [id]);
+  });
+
+  it('is not verified with only 2 reviews, however good', async () => {
+    await review(5);
+    await review(5);
+
+    expect((await profile()).verified).toBe(false);
+  });
+
+  it('is verified at the third review', async () => {
+    await review(5);
+
+    expect((await profile()).verified).toBe(true);
+
+    // The list and the website's profile agree.
+    const list = await request(app).get('/artisans');
+    expect(list.body.find(a => a.id === id).verified).toBe(true);
+    const site = await request(app).get(`/profiles/${id}`);
+    expect(site.body.verified).toBe(1);
+  });
+
+  it('loses the badge when the average drops below 4.3, and gets it back', async () => {
+    const bad = await review(1); // 5, 5, 5, 1: average 4.0
+
+    expect((await profile()).verified).toBe(false);
+
+    await request(app).delete(`/artisans/${id}/reviews/${bad.body.id}`);
+    expect((await profile()).verified).toBe(true);
+  });
+
+  it('is not verified before 30 days on the site', async () => {
+    await signedUpDaysAgo(29);
+
+    expect((await profile()).verified).toBe(false);
   });
 });
