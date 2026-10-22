@@ -73,11 +73,17 @@ export async function fetchWorkerById(id) {
   }
 }
 
-/** Save a booking request. clientId is null when nobody is signed in. */
-export async function createBooking({ workerId, clientId, name, contact, date, time, budget, job }) {
+/**
+ * Save a booking request. clientId is null when nobody is signed in.
+ * materials: optional [{ materialId, quantityKg }] from Kanairo-Klean, priced by the server.
+ */
+export async function createBooking({ workerId, clientId, name, contact, date, time, budget, job, materials }) {
   await request('/bookings', {
     method: 'POST',
-    body: { artisanId: workerId, clientId, name, contact, date, time, budget, job },
+    body: {
+      artisanId: workerId, clientId, name, contact, date, time, budget, job,
+      ...(materials?.length && { materials }),
+    },
   });
 }
 
@@ -97,6 +103,15 @@ function toBooking(row) {
     // The client's review of the job, once they've left one.
     review: row.review_rating === null ? null : { rating: row.review_rating, comment: row.review_comment },
     createdAt: row.created_at,
+    // The materials estimate the client sent, priced from Kanairo-Klean at the time.
+    materials: (row.materials ?? []).map(m => ({
+      materialId: m.material_id,
+      name: m.name,
+      type: m.material_type,
+      // DECIMAL arrives from MySQL as text ("12.50").
+      quantityKg: Number(m.quantity_kg),
+      pricePerKgKes: Number(m.price_per_kg_kes),
+    })),
     // Scrap the artisan reported to Kanairo-Klean from this job (artisan view only).
     scrapDropOffs: (row.scrap_drop_offs ?? []).map(d => ({
       id: d.id,
