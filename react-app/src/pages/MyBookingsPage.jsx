@@ -4,6 +4,7 @@ import { fetchMyBookings, cancelBooking } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
+import BookingMaterials from '../components/BookingMaterials';
 import ReviewForm from '../components/ReviewForm';
 import { kenyaClock } from '../lib/kenyaTime';
 import { formatKes, capitalize } from '../lib/format';
@@ -130,6 +131,7 @@ export default function MyBookingsPage() {
                 {booking.budget && (
                   <p className="booking-row-budget">Budget: {formatKes(booking.budget)}</p>
                 )}
+                <BookingMaterials materials={booking.materials} />
 
                 {booking.review && (
                   <p className="booking-review">
