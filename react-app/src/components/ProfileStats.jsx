@@ -1,3 +1,5 @@
+import { VERIFIED_RULE } from "../data/verified";
+
 // Artisans who just signed up have no job success, availability or
 // languages yet, so those show a dash instead of an empty value.
 const EMPTY = "—";
@@ -40,7 +42,8 @@ export default function ProfileStats({ worker }) {
         <div className="stats-item">
           <dt>Verification</dt>
           <dd className={worker.verified ? "stats-verified" : ""}>
-            {worker.verified ? "✓ Certificate verified" : "Not yet verified"}
+            {worker.verified ? "✓ Verified" : "Not yet verified"}
+            <small className="stats-hint">{VERIFIED_RULE}</small>
           </dd>
         </div>
       </dl>

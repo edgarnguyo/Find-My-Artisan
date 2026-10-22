@@ -5,7 +5,7 @@ import { COUNTIES } from '../data/counties';
 /**
  * The details an artisan can change about themselves. Phone, area, county and
  * hourly rate are also what Meditrac sees through the API. Name and skill
- * aren't here: a skill is what the artisan's certificate is for.
+ * aren't here: the reviews and verified badge were earned in that trade.
  */
 export default function ProfileEditForm({ worker }) {
   const [location, setLocation] = useState(worker.location ?? '');
