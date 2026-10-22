@@ -15,12 +15,13 @@ const TRADES = {
 };
 
 const COUNTIES = require('../counties');
+const { verifiedSql } = require('../verified');
 
+// verified is worked out from time on the site and reviews (see verified.js).
 const SELECT_ARTISANS = `
-  SELECT a.id, a.name, a.skill, a.county, a.location, a.verified, a.phone, a.hourly_rate_kes,
-         v.issuing_body, v.certificate_id, v.expires_on
-  FROM artisans a
-  LEFT JOIN verifications v ON v.artisan_id = a.id`;
+  SELECT a.id, a.name, a.skill, a.county, a.location, a.phone, a.hourly_rate_kes,
+         ${verifiedSql('a')} AS verified
+  FROM artisans a`;
 
 // The mapping step: database row in, contract shape out (ArtisanSummary).
 // busy is this artisan's list from busyByArtisan(); an empty list means free throughout.
@@ -38,18 +39,12 @@ function toArtisanSummary(row, busy = []) {
   };
 }
 
-// Full profile (Artisan): the summary plus phone, rate and certificate.
+// Full profile (Artisan): the summary plus phone and rate. The contract's
+// optional verification (certificate details) is never sent: verified is
+// earned from time on the site and reviews, so there is no certificate.
 function toArtisan(row, busy = []) {
   const artisan = { ...toArtisanSummary(row, busy), phone: row.phone };
   if (row.hourly_rate_kes !== null) artisan.hourlyRateKes = Number(row.hourly_rate_kes);
-  // The contract says verification is present only when verified is true.
-  if (artisan.verified && row.certificate_id) {
-    artisan.verification = {
-      issuingBody: row.issuing_body,
-      certificateId: row.certificate_id,
-      expiresOn: row.expires_on,
-    };
-  }
   return artisan;
 }
 
