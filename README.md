@@ -276,7 +276,8 @@ person to read, and its wording may change.
 | `400` | `invalid_query` | A query parameter has a bad value |
 | `400` | `invalid_body` | The JSON body is missing a field, has a wrong value, or is not valid JSON |
 | `401` | `unauthorized` | The `X-API-Key` header is missing, or the key is not one we issued |
-| `404` | `not_found` | No artisan, review or block has that id |
+| `404` | `not_found` | No artisan, review or block has that id. A block made by a client's booking also gives `404`: only the booking can move or free that time |
+| `413` | `body_too_large` | The JSON body is over 100 kB |
 | `429` | `rate_limited` | This key made more than 60 requests this minute; wait `Retry-After` seconds |
 | `500` | `server_error` | Something failed on our side |
 
