@@ -44,7 +44,8 @@ What is left open, and why:
   the key check. They return CORS headers only, never data.
 - **The website's routes**: they can't use an API key. Any key in the React
   code is readable by anyone who opens the browser's developer tools, so it
-  would protect nothing. These routes need user sign-in instead (see finding 6).
+  would protect nothing. They use user sign-in instead (findings 8–10, fixed
+  in section 5).
 
 ### Proof
 
@@ -127,9 +128,9 @@ database, so I read them the same way.
 | # | Check | Found | Result |
 |---|---|---|---|
 | 7 | Sensitive fields | `/profiles` selects a fixed column list that leaves out `email` and `password`. `/clients/:id` and `/login` never return the password | Nothing wrong |
-| 8 | Other people's data | **Problem.** The site has no sign-in session. `/login` returns the account's id, the browser keeps it, and later requests send it back as `clientId` / `artisanId` or in the URL. The server trusts it. So, without signing in, anyone can: read any client's name, email and phone (`GET /clients/:id`); list any client's or artisan's bookings with contact details (`GET /bookings?clientId=`); edit any artisan's profile (`PATCH /profiles/:id`); accept, decline or cancel bookings by sending the other person's id. Password change and account deletion are safe: they need the current password | **Not fixed this week.** It needs real sign-in: a session or signed token issued by `/login`, checked on every website route, with the id taken from the session instead of the request. That changes every website route and the React app, so it is its own piece of work, planned next |
-| 9 | Passwords | Stored as typed (plain text) in `clients.password` and `artisans.password` | **Not fixed this week**, same piece of work as 8: hash with bcrypt on sign-up and password change, compare with `bcrypt.compare` on sign-in |
-| 10 | Rate limit | `/login` and sign-up have no limit, so passwords can be guessed without end | **Not fixed this week.** Part of 8: a per-IP limit on `/login` |
+| 8 | Other people's data | **Problem.** The site has no sign-in session. `/login` returns the account's id, the browser keeps it, and later requests send it back as `clientId` / `artisanId` or in the URL. The server trusts it. So, without signing in, anyone can: read any client's name, email and phone (`GET /clients/:id`); list any client's or artisan's bookings with contact details (`GET /bookings?clientId=`); edit any artisan's profile (`PATCH /profiles/:id`); accept, decline or cancel bookings by sending the other person's id. Password change and account deletion are safe: they need the current password | **Fixed**: `/login` and sign-up set a signed, httpOnly session cookie, and every website route takes the account from it (section 5). Someone else's id answers `403`, no sign-in `401`. Tests: `login.test.js`, and the "only for that client/artisan" and "someone else's" tests in `accounts`, `profiles`, `bookings` and `partner.test.js` |
+| 9 | Passwords | Stored as typed (plain text) in `clients.password` and `artisans.password` | **Fixed**: bcrypt hashes (cost 10) on sign-up and password change. Old plain-text passwords still sign in once and are hashed then. Tests: `login.test.js`, "Passwords" |
+| 10 | Rate limit | `/login` and sign-up have no limit, so passwords can be guessed without end | **Fixed** for `/login`: 10 wrong passwords per IP address in 15 minutes, then `429` with `Retry-After`. Sign-up has no limit yet (it can't guess a password; it can only fill the table). Test: `login.test.js`, "Wrong-password limit" |
 | 11 | Extra fields on writes | `PATCH /profiles/:id` only takes the keys listed in `EDITABLE`; `PATCH /clients/:id` only `name`, `phone`, `location`; the column name never comes from the request | Nothing wrong |
 
 ## 4. Tests (Part E)
@@ -144,4 +145,68 @@ New tests this week, on top of the Week 7 suite:
 - `bookings.test.js`: a booked block can't be changed or deleted through
   `/artisans` or `/profiles` (`404`, block unchanged).
 
+Added with the sign-in fix (section 5):
+
+- `login.test.js`: the cookie's flags; sign-up signs in; `GET /login` and
+  `DELETE /login`; a changed, re-signed or expired cookie → `401`; passwords
+  stored as bcrypt hashes on sign-up and change; an old plain-text account signs
+  in and is hashed; same answer for an unknown email and a wrong password;
+  `429` after too many wrong passwords from one address, not from another.
+- `accounts`, `profiles`, `bookings`, `partner.test.js`: each website route
+  answers `401` signed out and `403` (or `404` for a booking) for someone
+  else's account, and changes nothing.
+
 The whole suite passes (see the commit).
+
+## 5. Sign-in (fix for findings 8–10)
+
+### How a session works
+
+1. `POST /login` (or sign-up) checks the password and sets a cookie:
+   `fma_session=<payload>.<signature>`. The payload is `{ id, role, exp }`;
+   the signature is an HMAC-SHA256 of it with `SESSION_SECRET`, which only the
+   server knows (`server/session.js`). Changing the id breaks the signature, so
+   the browser can't claim to be someone else.
+2. The cookie is **httpOnly** (the page's JavaScript can't read it, so a script
+   injected into the page can't steal it), **SameSite=Lax** (another site can't
+   make the browser send it with a POST, PATCH or DELETE), **Secure** on Render
+   (https only), and lasts a week.
+3. The React app keeps nothing about the user in `localStorage` any more. On
+   load it asks `GET /login` who is signed in; `DELETE /login` signs out.
+4. Routes take the account from the cookie (`req.account`), never from the body,
+   query or URL:
+
+| Route | Who may use it | Someone else |
+|---|---|---|
+| `GET/PATCH/DELETE /clients/:id`, `PATCH /clients/:id/password` | that client | `403` |
+| `PATCH/DELETE /profiles/:id`, `/password`, `/portfolio`, `/availability` (reads and writes) | that artisan | `403` |
+| `GET /bookings` | any signed-in account: its own bookings. `?clientId=` / `?artisanId=` of anyone else | `403` |
+| `POST /bookings`, `PATCH /bookings/:id/cancel`, `POST /bookings/:id/review` | a signed-in client; the booking must be theirs | `404` (as if it weren't there) |
+| `PATCH /bookings/:id/status`, `POST /partner/drop-offs` | a signed-in artisan; the booking must be theirs | `404` |
+| `GET /profiles`, `GET /profiles/:id`, `/stats`, `/partner/materials`, `/partner/collection-locations` | everyone, as before | |
+
+No sign-in at all gets `401`. The partner API (`/artisans`, `X-API-Key`) is unchanged.
+
+### Passwords
+
+`server/passwords.js` hashes with bcrypt (the `bcryptjs` package: the same
+algorithm in plain JavaScript, so Render compiles nothing). Each hash has its own
+random salt, and cost 10 makes each guess against a leaked table slow. Accounts
+from before still hold plain text. They are not changed in bulk: the first right
+sign-in (or password check) compares the plain text with `timingSafeEqual` and
+saves a hash in its place. An unknown email still runs one bcrypt comparison,
+so the time taken doesn't reveal which emails have accounts. New passwords are
+6 to 72 bytes (bcrypt ignores anything after 72).
+
+### Limits of this version
+
+- `SESSION_SECRET` must be set on Render (`render.yaml` asks Render to generate
+  one). Without it the server makes a random one at start-up, so every restart
+  signs everyone out.
+- A session can't be ended early from the server: changing the password doesn't
+  sign out other browsers, which stay signed in until their cookie expires (a
+  week). Fixing that needs a session table or a version number per account.
+- The `/login` limit counts in memory, like the API key limit, and on Render
+  relies on `trust proxy` reading the visitor's address from Render's proxy.
+- Accounts that never sign in again keep a plain-text password. A one-off
+  script could hash them all, but it changes live data, so it waits for the team.

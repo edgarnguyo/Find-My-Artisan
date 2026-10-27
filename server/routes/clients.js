@@ -3,12 +3,18 @@ const router = express.Router();
 const db = require('../db');
 const { inTransaction } = require('../transaction');
 const { checkPassword, sentPasswordProblem, changePasswordRoute } = require('../accounts');
+const { newPasswordProblem, hashPassword } = require('../passwords');
+const { requireOwnAccount, startSession, endSession } = require('../session');
+
+// Every /clients/:id route is only for that client, signed in (session.js).
+// Anyone else gets 403, and nobody signed in gets 401.
+const ownAccount = requireOwnAccount('client');
 
 // There is no "GET all clients": it would show everyone's email and phone to
 // anyone who asked. The account page only needs the signed-in client's own.
 
 // GET one client's details for their account page (never the password)
-router.get('/:id', async (req, res) => {
+router.get('/:id', ownAccount, async (req, res) => {
   try {
     const [rows] = await db.query(
       'SELECT id, name, email, phone, location FROM clients WHERE id = ?',
@@ -31,8 +37,9 @@ router.post('/', async (req, res) => {
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email and password are required' });
   }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  const problem = newPasswordProblem(password);
+  if (problem) {
+    return res.status(400).json({ error: problem });
   }
 
   try {
@@ -46,12 +53,15 @@ router.post('/', async (req, res) => {
     }
 
     // The ? placeholders keep the typed values separate from the SQL,
-    // so nothing typed into the form can run as SQL.
+    // so nothing typed into the form can run as SQL. The password is saved
+    // as a bcrypt hash, never as typed (passwords.js).
     const [result] = await db.query(
       'INSERT INTO clients (name, email, password, phone, location) VALUES (?, ?, ?, ?, ?)',
-      [name, email, password, phone || null, location || null]
+      [name, email, await hashPassword(password), phone || null, location || null]
     );
 
+    // Signing up signs you in.
+    startSession(req, res, { id: result.insertId, role: 'client' });
     res.status(201).json({ id: result.insertId, name, email, role: 'client' });
   } catch (err) {
     console.error(err);
@@ -61,7 +71,7 @@ router.post('/', async (req, res) => {
 
 // PATCH /clients/5  with any of { name, phone, location }
 // Only the fields sent change. Reviews already posted keep the name they had.
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', ownAccount, async (req, res) => {
   const { name, phone, location } = req.body ?? {};
   const changes = {};
 
@@ -106,12 +116,12 @@ router.patch('/:id', async (req, res) => {
 });
 
 // PATCH /clients/5/password  with { currentPassword, newPassword }
-router.patch('/:id/password', changePasswordRoute('client'));
+router.patch('/:id/password', ownAccount, changePasswordRoute('client'));
 
 // DELETE /clients/5  with { password }
 // Open bookings are cancelled, so the artisan's time is free again. Past
 // bookings and reviews stay for the artisans, no longer linked to the account.
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', ownAccount, async (req, res) => {
   try {
     const result = await checkPassword('client', req.params.id, req.body?.password);
     if (sentPasswordProblem(res, result)) return;
@@ -131,6 +141,7 @@ router.delete('/:id', async (req, res) => {
       await conn.query('UPDATE bookings SET client_id = NULL WHERE client_id = ?', [id]);
       await conn.query('DELETE FROM clients WHERE id = ?', [id]);
     });
+    endSession(req, res);
     res.status(204).send();
   } catch (err) {
     console.error(err);

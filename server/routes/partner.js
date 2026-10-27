@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db');
 
 const { MATERIAL_TYPES, UNAVAILABLE, PartnerUnavailable, callPartner, fetchMaterials } = require('../kanairo');
+const { requireSignIn } = require('../session');
 
 // Website-only: data from our upstream partner, Kanairo-Klean (Team 13). The
 // page asks this server, and kanairo.js adds the token from server/.env.
@@ -40,15 +41,17 @@ router.get('/collection-locations', async (req, res) => {
 });
 
 // POST /partner/drop-offs: an artisan reports scrap left over from a completed job.
-// Body: { artisanId, bookingId, locationId, locationName?, materialType, quantityKg, notes? }
+// Body: { bookingId, locationId, locationName?, materialType, quantityKg, notes? },
+// from the signed-in artisan (session.js); an artisanId in the body is ignored.
 // Sent on to Kanairo's POST /collection-locations/{location_id}/drop-offs, and a
 // copy kept in scrap_drop_offs so the dashboard shows it and it isn't sent twice.
-router.post('/drop-offs', async (req, res) => {
-  const { artisanId, bookingId, locationId, locationName, materialType, quantityKg, notes } = req.body ?? {};
+router.post('/drop-offs', requireSignIn('artisan'), async (req, res) => {
+  const artisanId = req.account.id;
+  const { bookingId, locationId, locationName, materialType, quantityKg, notes } = req.body ?? {};
 
   // Validate first, so a mistake costs no call to Kanairo. The limits are theirs.
-  if (!artisanId || !bookingId) {
-    return res.status(400).json({ error: 'artisanId and bookingId are required' });
+  if (!bookingId) {
+    return res.status(400).json({ error: 'bookingId is required' });
   }
   if (typeof locationId !== 'string' || !locationId || locationId.length > 50) {
     return res.status(400).json({ error: 'Choose a collection yard' });

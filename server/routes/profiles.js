@@ -7,6 +7,13 @@ const { inTransaction } = require('../transaction');
 const { checkPassword, sentPasswordProblem, changePasswordRoute } = require('../accounts');
 const { verifiedSql } = require('../verified');
 const { createBlock, deleteBlock } = require('./artisans');
+const { newPasswordProblem, hashPassword } = require('../passwords');
+const { requireOwnAccount, startSession, endSession } = require('../session');
+
+// Reading a profile is open to everyone. Changing one, and the artisan's own
+// busy-time list, is only for that artisan, signed in (session.js): anyone
+// else gets 403, and nobody signed in gets 401.
+const ownAccount = requireOwnAccount('artisan');
 
 // Every column except email and password, which must never be sent to the browser.
 // The artisans.rating column is a fixed number from the sample data, so the
@@ -82,7 +89,7 @@ router.get('/:id', async (req, res) => {
 // Unlike the contract's busy list, each one has its id (so it can be removed
 // with DELETE /profiles/:id/availability/:blockId) and, if it was made by
 // accepting a booking, that booking's id and job.
-router.get('/:id/availability', async (req, res) => {
+router.get('/:id/availability', ownAccount, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT availability_blocks.id, availability_blocks.start_at, availability_blocks.end_at,
@@ -109,8 +116,8 @@ router.get('/:id/availability', async (req, res) => {
 // The dashboard adds and removes busy times here. These run the same code as
 // POST and DELETE /artisans/:id/availability, but without the partners' API
 // key, which must never be put in the website's JavaScript.
-router.post('/:id/availability', createBlock);
-router.delete('/:id/availability/:blockId', deleteBlock);
+router.post('/:id/availability', ownAccount, createBlock);
+router.delete('/:id/availability/:blockId', ownAccount, deleteBlock);
 
 // POST a new artisan (the sign-up form, "An artisan")
 router.post('/', async (req, res) => {
@@ -119,8 +126,9 @@ router.post('/', async (req, res) => {
   if (!name || !email || !password || !skill || !location || !county || !phone) {
     return res.status(400).json({ error: 'Name, email, password, skill, area, county and phone are required' });
   }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  const problem = newPasswordProblem(password);
+  if (problem) {
+    return res.status(400).json({ error: problem });
   }
 
   try {
@@ -134,12 +142,15 @@ router.post('/', async (req, res) => {
     }
 
     // The ? placeholders keep the typed values separate from the SQL,
-    // so nothing typed into the form can run as SQL.
+    // so nothing typed into the form can run as SQL. The password is saved
+    // as a bcrypt hash, never as typed (passwords.js).
     const [result] = await db.query(
       'INSERT INTO artisans (name, email, password, skill, location, county, phone, price, bio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, email, password, skill, location, county, phone, price || null, bio || null]
+      [name, email, await hashPassword(password), skill, location, county, phone, price || null, bio || null]
     );
 
+    // Signing up signs you in.
+    startSession(req, res, { id: result.insertId, role: 'artisan' });
     res.status(201).json({ id: result.insertId, name, email, role: 'artisan' });
   } catch (err) {
     console.error(err);
@@ -201,7 +212,7 @@ async function artisanExists(id) {
 // PATCH /profiles/5  with any of { name, location, county, phone, price, bio, hourlyRateKes }
 // Only the fields sent are changed. The skill isn't editable: the artisan's
 // reviews and verified badge were earned in that trade.
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', ownAccount, async (req, res) => {
   const body = req.body ?? {};
   const fields = Object.keys(body).filter(key => key in EDITABLE);
 
@@ -232,7 +243,7 @@ router.patch('/:id', async (req, res) => {
 });
 
 // POST /profiles/5/portfolio  with { title, imageUrl, description?, workDate? }
-router.post('/:id/portfolio', async (req, res) => {
+router.post('/:id/portfolio', ownAccount, async (req, res) => {
   const { title, imageUrl, description, workDate } = req.body ?? {};
 
   if (!isText(title, 100)) {
@@ -278,7 +289,7 @@ router.post('/:id/portfolio', async (req, res) => {
 });
 
 // DELETE /profiles/5/portfolio/9
-router.delete('/:id/portfolio/:itemId', async (req, res) => {
+router.delete('/:id/portfolio/:itemId', ownAccount, async (req, res) => {
   try {
     // "AND artisan_id = ?" only removes the item if it's this artisan's.
     const [result] = await db.query(
@@ -296,14 +307,14 @@ router.delete('/:id/portfolio/:itemId', async (req, res) => {
 });
 
 // PATCH /profiles/5/password  with { currentPassword, newPassword }
-router.patch('/:id/password', changePasswordRoute('artisan'));
+router.patch('/:id/password', ownAccount, changePasswordRoute('artisan'));
 
 // DELETE /profiles/5  with { password }
 // Refused while the artisan has requests or accepted jobs open, so no client's
 // booking disappears without an answer. Otherwise the artisan and everything
 // attached to them (past bookings, reviews, portfolio, busy times, scrap
 // reports) is removed.
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', ownAccount, async (req, res) => {
   const id = req.params.id;
   try {
     const result = await checkPassword('artisan', id, req.body?.password);
@@ -328,6 +339,7 @@ router.delete('/:id', async (req, res) => {
       }
       await conn.query('DELETE FROM artisans WHERE id = ?', [id]);
     });
+    endSession(req, res);
     res.status(204).send();
   } catch (err) {
     console.error(err);

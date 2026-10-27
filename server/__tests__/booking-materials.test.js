@@ -6,6 +6,10 @@
 const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
+const { signedInAs } = require('../jest.setup');
+
+// Client 5, signed in: bookings are made by whoever is signed in.
+const AS_CLIENT = signedInAs('client', 5);
 
 const realFetch = global.fetch;
 const env = { ...process.env };
@@ -17,7 +21,6 @@ const KANAIRO_MATERIALS = [
 
 const booking = {
   artisanId: 1,
-  clientId: 5,
   name: 'Test Client',
   contact: '0712000000',
   date: '2030-01-01',
@@ -72,7 +75,7 @@ describe('POST /bookings with materials', () => {
     const saved = fakeDatabase();
     global.fetch = partnerAnswers(200, KANAIRO_MATERIALS);
 
-    const res = await request(app).post('/bookings').send({
+    const res = await request(app).post('/bookings').set('Cookie', AS_CLIENT).send({
       ...booking,
       // A price sent from the browser is ignored: the server asks Kanairo.
       materials: [{ materialId: 'HDPE', quantityKg: 20, pricePerKgKes: 1 }],
@@ -94,7 +97,7 @@ describe('POST /bookings with materials', () => {
     const saved = fakeDatabase();
     global.fetch = jest.fn();
 
-    const res = await request(app).post('/bookings').send(booking);
+    const res = await request(app).post('/bookings').set('Cookie', AS_CLIENT).send(booking);
 
     expect(res.status).toBe(201);
     expect(res.body.materials).toEqual([]);
@@ -113,7 +116,7 @@ describe('POST /bookings with materials', () => {
     fakeDatabase();
     global.fetch = jest.fn();
 
-    const res = await request(app).post('/bookings').send({ ...booking, materials });
+    const res = await request(app).post('/bookings').set('Cookie', AS_CLIENT).send({ ...booking, materials });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(message);
@@ -124,7 +127,7 @@ describe('POST /bookings with materials', () => {
     const saved = fakeDatabase();
     global.fetch = partnerAnswers(200, KANAIRO_MATERIALS);
 
-    const res = await request(app).post('/bookings').send({
+    const res = await request(app).post('/bookings').set('Cookie', AS_CLIENT).send({
       ...booking,
       materials: [{ materialId: 'COPPER', quantityKg: 2 }],
     });
@@ -140,7 +143,7 @@ describe('POST /bookings with materials', () => {
     err.cause = { code: 'ECONNREFUSED' };
     global.fetch = jest.fn().mockRejectedValue(err);
 
-    const res = await request(app).post('/bookings').send({
+    const res = await request(app).post('/bookings').set('Cookie', AS_CLIENT).send({
       ...booking,
       materials: [{ materialId: 'HDPE', quantityKg: 2 }],
     });
@@ -163,7 +166,7 @@ describe('GET /bookings', () => {
       return [[{ id: 7, block_end: null }, { id: 8, block_end: null }]];
     });
 
-    const res = await request(app).get('/bookings?clientId=5');
+    const res = await request(app).get('/bookings').set('Cookie', AS_CLIENT);
 
     expect(res.status).toBe(200);
     expect(res.body[0].materials).toEqual([expect.objectContaining({ material_id: 'HDPE', price_per_kg_kes: '35.00' })]);
