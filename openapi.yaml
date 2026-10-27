@@ -359,6 +359,8 @@ paths:
         Artisan-facing only — not part of Meditrac's contract. For when an
         agreed job's time shifts, not for when it falls through entirely
         (use DELETE for that).
+        Blocks made when an artisan accepts a client's booking can't be
+        changed or deleted here; they answer 404 as if they weren't there.
       parameters:
         - name: id
           in: path

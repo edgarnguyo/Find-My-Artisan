@@ -43,6 +43,25 @@ describe('the key check on /artisans', () => {
     expect(res.headers['ratelimit-limit']).toBe('100000');
   });
 
+  it('answers a valid key with 200 and the artisan list', async () => {
+    const res = await request(app).get('/artisans').set('X-API-Key', TEST_API_KEY);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThan(0);
+    expect(Object.keys(res.body[0]).sort()).toEqual(
+      ['area', 'busy', 'county', 'id', 'name', 'trade', 'verified'].sort()
+    );
+  });
+
+  it('never sends an email or password with a full profile', async () => {
+    const res = await request(app).get('/artisans/1').set('X-API-Key', TEST_API_KEY);
+
+    expect(res.status).toBe(200);
+    expect(res.body).not.toHaveProperty('email');
+    expect(res.body).not.toHaveProperty('password');
+  });
+
   it("answers a browser's preflight without a key, with CORS headers", async () => {
     const res = await request(app)
       .options('/artisans')
@@ -52,6 +71,20 @@ describe('the key check on /artisans', () => {
 
     expect(res.status).toBe(204);
     expect(res.headers['access-control-allow-origin']).toBeDefined();
+  });
+});
+
+describe('error responses give nothing away', () => {
+  it('answers a body over 100 kB with JSON, not a stack trace', async () => {
+    const res = await request(app)
+      .post('/artisans/1/reviews')
+      .set('X-API-Key', TEST_API_KEY)
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ author: 'a'.repeat(200_000), rating: 5 }));
+
+    expect(res.status).toBe(413);
+    expect(res.body).toEqual({ code: 'body_too_large', message: 'Request body must be under 100 kB.' });
+    expect(res.text).not.toMatch(/node_modules|at \w+ \(/);
   });
 });
 

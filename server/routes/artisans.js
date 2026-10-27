@@ -177,11 +177,14 @@ async function createBlock(req, res) {
 }
 router.post('/:id/availability', createBlock);
 
-// Finds a block that belongs to this artisan, or null.
+// Finds a block that belongs to this artisan, or null. Blocks made by accepting
+// a booking (booking_id set) are never found: they are the client's booked time,
+// so only the booking itself can move or free them. Otherwise anyone could free
+// an artisan's booked hours by DELETE-ing ids one by one.
 async function findBlock(artisanId, blockId) {
   if (!isId(artisanId) || !isId(blockId)) return null;
   const [rows] = await db.query(
-    'SELECT * FROM availability_blocks WHERE id = ? AND artisan_id = ?',
+    'SELECT * FROM availability_blocks WHERE id = ? AND artisan_id = ? AND booking_id IS NULL',
     [blockId, artisanId]
   );
   return rows[0] ?? null;
