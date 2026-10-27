@@ -5,15 +5,19 @@
 // deleted at the end.
 const request = require('supertest');
 const app = require('../app');
-const { TEST_API_KEY } = require('../jest.setup');
+const { TEST_API_KEY, signedInAs, sessionCookie } = require('../jest.setup');
 const db = require('../db');
 
 // Sample artisans from schema.sql, so they exist on any machine that ran it.
 const ARTISAN_ID = 1;
 const OTHER_ARTISAN_ID = 2;
+// The sample artisans have no password, so their sign-in cookies are made directly.
+const AS_ARTISAN = signedInAs('artisan', ARTISAN_ID);
+const AS_OTHER_ARTISAN = signedInAs('artisan', OTHER_ARTISAN_ID);
 
 const bookingIds = [];
 let clientId;
+let asClient; // the test client's sign-in cookie, from signing up
 
 // Each booking gets its own day in 2030, so accepting one never clashes with
 // the time kept for another.
@@ -24,9 +28,8 @@ function freshDate() {
 }
 
 function postBooking(fields) {
-  return request(app).post('/bookings').send({
+  return request(app).post('/bookings').set('Cookie', asClient).send({
     artisanId: ARTISAN_ID,
-    clientId,
     name: 'Test Client',
     contact: '0712000000',
     time: '09:00',
@@ -42,25 +45,29 @@ async function makeBooking(fields = {}) {
   return res.body.id;
 }
 
-function setStatus(bookingId, body) {
-  return request(app).patch(`/bookings/${bookingId}/status`).send(body);
+function setStatus(bookingId, body, as = AS_ARTISAN) {
+  return request(app).patch(`/bookings/${bookingId}/status`).set('Cookie', as).send(body);
+}
+
+function cancel(bookingId, as = asClient) {
+  return request(app).patch(`/bookings/${bookingId}/cancel`).set('Cookie', as);
 }
 
 // Accepting needs the time the job will be over; the tests' jobs start at 09:00.
 function accept(bookingId, endTime = '11:00') {
-  return setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'confirmed', endTime });
+  return setStatus(bookingId, { status: 'confirmed', endTime });
 }
 
 // A booking the artisan has accepted and marked completed, ready to review.
 async function makeCompletedBooking() {
   const bookingId = await makeBooking();
   await accept(bookingId);
-  await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'completed' });
+  await setStatus(bookingId, { status: 'completed' });
   return bookingId;
 }
 
 function review(bookingId, body) {
-  return request(app).post(`/bookings/${bookingId}/review`).send({ clientId, ...body });
+  return request(app).post(`/bookings/${bookingId}/review`).set('Cookie', asClient).send(body);
 }
 
 async function blockFor(bookingId) {
@@ -76,6 +83,7 @@ beforeAll(async () => {
     password: 'secret1',
   });
   clientId = res.body.id;
+  asClient = sessionCookie(res);
 });
 
 afterAll(async () => {
@@ -92,10 +100,10 @@ afterAll(async () => {
 });
 
 describe('GET /bookings', () => {
-  it("lists an artisan's bookings when given artisanId", async () => {
+  it("lists the signed-in artisan's bookings", async () => {
     const bookingId = await makeBooking();
 
-    const res = await request(app).get('/bookings').query({ artisanId: ARTISAN_ID });
+    const res = await request(app).get('/bookings').set('Cookie', AS_ARTISAN);
 
     expect(res.status).toBe(200);
     const booking = res.body.find(b => b.id === bookingId);
@@ -105,14 +113,18 @@ describe('GET /bookings', () => {
     }
   });
 
-  it('rejects a request with neither clientId nor artisanId', async () => {
-    const res = await request(app).get('/bookings');
-    expect(res.status).toBe(400);
+  it('needs someone signed in', async () => {
+    const res = await request(app).get('/bookings').query({ clientId });
+    expect(res.status).toBe(401);
   });
 
-  it('rejects a request with both clientId and artisanId', async () => {
-    const res = await request(app).get('/bookings').query({ clientId, artisanId: ARTISAN_ID });
-    expect(res.status).toBe(400);
+  // Week 9 audit, finding 8: these used to list anyone's bookings and contacts.
+  it("refuses to list someone else's bookings by their id", async () => {
+    const otherClient = await request(app).get('/bookings').set('Cookie', asClient).query({ clientId: clientId + 1 });
+    const anArtisan = await request(app).get('/bookings').set('Cookie', asClient).query({ artisanId: ARTISAN_ID });
+    const otherArtisan = await request(app).get('/bookings').set('Cookie', AS_ARTISAN).query({ artisanId: OTHER_ARTISAN_ID });
+
+    expect([otherClient.status, anArtisan.status, otherArtisan.status]).toEqual([403, 403, 403]);
   });
 });
 
@@ -124,7 +136,7 @@ describe('PATCH /bookings/:id/status', () => {
     expect(accepted.status).toBe(200);
     expect(accepted.body).toEqual({ id: bookingId, status: 'confirmed' });
 
-    const completed = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'completed' });
+    const completed = await setStatus(bookingId, { status: 'completed' });
     expect(completed.status).toBe(200);
     expect(completed.body).toEqual({ id: bookingId, status: 'completed' });
   });
@@ -132,7 +144,7 @@ describe('PATCH /bookings/:id/status', () => {
   it('lets the artisan decline a request', async () => {
     const bookingId = await makeBooking();
 
-    const res = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'declined' });
+    const res = await setStatus(bookingId, { status: 'declined' });
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('declined');
@@ -141,7 +153,7 @@ describe('PATCH /bookings/:id/status', () => {
   it("refuses to complete a job the artisan hasn't accepted", async () => {
     const bookingId = await makeBooking();
 
-    const res = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'completed' });
+    const res = await setStatus(bookingId, { status: 'completed' });
 
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/pending/);
@@ -149,7 +161,7 @@ describe('PATCH /bookings/:id/status', () => {
 
   it('refuses to re-open a declined request', async () => {
     const bookingId = await makeBooking();
-    await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'declined' });
+    await setStatus(bookingId, { status: 'declined' });
 
     const res = await accept(bookingId);
 
@@ -159,7 +171,7 @@ describe('PATCH /bookings/:id/status', () => {
   it("returns 404 for another artisan's booking and leaves it unchanged", async () => {
     const bookingId = await makeBooking();
 
-    const res = await setStatus(bookingId, { artisanId: OTHER_ARTISAN_ID, status: 'confirmed', endTime: '11:00' });
+    const res = await setStatus(bookingId, { status: 'confirmed', endTime: '11:00' }, AS_OTHER_ARTISAN);
 
     expect(res.status).toBe(404);
     const [rows] = await db.query('SELECT status FROM bookings WHERE id = ?', [bookingId]);
@@ -169,17 +181,29 @@ describe('PATCH /bookings/:id/status', () => {
   it('rejects a status that is not one of the three', async () => {
     const bookingId = await makeBooking();
 
-    const res = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'cancelled' });
+    const res = await setStatus(bookingId, { status: 'cancelled' });
 
     expect(res.status).toBe(400);
   });
 
-  it('rejects a request without artisanId', async () => {
+  it('ignores an artisanId in the body: the artisan is whoever is signed in', async () => {
     const bookingId = await makeBooking();
 
-    const res = await setStatus(bookingId, { status: 'confirmed', endTime: '11:00' });
+    const res = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'declined' }, AS_OTHER_ARTISAN);
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
+  });
+
+  it('needs an artisan signed in', async () => {
+    const bookingId = await makeBooking();
+
+    const nobody = await request(app).patch(`/bookings/${bookingId}/status`).send({ status: 'declined' });
+    const theClient = await setStatus(bookingId, { status: 'declined' }, asClient);
+
+    expect(nobody.status).toBe(401);
+    expect(theClient.status).toBe(403);
+    const [rows] = await db.query('SELECT status FROM bookings WHERE id = ?', [bookingId]);
+    expect(rows[0].status).toBe('pending');
   });
 });
 
@@ -187,18 +211,28 @@ describe('PATCH /bookings/:id/cancel', () => {
   it('lets the client cancel a pending booking', async () => {
     const bookingId = await makeBooking();
 
-    const res = await request(app).patch(`/bookings/${bookingId}/cancel`).send({ clientId });
+    const res = await cancel(bookingId);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: bookingId, status: 'cancelled' });
   });
 
+  it("returns 404 for another client's booking and leaves it unchanged", async () => {
+    const bookingId = await makeBooking();
+
+    const res = await cancel(bookingId, signedInAs('client', clientId + 1000));
+
+    expect(res.status).toBe(404);
+    const [rows] = await db.query('SELECT status FROM bookings WHERE id = ?', [bookingId]);
+    expect(rows[0].status).toBe('pending');
+  });
+
   it('refuses to cancel a completed job', async () => {
     const bookingId = await makeBooking();
     await accept(bookingId);
-    await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'completed' });
+    await setStatus(bookingId, { status: 'completed' });
 
-    const res = await request(app).patch(`/bookings/${bookingId}/cancel`).send({ clientId });
+    const res = await cancel(bookingId);
 
     expect(res.status).toBe(409);
   });
@@ -222,7 +256,7 @@ describe('Busy times from accepted bookings', () => {
   it('refuses to accept without an end time', async () => {
     const bookingId = await makeBooking();
 
-    const res = await setStatus(bookingId, { artisanId: ARTISAN_ID, status: 'confirmed' });
+    const res = await setStatus(bookingId, { status: 'confirmed' });
 
     expect(res.status).toBe(400);
   });
@@ -257,7 +291,7 @@ describe('Busy times from accepted bookings', () => {
     await accept(bookingId);
     expect(await blockFor(bookingId)).not.toBeNull();
 
-    const res = await request(app).patch(`/bookings/${bookingId}/cancel`).send({ clientId });
+    const res = await cancel(bookingId);
 
     expect(res.status).toBe(200);
     expect(await blockFor(bookingId)).toBeNull();
@@ -290,13 +324,15 @@ describe('Busy times from accepted bookings', () => {
     expect(res.status).toBe(400);
   });
 
-  it('refuses a booking without a client account', async () => {
-    const missing = await postBooking({ date: freshDate(), clientId: null });
-    expect(missing.status).toBe(400);
+  it('refuses a booking without a signed-in client', async () => {
+    const booking = { artisanId: ARTISAN_ID, name: 'x', contact: 'x', date: freshDate(), time: '09:00', job: 'x' };
 
-    const unknown = await postBooking({ date: freshDate(), clientId: clientId + 1000 });
-    expect(unknown.status).toBe(400);
-    expect(unknown.body.error).toBe('Sign in with a client account to book');
+    const nobody = await request(app).post('/bookings').send({ ...booking, clientId });
+    const anArtisan = await request(app).post('/bookings').set('Cookie', AS_ARTISAN).send({ ...booking, clientId });
+    const deleted = await request(app).post('/bookings').set('Cookie', signedInAs('client', clientId + 1000)).send(booking);
+
+    expect([nobody.status, anArtisan.status, deleted.status]).toEqual([401, 403, 400]);
+    expect(deleted.body.error).toBe('Sign in with a client account to book');
   });
 
   it("shows an accepted job in Meditrac's busy list and on the profile", async () => {
@@ -321,8 +357,10 @@ describe('Busy times from accepted bookings', () => {
     const bookingId = await makeBooking({ date: '2030-07-01', time: '09:00' });
     await accept(bookingId);
 
-    const res = await request(app).get(`/profiles/${ARTISAN_ID}/availability`);
+    const res = await request(app).get(`/profiles/${ARTISAN_ID}/availability`).set('Cookie', AS_ARTISAN);
+    const someoneElse = await request(app).get(`/profiles/${ARTISAN_ID}/availability`).set('Cookie', AS_OTHER_ARTISAN);
 
+    expect(someoneElse.status).toBe(403);
     expect(res.status).toBe(200);
     expect(res.body).toContainEqual({
       id: expect.any(Number),
@@ -346,7 +384,9 @@ describe('Busy times from accepted bookings', () => {
       .patch(path)
       .set('X-API-Key', TEST_API_KEY)
       .send({ end: '2030-12-31T23:00:00Z' });
-    const websiteDel = await request(app).delete(`/profiles/${ARTISAN_ID}/availability/${block.id}`);
+    const websiteDel = await request(app)
+      .delete(`/profiles/${ARTISAN_ID}/availability/${block.id}`)
+      .set('Cookie', AS_ARTISAN);
 
     expect([del.status, patch.status, websiteDel.status]).toEqual([404, 404, 404]);
     expect(del.body.code).toBe('not_found');
@@ -397,7 +437,8 @@ describe('POST /bookings/:id/review', () => {
 
     const res = await request(app)
       .post(`/bookings/${bookingId}/review`)
-      .send({ clientId: clientId + 1000, rating: 5 });
+      .set('Cookie', signedInAs('client', clientId + 1000))
+      .send({ clientId, rating: 5 });
 
     expect(res.status).toBe(404);
   });
@@ -414,7 +455,7 @@ describe('POST /bookings/:id/review', () => {
     const bookingId = await makeCompletedBooking();
     await review(bookingId, { rating: 3, comment: 'Fine.' });
 
-    const res = await request(app).get('/bookings').query({ clientId });
+    const res = await request(app).get('/bookings').set('Cookie', asClient);
 
     expect(res.body.find(b => b.id === bookingId)).toMatchObject({
       review_rating: 3,

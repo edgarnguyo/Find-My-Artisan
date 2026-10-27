@@ -13,7 +13,21 @@ const reactBuild = path.join(__dirname, '..', 'react-app', 'dist');
 // React dev server). Pages served by this server don't need it, but it's harmless.
 // It must stay above the API key check: a browser's preflight (OPTIONS) request
 // carries no key, so cors() has to answer it before the check sends a 401.
-app.use(cors());
+//
+// Vite's dev server (http://localhost:5173) is a different origin from this one,
+// so its requests only carry the sign-in cookie if CORS allows credentials.
+// That is allowed for localhost pages only; every other origin gets the plain
+// "*" answer, which never lets a browser send or read the cookie.
+const LOCAL_PAGE = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+app.use(cors((req, callback) => {
+  const origin = req.get('Origin');
+  callback(null, origin && LOCAL_PAGE.test(origin) ? { origin, credentials: true } : {});
+}));
+
+// On Render, requests reach us through Render's proxy. Trusting one proxy hop
+// makes req.ip the visitor's address (for the /login limit) and req.secure
+// true for https (for the cookie's Secure flag). Render sets RENDER=true.
+if (process.env.RENDER) app.set('trust proxy', 1);
 app.use(express.json());
 
 // Swagger UI at /docs, built from openapi.yaml, for "Try it out" testing.

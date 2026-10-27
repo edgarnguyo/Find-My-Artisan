@@ -35,15 +35,15 @@ export default function MyBookingsPage() {
   // so only ask for bookings when the signed-in user really is a client.
   const isClient = user.role === 'client';
   const load = useCallback(
-    () => (isClient ? fetchMyBookings(user.id) : Promise.resolve([])),
-    [isClient, user.id]
+    () => (isClient ? fetchMyBookings() : Promise.resolve([])),
+    [isClient]
   );
   const { data: bookings, error, loading } = useAsync(load, [reloadKey, user.id]);
 
   async function handleCancel(id) {
     setCancelling(id);
     try {
-      await cancelBooking(id, user.id);
+      await cancelBooking(id);
       setReloadKey(k => k + 1);
     } catch (err) {
       alert(`Could not cancel: ${err.message}`);
@@ -146,7 +146,6 @@ export default function MyBookingsPage() {
                 {reviewing === booking.id && (
                   <ReviewForm
                     booking={booking}
-                    clientId={user.id}
                     onCancel={() => setReviewing(null)}
                     onDone={() => {
                       setReviewing(null);

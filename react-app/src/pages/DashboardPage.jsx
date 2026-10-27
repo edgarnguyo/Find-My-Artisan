@@ -67,8 +67,8 @@ export default function DashboardPage() {
   // number, so only ask for an artisan's bookings when this really is one.
   const isArtisan = user.role === 'artisan';
   const load = useCallback(
-    () => (isArtisan ? fetchArtisanBookings(user.id) : Promise.resolve([])),
-    [isArtisan, user.id]
+    () => (isArtisan ? fetchArtisanBookings() : Promise.resolve([])),
+    [isArtisan]
   );
   const { data: bookings, error, loading } = useAsync(load, [reloadKey, user.id]);
 
@@ -80,7 +80,7 @@ export default function DashboardPage() {
     if (action.confirm && !window.confirm(action.confirm)) return;
     setSaving({ id: booking.id, status: action.status });
     try {
-      await setBookingStatus(booking.id, user.id, action.status, endTime);
+      await setBookingStatus(booking.id, action.status, endTime);
       setAccepting(null);
       setReloadKey(k => k + 1);
     } catch (err) {
@@ -174,7 +174,6 @@ export default function DashboardPage() {
 
                 {booking.status === 'completed' && (
                   <ScrapDropOffForm
-                    artisanId={user.id}
                     bookingId={booking.id}
                     reports={booking.scrapDropOffs}
                     onReported={() => setReloadKey(k => k + 1)}

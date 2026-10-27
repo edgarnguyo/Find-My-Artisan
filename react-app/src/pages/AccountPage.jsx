@@ -229,7 +229,7 @@ function DeleteAccount() {
       await deleteAccount(user.role, user.id, password);
       // This page needs an account, so once signed out RequireAuth takes the
       // visitor to the home page.
-      signOut();
+      await signOut();
     } catch (err) {
       setError(err.message);
       setDeleting(false);

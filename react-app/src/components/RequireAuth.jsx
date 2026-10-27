@@ -7,8 +7,17 @@ import { useAuth } from '../lib/authContext';
  * signed out (or deleted their account) on such a page goes home instead.
  */
 export default function RequireAuth({ children }) {
-  const { user, signedOut } = useAuth();
+  const { user, checking, signedOut } = useAuth();
   const location = useLocation();
+
+  // Still asking the server whether the sign-in cookie is valid.
+  if (checking) {
+    return (
+      <main className="bookings-page">
+        <p className="bookings-sub">Checking your sign-in…</p>
+      </main>
+    );
+  }
 
   if (!user) {
     if (signedOut) return <Navigate to="/" replace />;

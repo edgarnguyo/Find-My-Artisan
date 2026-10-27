@@ -116,7 +116,6 @@ export default function BookingForm({ worker }) {
     try {
       await createBooking({
         workerId: worker.id,
-        clientId: user.id,
         name,
         contact,
         date,

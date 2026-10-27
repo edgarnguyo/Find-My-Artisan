@@ -39,3 +39,7 @@ services:
       # Without it every /artisans request gets 401; the website still works.
       - key: API_KEYS
         sync: false
+      # Signs the website's sign-in cookie (server/session.js). Render makes a
+      # random value once and keeps it, so restarts don't sign everyone out.
+      - key: SESSION_SECRET
+        generateValue: true

@@ -3,7 +3,7 @@
 // so the sample artisans are never changed.
 const request = require('supertest');
 const app = require('../app');
-const { TEST_API_KEY } = require('../jest.setup');
+const { TEST_API_KEY, signedInAs } = require('../jest.setup');
 const db = require('../db');
 
 const PHOTO = 'https://example.com/photos/kitchen-sink.jpg';
@@ -24,12 +24,13 @@ async function makeArtisan(name) {
   return res.body.id;
 }
 
-function editProfile(body, id = artisanId) {
-  return request(app).patch(`/profiles/${id}`).send(body);
+// Signed in as artisan `id` unless `as` says otherwise.
+function editProfile(body, id = artisanId, as = signedInAs('artisan', id)) {
+  return request(app).patch(`/profiles/${id}`).set('Cookie', as).send(body);
 }
 
-function addItem(body, id = artisanId) {
-  return request(app).post(`/profiles/${id}/portfolio`).send({ title: 'New sink', imageUrl: PHOTO, ...body });
+function addItem(body, id = artisanId, as = signedInAs('artisan', id)) {
+  return request(app).post(`/profiles/${id}/portfolio`).set('Cookie', as).send({ title: 'New sink', imageUrl: PHOTO, ...body });
 }
 
 beforeAll(async () => {
@@ -110,6 +111,26 @@ describe('PATCH /profiles/:id', () => {
     expect(after.location).toBe(before.location);
   });
 
+  // Week 9 audit, finding 8: anyone could edit any artisan's profile.
+  it("is only for that artisan: 401 signed out, 403 for anyone else, and nothing changes", async () => {
+    const before = (await request(app).get(`/profiles/${artisanId}`)).body;
+
+    const signedOut = await request(app).patch(`/profiles/${artisanId}`).send({ bio: 'Hacked' });
+    const otherArtisan = await editProfile({ bio: 'Hacked' }, artisanId, signedInAs('artisan', otherArtisanId));
+    const aClient = await editProfile({ bio: 'Hacked' }, artisanId, signedInAs('client', artisanId));
+    const forged = await editProfile({ bio: 'Hacked' }, artisanId, 'fma_session=eyJpZCI6MX0.not-signed');
+    const item = await addItem({ title: 'Not mine' }, artisanId, signedInAs('artisan', otherArtisanId));
+    const busy = await request(app).post(`/profiles/${artisanId}/availability`)
+      .set('Cookie', signedInAs('artisan', otherArtisanId))
+      .send({ start: '2031-01-01T06:00:00Z', end: '2031-01-01T08:00:00Z' });
+
+    expect([signedOut.status, forged.status]).toEqual([401, 401]);
+    expect([otherArtisan.status, aClient.status, item.status, busy.status]).toEqual([403, 403, 403, 403]);
+    const after = (await request(app).get(`/profiles/${artisanId}`)).body;
+    expect(after.bio).toBe(before.bio);
+    expect(after.portfolio).toEqual(before.portfolio);
+  });
+
   it('returns 404 for an artisan that does not exist', async () => {
     const res = await editProfile({ bio: 'Hello' }, 999999);
     expect(res.status).toBe(404);
@@ -164,7 +185,9 @@ describe('Portfolio', () => {
   it('removes an item', async () => {
     const item = (await addItem({ title: 'To remove' })).body;
 
-    const res = await request(app).delete(`/profiles/${artisanId}/portfolio/${item.id}`);
+    const res = await request(app)
+      .delete(`/profiles/${artisanId}/portfolio/${item.id}`)
+      .set('Cookie', signedInAs('artisan', artisanId));
 
     expect(res.status).toBe(204);
     const profile = (await request(app).get(`/profiles/${artisanId}`)).body;
@@ -174,7 +197,9 @@ describe('Portfolio', () => {
   it("returns 404 removing another artisan's item, and keeps it", async () => {
     const item = (await addItem({ title: 'Not yours' })).body;
 
-    const res = await request(app).delete(`/profiles/${otherArtisanId}/portfolio/${item.id}`);
+    const res = await request(app)
+      .delete(`/profiles/${otherArtisanId}/portfolio/${item.id}`)
+      .set('Cookie', signedInAs('artisan', otherArtisanId));
 
     expect(res.status).toBe(404);
     const [rows] = await db.query('SELECT id FROM portfolio_items WHERE id = ?', [item.id]);
