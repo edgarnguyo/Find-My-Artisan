@@ -8,7 +8,7 @@ const STARS = [1, 2, 3, 4, 5];
  * radio buttons, so they work with the keyboard and screen readers too.
  * onDone runs after the review is saved; onCancel closes the form.
  */
-export default function ReviewForm({ booking, clientId, onDone, onCancel }) {
+export default function ReviewForm({ booking, onDone, onCancel }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [error, setError] = useState(null);
@@ -23,7 +23,7 @@ export default function ReviewForm({ booking, clientId, onDone, onCancel }) {
     setError(null);
     setSaving(true);
     try {
-      await reviewBooking(booking.id, clientId, rating, comment);
+      await reviewBooking(booking.id, rating, comment);
       onDone();
     } catch (err) {
       setError(err.message);
