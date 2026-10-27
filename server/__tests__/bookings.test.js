@@ -332,6 +332,27 @@ describe('Busy times from accepted bookings', () => {
       job: 'Booking made by bookings.test.js',
     });
   });
+
+  // Week 9 audit: a booked block is the client's time, so no one may free it
+  // by its id, through the partner API or the website's busy-time routes.
+  it("won't let a booked block be moved or deleted by its id", async () => {
+    const bookingId = await makeBooking();
+    await accept(bookingId);
+    const block = await blockFor(bookingId);
+    const path = `/artisans/${ARTISAN_ID}/availability/${block.id}`;
+
+    const del = await request(app).delete(path).set('X-API-Key', TEST_API_KEY);
+    const patch = await request(app)
+      .patch(path)
+      .set('X-API-Key', TEST_API_KEY)
+      .send({ end: '2030-12-31T23:00:00Z' });
+    const websiteDel = await request(app).delete(`/profiles/${ARTISAN_ID}/availability/${block.id}`);
+
+    expect([del.status, patch.status, websiteDel.status]).toEqual([404, 404, 404]);
+    expect(del.body.code).toBe('not_found');
+    // Untouched: same times, still linked to the booking.
+    expect(await blockFor(bookingId)).toEqual(block);
+  });
 });
 
 describe('POST /bookings/:id/review', () => {
