@@ -2305,7 +2305,7 @@ a.submit-btn {
   font-weight: 600;
 }
 
-/* Booking form: Kanairo-Klean materials with live prices and a running total. */
+/* Quote form: Kanairo-Klean materials with live prices and a running total. */
 .material-estimate {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -2381,22 +2381,101 @@ a.submit-btn {
   margin: 0 0 var(--spacing-sm);
 }
 
-/* My bookings and the dashboard: the estimate saved with a request. */
-.booking-materials {
+/* My bookings and the dashboard: the artisan's quote on a job. */
+.booking-quote {
   margin-top: 4px;
   font-size: 0.85rem;
 }
 
-.booking-materials summary {
+.booking-quote summary {
   cursor: pointer;
 }
 
-.booking-materials ul {
+.booking-quote-status {
+  color: var(--color-text-muted);
+}
+
+.quote-accepted .booking-quote-status {
+  color: var(--color-verified);
+  font-weight: 600;
+}
+
+.booking-quote ul {
   margin: 0.35rem 0 0;
   padding-left: 1.1rem;
 }
 
-.booking-materials p {
+.booking-quote p {
   margin: 0.25rem 0 0;
   color: var(--color-text-muted);
+}
+
+.booking-quote-notes {
+  font-style: italic;
+}
+
+.booking-quote-waiting {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* The artisan's quote form on the dashboard. */
+.quote-open {
+  margin-top: var(--spacing-sm);
+  font-size: 0.875rem;
+}
+
+.quote-form {
+  margin-top: var(--spacing-sm);
+}
+
+.quote-labour {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+}
+
+.quote-labour label,
+.quote-notes label {
+  font-size: 0.95rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.quote-labour label {
+  white-space: nowrap;
+}
+
+.quote-labour input {
+  width: 8rem;
+}
+
+.quote-heading {
+  font-size: 0.95rem;
+  margin: var(--spacing-sm) 0 0.25rem;
+}
+
+.quote-other {
+  margin-top: var(--spacing-sm);
+}
+
+.quote-other summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.quote-notes {
+  margin: var(--spacing-md) 0 0;
+}
+
+.quote-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
 }
