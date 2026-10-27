@@ -408,17 +408,19 @@ UPDATE artisans SET created_at = '2025-01-15 09:00:00'
   WHERE id BETWEEN 1 AND 23 AND created_at > '2025-01-15 09:00:00';
 
 -- ---------------------------------------------------------------------------
--- Week 10: the materials a client expects a job to need, priced from
--- Kanairo-Klean (Team 13) when the booking was made. The price is copied here
--- because Kanairo's price changes; the estimate should show what the client
--- was quoted, not today's price. One row per material per booking.
+-- Week 10: the materials a job needs, priced from Kanairo-Klean (Team 13)
+-- when the artisan sent their quote (booking_quotes, below). The price is
+-- copied here because Kanairo's price changes; the quote should show what the
+-- client was quoted, not today's price. One row per material per booking.
+-- Rows from before quotes existed (client estimates) have no booking_quotes
+-- row and are not shown.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS booking_materials (
   id INT AUTO_INCREMENT PRIMARY KEY,
   booking_id INT NOT NULL,
   -- Kanairo's material_id, e.g. 'HDPE'.
   material_id VARCHAR(50) NOT NULL,
-  -- Kanairo's name and type at the time, so the estimate shows without asking them.
+  -- Kanairo's name and type at the time, so the quote shows without asking them.
   name VARCHAR(100) NOT NULL,
   material_type VARCHAR(20) NOT NULL,
   quantity_kg DECIMAL(8, 2) NOT NULL,
@@ -426,3 +428,26 @@ CREATE TABLE IF NOT EXISTS booking_materials (
   UNIQUE KEY one_row_per_material (booking_id, material_id),
   FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );
+
+-- ---------------------------------------------------------------------------
+-- Week 10, revised: the artisan prices the job, not the client. A client can't
+-- know how much pipe a job needs; the artisan can, after seeing it. So the
+-- artisan sends a quote from their dashboard: labour plus Kanairo-Klean
+-- materials (in booking_materials above, now the quote's lines). The client
+-- accepts or declines it on My Bookings. One quote per booking: sending it
+-- again replaces it and adds 1 to version.
+-- version: the client's answer names the version they saw, so a quote the
+-- artisan changed in the meantime is never accepted by mistake.
+-- status: 'sent', then 'accepted' or 'declined' by the client.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS booking_quotes (
+  booking_id INT PRIMARY KEY,
+  labour_kes DECIMAL(10, 2) NOT NULL,
+  notes VARCHAR(500),
+  status VARCHAR(10) NOT NULL,
+  version INT NOT NULL,
+  sent_at DATETIME NOT NULL,
+  answered_at DATETIME,
+  FOREIGN KEY (booking_id) REFERENCES bookings(id)
+);
+
