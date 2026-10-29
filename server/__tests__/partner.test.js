@@ -5,6 +5,7 @@
 const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
+const { signedInAs } = require('../jest.setup');
 
 const realFetch = global.fetch;
 const env = { ...process.env };
@@ -125,7 +126,9 @@ describe('GET /partner/collection-locations', () => {
 });
 
 describe('POST /partner/drop-offs', () => {
-  const valid = { artisanId: 3, bookingId: 12, locationId: '2', materialType: 'metal', quantityKg: 12.5 };
+  const valid = { bookingId: 12, locationId: '2', materialType: 'metal', quantityKg: 12.5 };
+  // Reports come from the signed-in artisan, here artisan 3.
+  const AS_ARTISAN = signedInAs('artisan', 3);
 
   // A fake database: the booking lookup answers as if booking 12 is artisan 3's,
   // with this status. The reserving INSERT gets row id 7, or fails as a duplicate.
@@ -152,7 +155,7 @@ describe('POST /partner/drop-offs', () => {
       status: 'pending', created_at: '2026-10-20T10:30:00Z',
     });
 
-    const res = await request(app).post('/partner/drop-offs').send({ ...valid, notes: ' Copper offcuts ' });
+    const res = await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send({ ...valid, notes: ' Copper offcuts ' });
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({
@@ -175,7 +178,7 @@ describe('POST /partner/drop-offs', () => {
     bookingIs('completed', { duplicate: true });
     global.fetch = jest.fn();
 
-    const res = await request(app).post('/partner/drop-offs').send(valid);
+    const res = await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send(valid);
 
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/already reported metal/);
@@ -186,7 +189,7 @@ describe('POST /partner/drop-offs', () => {
     bookingIs('completed');
     global.fetch = partnerAnswers(201, { drop_off_id: 'drop-0002', location_id: '2', status: 'pending' });
 
-    await request(app).post('/partner/drop-offs').send({ ...valid, notes: '   ' });
+    await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send({ ...valid, notes: '   ' });
 
     expect(JSON.parse(global.fetch.mock.calls[0][1].body)).not.toHaveProperty('notes');
   });
@@ -201,17 +204,32 @@ describe('POST /partner/drop-offs', () => {
   ])('rejects %s without calling the partner', async (_, change) => {
     global.fetch = jest.fn();
 
-    const res = await request(app).post('/partner/drop-offs').send({ ...valid, ...change });
+    const res = await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send({ ...valid, ...change });
 
     expect(res.status).toBe(400);
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  // Week 9 audit, finding 8: the artisan used to come from the body.
+  it('needs an artisan signed in, and takes the artisan from the session', async () => {
+    const query = bookingIs('completed');
+    global.fetch = jest.fn();
+
+    const nobody = await request(app).post('/partner/drop-offs').send({ ...valid, artisanId: 3 });
+    const aClient = await request(app).post('/partner/drop-offs').set('Cookie', signedInAs('client', 3)).send(valid);
+    expect([nobody.status, aClient.status]).toEqual([401, 403]);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    // An artisanId in the body is ignored: the booking is looked up for artisan 8.
+    await request(app).post('/partner/drop-offs').set('Cookie', signedInAs('artisan', 8)).send({ ...valid, artisanId: 3 });
+    expect(query.mock.calls[0][1]).toEqual([12, 8]);
   });
 
   it('answers 404 for a job that is not this artisan\'s', async () => {
     bookingIs(null);
     global.fetch = jest.fn();
 
-    const res = await request(app).post('/partner/drop-offs').send(valid);
+    const res = await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send(valid);
 
     expect(res.status).toBe(404);
     expect(global.fetch).not.toHaveBeenCalled();
@@ -221,7 +239,7 @@ describe('POST /partner/drop-offs', () => {
     bookingIs('confirmed');
     global.fetch = jest.fn();
 
-    const res = await request(app).post('/partner/drop-offs').send(valid);
+    const res = await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send(valid);
 
     expect(res.status).toBe(409);
     expect(global.fetch).not.toHaveBeenCalled();
@@ -231,7 +249,7 @@ describe('POST /partner/drop-offs', () => {
     bookingIs('completed');
     global.fetch = partnerAnswers(404, { code: 404, message: 'Collection location 2 not found' });
 
-    const res = await request(app).post('/partner/drop-offs').send(valid);
+    const res = await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send(valid);
 
     expect(res.status).toBe(404);
     expect(res.body.error).toMatch(/no longer taking drop-offs/);
@@ -241,7 +259,7 @@ describe('POST /partner/drop-offs', () => {
     bookingIs('completed');
     global.fetch = partnerAnswers(400, { code: 400, message: 'source must be 1 to 120 characters' });
 
-    const res = await request(app).post('/partner/drop-offs').send(valid);
+    const res = await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send(valid);
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/source must be 1 to 120 characters/);
@@ -251,7 +269,7 @@ describe('POST /partner/drop-offs', () => {
     const query = bookingIs('completed');
     global.fetch = connectionRefused();
 
-    const res = await request(app).post('/partner/drop-offs').send(valid);
+    const res = await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send(valid);
 
     expect(res.status).toBe(502);
     expect(statements(query)).toEqual(['SELECT', 'INSERT', 'DELETE']);
@@ -262,7 +280,7 @@ describe('POST /partner/drop-offs', () => {
     const query = bookingIs('completed');
     global.fetch = partnerAnswers(404, { code: 404, message: 'Collection location 2 not found' });
 
-    await request(app).post('/partner/drop-offs').send(valid);
+    await request(app).post('/partner/drop-offs').set('Cookie', AS_ARTISAN).send(valid);
 
     expect(statements(query)).toEqual(['SELECT', 'INSERT', 'DELETE']);
   });

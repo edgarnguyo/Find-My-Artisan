@@ -4,6 +4,14 @@ const db = require('../db');
 const { kenyaToDbTime, fromDbTime, overlapsExistingBlock } = require('../availability');
 const { inTransaction } = require('../transaction');
 const { UNAVAILABLE, PartnerUnavailable, fetchMaterials } = require('../kanairo');
+const { requireSignIn } = require('../session');
+
+// Every booking route needs someone signed in (session.js), and takes the
+// client or artisan from the session (req.account), never from an id the
+// browser sends. A booking that isn't yours answers 404, as if it weren't there.
+const signedIn = requireSignIn();
+const signedInClient = requireSignIn('client');
+const signedInArtisan = requireSignIn('artisan');
 
 // Which status an artisan may move a booking to, from which status. A request
 // starts as pending; the artisan accepts or declines it, and marks an accepted
@@ -56,13 +64,18 @@ function kenyaClock(dbTime) {
   });
 }
 
-// GET one client's bookings:   /bookings?clientId=5
-// GET one artisan's bookings:  /bookings?artisanId=3
-router.get('/', async (req, res) => {
-  const { clientId, artisanId } = req.query;
-  if (!clientId === !artisanId) {
-    return res.status(400).json({ error: 'Send either clientId or artisanId' });
+// GET /bookings: the signed-in client's bookings, or the signed-in artisan's.
+// The old ?clientId= / ?artisanId= still work, but only for your own id:
+// anyone else's is 403.
+router.get('/', signedIn, async (req, res) => {
+  const { id, role } = req.account;
+  const asked = role === 'client' ? req.query.artisanId : req.query.clientId;
+  const own = role === 'client' ? req.query.clientId : req.query.artisanId;
+  if (asked !== undefined || (own !== undefined && own !== String(id))) {
+    return res.status(403).json({ error: 'You can only see your own bookings' });
   }
+  const clientId = role === 'client' ? id : null;
+  const artisanId = role === 'artisan' ? id : null;
 
   try {
     // JOINs add the artisan's name, skill and location, the end of the time
@@ -136,11 +149,13 @@ router.get('/', async (req, res) => {
 // POST a new booking (the "Request this artisan" form). The client doesn't
 // price materials: the artisan sends a quote once they've seen the job
 // (PUT /bookings/:id/quote).
-router.post('/', async (req, res) => {
-  const { artisanId, clientId, name, contact, date, time, budget, job } = req.body;
+// The client is whoever is signed in; a clientId in the body is ignored.
+router.post('/', signedInClient, async (req, res) => {
+  const { artisanId, name, contact, date, time, budget, job } = req.body ?? {};
+  const clientId = req.account.id;
 
-  if (!artisanId || !clientId || !name || !contact || !date || !time || !job) {
-    return res.status(400).json({ error: 'artisanId, clientId, name, contact, date, time and job are required' });
+  if (!artisanId || !name || !contact || !date || !time || !job) {
+    return res.status(400).json({ error: 'artisanId, name, contact, date, time and job are required' });
   }
   if (!DATE.test(date) || !TIME.test(time)) {
     return res.status(400).json({ error: 'date must look like 2026-10-22 and time like 10:00' });
@@ -180,17 +195,16 @@ router.post('/', async (req, res) => {
 });
 
 // PUT the artisan's quote for a job:  /bookings/7/quote
-// with  { artisanId, labourKes, materials: [{ materialId, quantityKg }], notes? }
+// with  { labourKes, materials: [{ materialId, quantityKg }], notes? }, by the
+// signed-in artisan whose booking it is.
 // Sent from the dashboard after the artisan has seen the job. This server looks
 // up each material's price at Kanairo-Klean, so the quote can't be changed in
 // the browser. Sending again replaces the quote (until the client accepts it)
 // and asks the client to answer again.
-router.put('/:id/quote', async (req, res) => {
-  const { artisanId, labourKes, materials = [], notes } = req.body;
+router.put('/:id/quote', signedInArtisan, async (req, res) => {
+  const { labourKes, materials = [], notes } = req.body ?? {};
+  const artisanId = req.account.id;
 
-  if (!artisanId) {
-    return res.status(400).json({ error: 'artisanId is required' });
-  }
   // DECIMAL(10, 2) holds up to 99,999,999.99.
   if (typeof labourKes !== 'number' || !(labourKes >= 0) || labourKes >= 1e8) {
     return res.status(400).json({ error: 'labourKes must be a number from 0 to 99,999,999' });
@@ -275,15 +289,14 @@ router.put('/:id/quote', async (req, res) => {
 });
 
 // PATCH the client's answer to a quote:  /bookings/7/quote
-// with  { clientId, decision: 'accepted' | 'declined', version }
+// with  { decision: 'accepted' | 'declined', version }, by the signed-in
+// client whose booking it is.
 // version is the quote the client saw. If the artisan has sent a new one
 // since, nothing changes and the client is asked to look again.
-router.patch('/:id/quote', async (req, res) => {
-  const { clientId, decision, version } = req.body;
+router.patch('/:id/quote', signedInClient, async (req, res) => {
+  const { decision, version } = req.body ?? {};
+  const clientId = req.account.id;
 
-  if (!clientId) {
-    return res.status(400).json({ error: 'clientId is required' });
-  }
   if (decision !== 'accepted' && decision !== 'declined') {
     return res.status(400).json({ error: 'decision must be accepted or declined' });
   }
@@ -353,9 +366,9 @@ async function whyNotQuotable(bookingId, artisanId, conn = db) {
   return null;
 }
 
-// PATCH cancel a booking:  /bookings/7/cancel  with  { clientId }
-router.patch('/:id/cancel', async (req, res) => {
-  const { clientId } = req.body;
+// PATCH cancel a booking:  /bookings/7/cancel  (the signed-in client's own)
+router.patch('/:id/cancel', signedInClient, async (req, res) => {
+  const clientId = req.account.id;
 
   try {
     const cancelled = await inTransaction(async conn => {
@@ -381,15 +394,13 @@ router.patch('/:id/cancel', async (req, res) => {
   }
 });
 
-// PATCH an artisan's answer:  /bookings/7/status  with  { artisanId, status }
-// status is "confirmed", "declined" or "completed". Accepting ("confirmed")
-// also needs endTime ("12:00", Kenya time): when the job will be over that day.
-router.patch('/:id/status', async (req, res) => {
-  const { artisanId, status, endTime } = req.body;
-
-  if (!artisanId) {
-    return res.status(400).json({ error: 'artisanId is required' });
-  }
+// PATCH an artisan's answer:  /bookings/7/status  with  { status }, by the
+// signed-in artisan. status is "confirmed", "declined" or "completed".
+// Accepting ("confirmed") also needs endTime ("12:00", Kenya time): when the
+// job will be over that day.
+router.patch('/:id/status', signedInArtisan, async (req, res) => {
+  const { status, endTime } = req.body ?? {};
+  const artisanId = req.account.id;
   const allowedFrom = ARTISAN_MOVES[status];
   if (!allowedFrom) {
     return res.status(400).json({ error: 'status must be confirmed, declined or completed' });
@@ -416,15 +427,13 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 // POST a client's review of a finished job:  /bookings/7/review
-// with  { clientId, rating, comment }. Only the client who booked can review,
+// with  { rating, comment }, by the signed-in client. Only the client who booked can review,
 // only once the artisan has marked the job completed, and only once per job,
 // so every website review comes from someone who really hired the artisan.
-router.post('/:id/review', async (req, res) => {
-  const { clientId, rating, comment } = req.body;
+router.post('/:id/review', signedInClient, async (req, res) => {
+  const { rating, comment } = req.body ?? {};
+  const clientId = req.account.id;
 
-  if (!clientId) {
-    return res.status(400).json({ error: 'clientId is required' });
-  }
   // Number.isInteger rejects "5" (a string) and 4.5, not just values out of range.
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return res.status(400).json({ error: 'rating must be a whole number from 1 to 5' });

@@ -7,6 +7,12 @@
 const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
+const { signedInAs } = require('../jest.setup');
+
+// Quotes are sent by the signed-in artisan and answered by the signed-in
+// client; ids in the body are ignored.
+const AS_ARTISAN = signedInAs('artisan', 1);
+const AS_CLIENT = signedInAs('client', 5);
 
 const realFetch = global.fetch;
 const env = { ...process.env };
@@ -16,7 +22,7 @@ const KANAIRO_MATERIALS = [
   { material_id: 'ALU', name: 'Aluminium', type: 'metal', quantity_kg: 430, unit_price_kes: 85 },
 ];
 
-const quote = { artisanId: 1, labourKes: 1500, materials: [{ materialId: 'HDPE', quantityKg: 20 }] };
+const quote = { labourKes: 1500, materials: [{ materialId: 'HDPE', quantityKg: 20 }] };
 
 function partnerAnswers(status, body) {
   return jest.fn().mockResolvedValue(
@@ -77,8 +83,8 @@ describe('POST /bookings', () => {
     });
     global.fetch = jest.fn();
 
-    const res = await request(app).post('/bookings').send({
-      artisanId: 1, clientId: 5, name: 'Test Client', contact: '0712000000',
+    const res = await request(app).post('/bookings').set('Cookie', AS_CLIENT).send({
+      artisanId: 1, name: 'Test Client', contact: '0712000000',
       date: '2030-01-01', time: '09:00', job: 'Fix the kitchen sink',
       // Sent by an old copy of the page: ignored, the artisan prices the job.
       materials: [{ materialId: 'HDPE', quantityKg: 20 }],
@@ -96,7 +102,7 @@ describe('PUT /bookings/:id/quote', () => {
     const fake = fakeDatabase();
     global.fetch = partnerAnswers(200, KANAIRO_MATERIALS);
 
-    const res = await request(app).put('/bookings/7/quote').send({
+    const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send({
       ...quote,
       // A price sent from the browser is ignored: the server asks Kanairo.
       materials: [{ materialId: 'HDPE', quantityKg: 20, pricePerKgKes: 1 }],
@@ -125,7 +131,7 @@ describe('PUT /bookings/:id/quote', () => {
     const fake = fakeDatabase();
     global.fetch = jest.fn();
 
-    const res = await request(app).put('/bookings/7/quote').send({ artisanId: 1, labourKes: 2000 });
+    const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send({ labourKes: 2000 });
 
     expect(res.status).toBe(200);
     expect(res.body.materials).toEqual([]);
@@ -137,14 +143,13 @@ describe('PUT /bookings/:id/quote', () => {
     fakeDatabase({ quoteStatus: 'declined' });
     global.fetch = partnerAnswers(200, KANAIRO_MATERIALS);
 
-    const res = await request(app).put('/bookings/7/quote').send(quote);
+    const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send(quote);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ status: 'sent', version: 2 });
   });
 
   it.each([
-    ['no artisanId', { artisanId: undefined }, /artisanId/],
     ['labour as text', { labourKes: '1500' }, /labourKes/],
     ['negative labour', { labourKes: -1 }, /labourKes/],
     ['nothing to charge', { labourKes: 0, materials: [] }, /labour charge, materials, or both/],
@@ -156,7 +161,7 @@ describe('PUT /bookings/:id/quote', () => {
     fakeDatabase();
     global.fetch = jest.fn();
 
-    const res = await request(app).put('/bookings/7/quote').send({ ...quote, ...fields });
+    const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send({ ...quote, ...fields });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(message);
@@ -164,14 +169,15 @@ describe('PUT /bookings/:id/quote', () => {
   });
 
   it.each([
-    ["another artisan's booking", { artisanId: 2 }, {}, 404, /not found/],
-    ['a completed job', {}, { status: 'completed' }, 409, /completed/],
-    ['a quote the client accepted', {}, { quoteStatus: 'accepted' }, 409, /accepted/],
-  ])('refuses %s before calling Kanairo', async (_, fields, booking, status, message) => {
+    // An artisanId in the body is ignored: artisan 2 is signed in.
+    ["another artisan's booking", signedInAs('artisan', 2), {}, 404, /not found/],
+    ['a completed job', AS_ARTISAN, { status: 'completed' }, 409, /completed/],
+    ['a quote the client accepted', AS_ARTISAN, { quoteStatus: 'accepted' }, 409, /accepted/],
+  ])('refuses %s before calling Kanairo', async (_, as, booking, status, message) => {
     const fake = fakeDatabase(booking);
     global.fetch = jest.fn();
 
-    const res = await request(app).put('/bookings/7/quote').send({ ...quote, ...fields });
+    const res = await request(app).put('/bookings/7/quote').set('Cookie', as).send({ ...quote, artisanId: 1 });
 
     expect(res.status).toBe(status);
     expect(res.body.error).toMatch(message);
@@ -179,11 +185,22 @@ describe('PUT /bookings/:id/quote', () => {
     expect(fake.writes()).toHaveLength(0);
   });
 
+  it('needs an artisan signed in', async () => {
+    const fake = fakeDatabase();
+    global.fetch = jest.fn();
+
+    const nobody = await request(app).put('/bookings/7/quote').send({ ...quote, artisanId: 1 });
+    const aClient = await request(app).put('/bookings/7/quote').set('Cookie', AS_CLIENT).send(quote);
+
+    expect([nobody.status, aClient.status]).toEqual([401, 403]);
+    expect(fake.writes()).toHaveLength(0);
+  });
+
   it("rejects a material Kanairo doesn't list and saves nothing", async () => {
     const fake = fakeDatabase();
     global.fetch = partnerAnswers(200, KANAIRO_MATERIALS);
 
-    const res = await request(app).put('/bookings/7/quote').send({
+    const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send({
       ...quote,
       materials: [{ materialId: 'COPPER', quantityKg: 2 }],
     });
@@ -199,7 +216,7 @@ describe('PUT /bookings/:id/quote', () => {
     err.cause = { code: 'ECONNREFUSED' };
     global.fetch = jest.fn().mockRejectedValue(err);
 
-    const res = await request(app).put('/bookings/7/quote').send(quote);
+    const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send(quote);
 
     expect(res.status).toBe(502);
     expect(res.body.error).toMatch(/unavailable.*labour only/);
@@ -208,12 +225,12 @@ describe('PUT /bookings/:id/quote', () => {
 });
 
 describe('PATCH /bookings/:id/quote', () => {
-  const answer = { clientId: 5, decision: 'accepted', version: 2 };
+  const answer = { decision: 'accepted', version: 2 };
 
   it("saves the client's answer to the version they saw", async () => {
     const update = jest.spyOn(db, 'query').mockResolvedValue([{ affectedRows: 1 }]);
 
-    const res = await request(app).patch('/bookings/7/quote').send(answer);
+    const res = await request(app).patch('/bookings/7/quote').set('Cookie', AS_CLIENT).send(answer);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ bookingId: 7, status: 'accepted', version: 2 });
@@ -221,13 +238,25 @@ describe('PATCH /bookings/:id/quote', () => {
   });
 
   it.each([
-    ['no clientId', { clientId: undefined }, /clientId/],
     ['an unknown decision', { decision: 'maybe' }, /decision/],
     ['no version', { version: undefined }, /version/],
   ])('rejects %s with 400', async (_, fields, message) => {
-    const res = await request(app).patch('/bookings/7/quote').send({ ...answer, ...fields });
+    const res = await request(app).patch('/bookings/7/quote').set('Cookie', AS_CLIENT).send({ ...answer, ...fields });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(message);
+  });
+
+  it('needs a client signed in, and answers only for that client', async () => {
+    const update = jest.spyOn(db, 'query').mockResolvedValue([{ affectedRows: 1 }]);
+
+    const nobody = await request(app).patch('/bookings/7/quote').send({ ...answer, clientId: 5 });
+    const anArtisan = await request(app).patch('/bookings/7/quote').set('Cookie', AS_ARTISAN).send(answer);
+    expect([nobody.status, anArtisan.status]).toEqual([401, 403]);
+    expect(update).not.toHaveBeenCalled();
+
+    // A clientId in the body is ignored: the UPDATE is for client 8, who is signed in.
+    await request(app).patch('/bookings/7/quote').set('Cookie', signedInAs('client', 8)).send({ ...answer, clientId: 5 });
+    expect(update.mock.calls[0][1][2]).toBe(8);
   });
 
   // When nothing changed, the second query says why.
@@ -241,7 +270,7 @@ describe('PATCH /bookings/:id/quote', () => {
       .mockResolvedValueOnce([{ affectedRows: 0 }])
       .mockResolvedValueOnce([why]);
 
-    const res = await request(app).patch('/bookings/7/quote').send(answer);
+    const res = await request(app).patch('/bookings/7/quote').set('Cookie', AS_CLIENT).send(answer);
 
     expect(res.status).toBe(status);
     expect(res.body.error).toMatch(message);
@@ -268,7 +297,7 @@ describe('GET /bookings', () => {
       ]];
     });
 
-    const res = await request(app).get('/bookings?clientId=5');
+    const res = await request(app).get('/bookings').set('Cookie', AS_CLIENT);
 
     expect(res.status).toBe(200);
     expect(res.body[0].quote).toEqual({

@@ -18,7 +18,7 @@ function amountError(text, max) {
  * material is under "Other materials". Opening it on a job that already has a
  * quote starts from that quote, so the artisan can change it and send it again.
  */
-export default function QuoteForm({ booking, artisanId, onSent, onCancel }) {
+export default function QuoteForm({ booking, onSent, onCancel }) {
   const previous = booking.quote;
   const [labour, setLabour] = useState(previous ? String(previous.labourKes) : '');
   // kg typed for each material: { HDPE: '12' }.
@@ -63,7 +63,7 @@ export default function QuoteForm({ booking, artisanId, onSent, onCancel }) {
     setError(null);
     setSending(true);
     try {
-      await sendQuote(booking.id, artisanId, {
+      await sendQuote(booking.id, {
         labourKes,
         // The server looks up each price at Kanairo-Klean, so only ids and kg are sent.
         materials: chosen.map(m => ({ materialId: m.id, quantityKg: m.quantityKg })),

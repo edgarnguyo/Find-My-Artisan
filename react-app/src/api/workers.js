@@ -73,11 +73,14 @@ export async function fetchWorkerById(id) {
   }
 }
 
-/** Save a booking request. The artisan prices it later with a quote. */
-export async function createBooking({ workerId, clientId, name, contact, date, time, budget, job }) {
+/**
+ * Save a booking request for the signed-in client (the server reads who that
+ * is from the sign-in cookie). The artisan prices it later with a quote.
+ */
+export async function createBooking({ workerId, name, contact, date, time, budget, job }) {
   await request('/bookings', {
     method: 'POST',
-    body: { artisanId: workerId, clientId, name, contact, date, time, budget, job },
+    body: { artisanId: workerId, name, contact, date, time, budget, job },
   });
 }
 
@@ -138,25 +141,28 @@ function toQuote(q) {
   };
 }
 
-/** Every booking made by this client, newest first. */
-export async function fetchMyBookings(clientId) {
-  const rows = await request(`/bookings?clientId=${clientId}`);
+// The booking routes act for whoever is signed in, so none of them sends an id
+// for the client or artisan: the server takes it from the sign-in cookie.
+
+/** Every booking made by the signed-in client, newest first. */
+export async function fetchMyBookings() {
+  const rows = await request('/bookings');
   return rows.map(toBooking);
 }
 
-/** Cancel one of this client's bookings. */
-export async function cancelBooking(id, clientId) {
-  await request(`/bookings/${id}/cancel`, { method: 'PATCH', body: { clientId } });
+/** Cancel one of the signed-in client's bookings. */
+export async function cancelBooking(id) {
+  await request(`/bookings/${id}/cancel`, { method: 'PATCH' });
 }
 
 /** Review a completed job: rating is 1 to 5, comment is optional. */
-export async function reviewBooking(id, clientId, rating, comment) {
-  await request(`/bookings/${id}/review`, { method: 'POST', body: { clientId, rating, comment } });
+export async function reviewBooking(id, rating, comment) {
+  await request(`/bookings/${id}/review`, { method: 'POST', body: { rating, comment } });
 }
 
-/** Every booking made with this artisan, newest first. */
-export async function fetchArtisanBookings(artisanId) {
-  const rows = await request(`/bookings?artisanId=${artisanId}`);
+/** Every booking made with the signed-in artisan, newest first. */
+export async function fetchArtisanBookings() {
+  const rows = await request('/bookings');
   return rows.map(toBooking);
 }
 
@@ -165,8 +171,8 @@ export async function fetchArtisanBookings(artisanId) {
  * Accepting ('confirmed') also needs endTime: when the job will be over that
  * day, in Kenya time ('12:00').
  */
-export async function setBookingStatus(id, artisanId, status, endTime) {
-  await request(`/bookings/${id}/status`, { method: 'PATCH', body: { artisanId, status, endTime } });
+export async function setBookingStatus(id, status, endTime) {
+  await request(`/bookings/${id}/status`, { method: 'PATCH', body: { status, endTime } });
 }
 
 /**
@@ -174,10 +180,10 @@ export async function setBookingStatus(id, artisanId, status, endTime) {
  * materials [{ materialId, quantityKg }] from Kanairo-Klean (the server looks
  * up the prices), and optional notes for the client.
  */
-export async function sendQuote(bookingId, artisanId, { labourKes, materials, notes }) {
+export async function sendQuote(bookingId, { labourKes, materials, notes }) {
   await request(`/bookings/${bookingId}/quote`, {
     method: 'PUT',
-    body: { artisanId, labourKes, materials, notes },
+    body: { labourKes, materials, notes },
   });
 }
 
@@ -185,10 +191,10 @@ export async function sendQuote(bookingId, artisanId, { labourKes, materials, no
  * The client's answer to a quote: 'accepted' or 'declined'. version is the
  * quote they saw, so an answer never applies to a newer one.
  */
-export async function answerQuote(bookingId, clientId, decision, version) {
+export async function answerQuote(bookingId, decision, version) {
   await request(`/bookings/${bookingId}/quote`, {
     method: 'PATCH',
-    body: { clientId, decision, version },
+    body: { decision, version },
   });
 }
 
