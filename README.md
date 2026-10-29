@@ -433,17 +433,23 @@ yards (`GET /partner/collection-locations`, `POST /partner/drop-offs`). A copy
 of each report is kept in the `scrap_drop_offs` table, so the dashboard lists
 what was already sent, and each material can be reported once per job.
 
-When a client books a Plumber or Electrician, the booking form has an optional
-**Materials** section: Kanairo's live prices for the materials that trade uses
-(plastic and metal for plumbers, metal and e-waste for electricians), a kg box
-for each, and a running total. Kanairo sells no wood or paint, so carpenters and
-painters don't get the section. The form sends only material ids and kg with
-`POST /bookings` (`materials: [{ materialId, quantityKg }]`); our server looks up
-each price at Kanairo itself, so the estimate can't be changed in the browser,
-and saves it in the `booking_materials` table with that day's price. The client
-(My Bookings) and the artisan (dashboard) both see the estimate on the request.
-If Kanairo is down, the form says so and the request can still be sent without
-an estimate.
+Artisans price each job with a **quote**, sent from their dashboard once
+they've seen the job ("Send a Quote" on a pending or upcoming job). Clients
+don't price materials: they can't know how much pipe a job needs or what it
+costs. The quote is a labour charge plus Kanairo's materials at live prices,
+with a kg box for each and a running total. The materials the trade usually
+uses come first (plastic and metal for plumbers, metal and e-waste for
+electricians); every other Kanairo material is under "Other materials", so a
+material or type Kanairo adds later shows up without a code change. The form
+sends only material ids and kg (`PUT /bookings/:id/quote`); our server looks
+up each price at Kanairo itself, so the quote can't be changed in the browser,
+and saves it in `booking_quotes` and `booking_materials` with that day's price.
+
+The client sees the quote on My Bookings and accepts or declines it
+(`PATCH /bookings/:id/quote`). The artisan can change a quote until it is
+accepted; each change adds 1 to its `version`, and the client's answer names
+the version they saw, so a quote changed in the meantime is never accepted by
+mistake. If Kanairo is down, the artisan can still send a labour-only quote.
 
 All of these need two values in `server/.env` (placeholders are in `.env.example`):
 

@@ -75,16 +75,12 @@ export async function fetchWorkerById(id) {
 
 /**
  * Save a booking request for the signed-in client (the server reads who that
- * is from the sign-in cookie).
- * materials: optional [{ materialId, quantityKg }] from Kanairo-Klean, priced by the server.
+ * is from the sign-in cookie). The artisan prices it later with a quote.
  */
-export async function createBooking({ workerId, name, contact, date, time, budget, job, materials }) {
+export async function createBooking({ workerId, name, contact, date, time, budget, job }) {
   await request('/bookings', {
     method: 'POST',
-    body: {
-      artisanId: workerId, name, contact, date, time, budget, job,
-      ...(materials?.length && { materials }),
-    },
+    body: { artisanId: workerId, name, contact, date, time, budget, job },
   });
 }
 
@@ -104,15 +100,8 @@ function toBooking(row) {
     // The client's review of the job, once they've left one.
     review: row.review_rating === null ? null : { rating: row.review_rating, comment: row.review_comment },
     createdAt: row.created_at,
-    // The materials estimate the client sent, priced from Kanairo-Klean at the time.
-    materials: (row.materials ?? []).map(m => ({
-      materialId: m.material_id,
-      name: m.name,
-      type: m.material_type,
-      // DECIMAL arrives from MySQL as text ("12.50").
-      quantityKg: Number(m.quantity_kg),
-      pricePerKgKes: Number(m.price_per_kg_kes),
-    })),
+    // The artisan's quote for the job, or null until they send one.
+    quote: row.quote ? toQuote(row.quote) : null,
     // Scrap the artisan reported to Kanairo-Klean from this job (artisan view only).
     scrapDropOffs: (row.scrap_drop_offs ?? []).map(d => ({
       id: d.id,
@@ -129,6 +118,26 @@ function toBooking(row) {
       skill: row.artisan_skill,
       location: row.artisan_location,
     },
+  };
+}
+
+// Materials are priced from Kanairo-Klean when the quote was sent.
+// DECIMAL arrives from MySQL as text ("12.50"), so each number is converted.
+function toQuote(q) {
+  return {
+    labourKes: Number(q.labour_kes),
+    notes: q.notes,
+    // 'sent' (waiting for the client), 'accepted' or 'declined'.
+    status: q.status,
+    version: q.version,
+    sentAt: q.sent_at,
+    materials: q.materials.map(m => ({
+      materialId: m.material_id,
+      name: m.name,
+      type: m.material_type,
+      quantityKg: Number(m.quantity_kg),
+      pricePerKgKes: Number(m.price_per_kg_kes),
+    })),
   };
 }
 
@@ -164,6 +173,29 @@ export async function fetchArtisanBookings() {
  */
 export async function setBookingStatus(id, status, endTime) {
   await request(`/bookings/${id}/status`, { method: 'PATCH', body: { status, endTime } });
+}
+
+/**
+ * The artisan's quote for a job, sent or sent again: labourKes in KES,
+ * materials [{ materialId, quantityKg }] from Kanairo-Klean (the server looks
+ * up the prices), and optional notes for the client.
+ */
+export async function sendQuote(bookingId, { labourKes, materials, notes }) {
+  await request(`/bookings/${bookingId}/quote`, {
+    method: 'PUT',
+    body: { labourKes, materials, notes },
+  });
+}
+
+/**
+ * The client's answer to a quote: 'accepted' or 'declined'. version is the
+ * quote they saw, so an answer never applies to a newer one.
+ */
+export async function answerQuote(bookingId, decision, version) {
+  await request(`/bookings/${bookingId}/quote`, {
+    method: 'PATCH',
+    body: { decision, version },
+  });
 }
 
 /** The artisan's busy times that haven't ended: [{ id, start, end, bookingId, job }]. */

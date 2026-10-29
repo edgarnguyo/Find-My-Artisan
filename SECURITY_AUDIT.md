@@ -152,7 +152,7 @@ Added with the sign-in fix (section 5):
   stored as bcrypt hashes on sign-up and change; an old plain-text account signs
   in and is hashed; same answer for an unknown email and a wrong password;
   `429` after too many wrong passwords from one address, not from another.
-- `accounts`, `profiles`, `bookings`, `partner.test.js`: each website route
+- `accounts`, `profiles`, `bookings`, `booking-quotes`, `partner.test.js`: each website route
   answers `401` signed out and `403` (or `404` for a booking) for someone
   else's account, and changes nothing.
 
@@ -181,8 +181,8 @@ The whole suite passes (see the commit).
 | `GET/PATCH/DELETE /clients/:id`, `PATCH /clients/:id/password` | that client | `403` |
 | `PATCH/DELETE /profiles/:id`, `/password`, `/portfolio`, `/availability` (reads and writes) | that artisan | `403` |
 | `GET /bookings` | any signed-in account: its own bookings. `?clientId=` / `?artisanId=` of anyone else | `403` |
-| `POST /bookings`, `PATCH /bookings/:id/cancel`, `POST /bookings/:id/review` | a signed-in client; the booking must be theirs | `404` (as if it weren't there) |
-| `PATCH /bookings/:id/status`, `POST /partner/drop-offs` | a signed-in artisan; the booking must be theirs | `404` |
+| `POST /bookings`, `PATCH /bookings/:id/cancel`, `PATCH /bookings/:id/quote` (answering a quote), `POST /bookings/:id/review` | a signed-in client; the booking must be theirs | `404` (as if it weren't there) |
+| `PATCH /bookings/:id/status`, `PUT /bookings/:id/quote` (sending a quote), `POST /partner/drop-offs` | a signed-in artisan; the booking must be theirs | `404` |
 | `GET /profiles`, `GET /profiles/:id`, `/stats`, `/partner/materials`, `/partner/collection-locations` | everyone, as before | |
 
 No sign-in at all gets `401`. The partner API (`/artisans`, `X-API-Key`) is unchanged.
