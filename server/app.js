@@ -85,4 +85,19 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// Any other error. Without this, Express answers with an HTML page, and outside
+// production that page holds the stack trace and this server's file paths. The
+// message is fixed text, never err.message, which can name tables or columns.
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ code: 'body_too_large', message: 'Request body must be under 100 kB.' });
+  }
+  console.error(err);
+  // Body-parsing errors carry a 4xx status (e.g. 415 for an unknown charset).
+  const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+  const code = status === 500 ? 'server_error' : 'bad_request';
+  const message = status === 500 ? 'Something went wrong on our side.' : 'The request could not be read.';
+  res.status(status).json({ code, message });
+});
+
 module.exports = app;
