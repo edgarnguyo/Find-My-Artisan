@@ -4,7 +4,6 @@ import { createBooking } from '../api/workers';
 import { fetchClient } from '../api/account';
 import { useAuth } from '../lib/authContext';
 import { busyWindowAt, fromKenya, kenyaClock } from '../lib/kenyaTime';
-import MaterialEstimate from './MaterialEstimate';
 
 export default function BookingForm({ worker }) {
   const { user } = useAuth();
@@ -17,8 +16,6 @@ export default function BookingForm({ worker }) {
   const [time,      setTime]      = useState('');
   const [budget,    setBudget]    = useState('');
   const [job,       setJob]       = useState('');
-  // kg typed for each Kanairo-Klean material: { HDPE: '12' }.
-  const [materialKg, setMaterialKg] = useState({});
   const [errors,    setErrors]    = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [sending,   setSending]   = useState(false);
@@ -47,7 +44,6 @@ export default function BookingForm({ worker }) {
       setTime('');
       setBudget('');
       setJob('');
-      setMaterialKg({});
       setErrors({});
       setSendError(null);
       setSubmitted(false);
@@ -84,11 +80,6 @@ export default function BookingForm({ worker }) {
     if (job.trim() === '') {
       newErrors.job = 'Please describe the job.';
     }
-    // A blank box means "none of this"; anything typed must be a real amount.
-    const badKg = Object.values(materialKg).some(kg => kg.trim() !== '' && !(Number(kg) > 0 && Number(kg) < 1e6));
-    if (badKg) {
-      newErrors.materials = 'Enter each amount in kg as a number above 0, or leave it blank.';
-    }
     // The profile only knows the next 14 days; the server checks every date.
     if (!newErrors.date && !newErrors.time) {
       const clash = busyWindowAt(worker.busy, fromKenya(date, time));
@@ -122,10 +113,6 @@ export default function BookingForm({ worker }) {
         time,
         budget,
         job,
-        // The server looks up each price at Kanairo-Klean, so only ids and kg are sent.
-        materials: Object.entries(materialKg)
-          .filter(([, kg]) => kg.trim() !== '')
-          .map(([materialId, kg]) => ({ materialId, quantityKg: Number(kg) })),
       });
       setSubmitted(true);
     } catch (err) {
@@ -235,13 +222,6 @@ export default function BookingForm({ worker }) {
           />
         </div>
 
-        <MaterialEstimate
-          skill={worker.skill}
-          quantities={materialKg}
-          onChange={(id, kg) => setMaterialKg(q => ({ ...q, [id]: kg }))}
-          error={errors.materials}
-        />
-
         <div className="field">
           <label htmlFor="job">Describe the Job</label>
           <textarea
@@ -252,6 +232,13 @@ export default function BookingForm({ worker }) {
           />
           {errors.job && <small className="error">{errors.job}</small>}
         </div>
+
+        {/* Clients can't know what materials cost or how much a job needs, so
+            the artisan prices it after seeing the job. */}
+        <p className="booking-note">
+          After looking at the job, the artisan sends you a quote for labour and
+          materials. You can accept or decline it under My Bookings.
+        </p>
 
         {sendError && (
           <small className="error">

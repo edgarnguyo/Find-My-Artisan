@@ -4,8 +4,9 @@ import { fetchArtisanBookings, setBookingStatus } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
-import BookingMaterials from '../components/BookingMaterials';
+import BookingQuote from '../components/BookingQuote';
 import BusyTimes from '../components/BusyTimes';
+import QuoteForm from '../components/QuoteForm';
 import ScrapDropOffForm from '../components/ScrapDropOffForm';
 import { kenyaClock } from '../lib/kenyaTime';
 import { formatKes, capitalize } from '../lib/format';
@@ -62,6 +63,8 @@ export default function DashboardPage() {
   // The request being accepted, while the artisan picks its end time:
   // { id, endTime } or null.
   const [accepting, setAccepting] = useState(null);
+  // The job whose quote form is open, or null.
+  const [quoting, setQuoting] = useState(null);
 
   // Client and artisan ids come from different tables and can be the same
   // number, so only ask for an artisan's bookings when this really is one.
@@ -170,7 +173,26 @@ export default function DashboardPage() {
                 {booking.budget && (
                   <p className="booking-row-budget">Budget: {formatKes(booking.budget)}</p>
                 )}
-                <BookingMaterials materials={booking.materials} />
+                <BookingQuote quote={booking.quote} viewer="artisan" />
+
+                {/* A quote can be sent while the job is going ahead, until the client accepts it. */}
+                {(booking.status === 'pending' || booking.status === 'confirmed') &&
+                  booking.quote?.status !== 'accepted' && (
+                  quoting === booking.id ? (
+                    <QuoteForm
+                      booking={booking}
+                      onCancel={() => setQuoting(null)}
+                      onSent={() => {
+                        setQuoting(null);
+                        setReloadKey(k => k + 1);
+                      }}
+                    />
+                  ) : (
+                    <button className="link-button quote-open" onClick={() => setQuoting(booking.id)}>
+                      {booking.quote ? 'Change Quote' : 'Send a Quote'}
+                    </button>
+                  )
+                )}
 
                 {booking.status === 'completed' && (
                   <ScrapDropOffForm
