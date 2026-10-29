@@ -4,6 +4,7 @@ const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
 const { verifiedSql } = require('../verified');
+const { signedInAs } = require('../jest.setup');
 
 let artisanId;
 
@@ -49,7 +50,7 @@ describe('GET /stats', () => {
   });
 
   it('lists the newest portfolio photo first, with who did the work', async () => {
-    const item = (await request(app).post(`/profiles/${artisanId}/portfolio`).send({
+    const item = (await request(app).post(`/profiles/${artisanId}/portfolio`).set('Cookie', signedInAs('artisan', artisanId)).send({
       title: 'Fitted wardrobe',
       imageUrl: 'https://example.com/wardrobe.jpg',
     })).body;

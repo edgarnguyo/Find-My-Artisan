@@ -37,15 +37,15 @@ export default function MyBookingsPage() {
   // so only ask for bookings when the signed-in user really is a client.
   const isClient = user.role === 'client';
   const load = useCallback(
-    () => (isClient ? fetchMyBookings(user.id) : Promise.resolve([])),
-    [isClient, user.id]
+    () => (isClient ? fetchMyBookings() : Promise.resolve([])),
+    [isClient]
   );
   const { data: bookings, error, loading } = useAsync(load, [reloadKey, user.id]);
 
   async function handleCancel(id) {
     setCancelling(id);
     try {
-      await cancelBooking(id, user.id);
+      await cancelBooking(id);
       setReloadKey(k => k + 1);
     } catch (err) {
       alert(`Could not cancel: ${err.message}`);
@@ -58,7 +58,7 @@ export default function MyBookingsPage() {
     if (decision === 'declined' && !window.confirm('Decline this quote? The artisan can send you a new one.')) return;
     setAnswering({ id: booking.id, decision });
     try {
-      await answerQuote(booking.id, user.id, decision, booking.quote.version);
+      await answerQuote(booking.id, decision, booking.quote.version);
     } catch (err) {
       // Most likely the artisan sent a new quote meanwhile: reload to show it.
       alert(`Could not save your answer: ${err.message}`);
@@ -186,7 +186,6 @@ export default function MyBookingsPage() {
                 {reviewing === booking.id && (
                   <ReviewForm
                     booking={booking}
-                    clientId={user.id}
                     onCancel={() => setReviewing(null)}
                     onDone={() => {
                       setReviewing(null);

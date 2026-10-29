@@ -1,40 +1,45 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthContext } from './authContext';
-import { register, login } from '../api/auth';
+import { register, login, logout, fetchSignedInUser } from '../api/auth';
 
-// The signed-in user ({ id, name, email, role }) is kept in localStorage,
-// so reloading the page keeps you signed in.
-const STORAGE_KEY = 'fma_user';
-
-function loadUser() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY));
-  } catch {
-    return null;
-  }
-}
-
-function storeUser(user) {
-  try {
-    if (user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  } catch {
-    // Storage blocked: you stay signed in until the page is reloaded.
-  }
-}
+// Who is signed in is decided by the server's sign-in cookie, which the page
+// can't read. So on load the page asks the server (GET /login), and a reload
+// keeps you signed in for as long as the cookie lasts (a week).
+// Older versions kept the user in localStorage; that copy is removed.
+const OLD_STORAGE_KEY = 'fma_user';
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(loadUser);
+  const [user, setUser] = useState(null);
+  // True until the server has answered "who is signed in?". RequireAuth waits
+  // for it, so a reload doesn't bounce a signed-in visitor to the sign-in page.
+  const [checking, setChecking] = useState(true);
   // True after signing out (or deleting the account) until the next sign-in,
   // so RequireAuth sends the visitor home instead of to "please sign in".
   const [signedOut, setSignedOut] = useState(false);
 
+  useEffect(() => {
+    try {
+      localStorage.removeItem(OLD_STORAGE_KEY);
+    } catch {
+      // Storage blocked: there's nothing to remove.
+    }
+    let current = true;
+    fetchSignedInUser()
+      // The server can't be reached: carry on signed out.
+      .catch(() => null)
+      .then(signedIn => {
+        if (!current) return;
+        // Only if nobody signed in while this was on its way.
+        setUser(existing => existing ?? signedIn);
+        setChecking(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
+
   async function signUp(details) {
     const newUser = await register(details);
-    storeUser(newUser);
     setUser(newUser);
     setSignedOut(false);
     return newUser;
@@ -42,14 +47,18 @@ export function AuthProvider({ children }) {
 
   async function signIn(email, password) {
     const signedIn = await login(email, password);
-    storeUser(signedIn);
     setUser(signedIn);
     setSignedOut(false);
     return signedIn;
   }
 
-  function signOut() {
-    storeUser(null);
+  async function signOut() {
+    try {
+      await logout();
+    } catch {
+      // The server can't be reached. The page still forgets the user; the
+      // cookie runs out on its own.
+    }
     setUser(null);
     setSignedOut(true);
   }
@@ -57,12 +66,10 @@ export function AuthProvider({ children }) {
   // After the account page saves a change (a new name), so the rest of the
   // site shows it without signing in again.
   function updateUser(changes) {
-    const updated = { ...user, ...changes };
-    storeUser(updated);
-    setUser(updated);
+    setUser(current => ({ ...current, ...changes }));
   }
 
-  const value = { user, signedOut, signUp, signIn, signOut, updateUser };
+  const value = { user, checking, signedOut, signUp, signIn, signOut, updateUser };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
