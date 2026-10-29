@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchMyBookings, cancelBooking } from '../api/workers';
+import { fetchMyBookings, cancelBooking, answerQuote } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { useAuth } from '../lib/authContext';
 import Avatar from '../components/Avatar';
-import BookingMaterials from '../components/BookingMaterials';
+import BookingQuote from '../components/BookingQuote';
 import ReviewForm from '../components/ReviewForm';
 import { kenyaClock } from '../lib/kenyaTime';
 import { formatKes, capitalize } from '../lib/format';
@@ -30,6 +30,8 @@ export default function MyBookingsPage() {
   const [cancelling, setCancelling] = useState(null);
   // The completed booking whose review form is open, or null.
   const [reviewing, setReviewing] = useState(null);
+  // The quote being answered right now: { id, decision } or null.
+  const [answering, setAnswering] = useState(null);
 
   // Bookings belong to clients. An artisan's id could match some client's id,
   // so only ask for bookings when the signed-in user really is a client.
@@ -49,6 +51,20 @@ export default function MyBookingsPage() {
       alert(`Could not cancel: ${err.message}`);
     } finally {
       setCancelling(null);
+    }
+  }
+
+  async function handleAnswer(booking, decision) {
+    if (decision === 'declined' && !window.confirm('Decline this quote? The artisan can send you a new one.')) return;
+    setAnswering({ id: booking.id, decision });
+    try {
+      await answerQuote(booking.id, user.id, decision, booking.quote.version);
+    } catch (err) {
+      // Most likely the artisan sent a new quote meanwhile: reload to show it.
+      alert(`Could not save your answer: ${err.message}`);
+    } finally {
+      setAnswering(null);
+      setReloadKey(k => k + 1);
     }
   }
 
@@ -131,7 +147,31 @@ export default function MyBookingsPage() {
                 {booking.budget && (
                   <p className="booking-row-budget">Budget: {formatKes(booking.budget)}</p>
                 )}
-                <BookingMaterials materials={booking.materials} />
+                {booking.quote ? (
+                  <BookingQuote quote={booking.quote} viewer="client">
+                    {booking.quote.status === 'sent' &&
+                      (booking.status === 'pending' || booking.status === 'confirmed') && (
+                      <div className="quote-actions">
+                        <button
+                          className="booking-action"
+                          onClick={() => handleAnswer(booking, 'accepted')}
+                          disabled={answering?.id === booking.id}
+                        >
+                          {answering?.id === booking.id && answering.decision === 'accepted' ? 'Accepting…' : 'Accept Quote'}
+                        </button>
+                        <button
+                          className="link-button"
+                          onClick={() => handleAnswer(booking, 'declined')}
+                          disabled={answering?.id === booking.id}
+                        >
+                          {answering?.id === booking.id && answering.decision === 'declined' ? 'Declining…' : 'Decline'}
+                        </button>
+                      </div>
+                    )}
+                  </BookingQuote>
+                ) : (booking.status === 'pending' || booking.status === 'confirmed') && (
+                  <p className="booking-quote-waiting">The artisan will send a quote once they've looked at the job.</p>
+                )}
 
                 {booking.review && (
                   <p className="booking-review">
