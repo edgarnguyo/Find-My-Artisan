@@ -57,6 +57,14 @@ const madeArtisans = [];
 afterAll(async () => {
   // Anything a test left behind: rows pointing at these artisans first.
   if (madeArtisans.length > 0) {
+    // Quotes and their materials point at the bookings, not the artisan.
+    for (const table of ['booking_materials', 'booking_quotes']) {
+      await db.query(
+        `DELETE ${table} FROM ${table} JOIN bookings ON bookings.id = ${table}.booking_id
+         WHERE bookings.artisan_id IN (?)`,
+        [madeArtisans]
+      );
+    }
     for (const table of ['availability_blocks', 'reviews', 'portfolio_items', 'bookings']) {
       await db.query(`DELETE FROM ${table} WHERE artisan_id IN (?)`, [madeArtisans]);
     }
@@ -222,5 +230,33 @@ describe('Artisan account', () => {
       const [rows] = await db.query(`SELECT id FROM ${table} WHERE artisan_id = ?`, [artisan.id]);
       expect(rows).toHaveLength(0);
     }
+  });
+
+  // Quotes came after account deletion was written, and have no artisan_id:
+  // deleting an artisan who had sent one used to fail with a 500.
+  it('deletes an artisan whose finished job has a quote and materials', async () => {
+    const artisan = await makeArtisan();
+    madeArtisans.push(artisan.id);
+    const client = await makeClient();
+    const past = await makeBooking(artisan, client, 'completed', '2031-04-01');
+    await db.query(
+      "INSERT INTO booking_quotes (booking_id, labour_kes, status, version, sent_at) VALUES (?, 1500, 'accepted', 1, NOW())",
+      [past]
+    );
+    await db.query(
+      `INSERT INTO booking_materials (booking_id, material_id, name, material_type, quantity_kg, price_per_kg_kes)
+       VALUES (?, 'HDPE', 'HDPE pellets', 'plastic', 2, 80)`,
+      [past]
+    );
+
+    const res = await as(artisan).delete(`/profiles/${artisan.id}`).send({ password: PASSWORD });
+
+    expect(res.status).toBe(204);
+    for (const table of ['booking_quotes', 'booking_materials']) {
+      const [rows] = await db.query(`SELECT booking_id FROM ${table} WHERE booking_id = ?`, [past]);
+      expect(rows).toHaveLength(0);
+    }
+    const [bookings] = await db.query('SELECT id FROM bookings WHERE id = ?', [past]);
+    expect(bookings).toHaveLength(0);
   });
 });
