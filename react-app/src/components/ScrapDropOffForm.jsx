@@ -13,7 +13,7 @@ const TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
  * onReported runs after Kanairo accepts one; the dashboard then reloads the jobs,
  * and the new report comes back from our database in `reports`.
  */
-export default function ScrapDropOffForm({ artisanId, bookingId, reports, onReported }) {
+export default function ScrapDropOffForm({ bookingId, reports, onReported }) {
   const [open, setOpen] = useState(false);
   const reported = new Set(reports.map(r => r.materialType));
   const remaining = TYPES.filter(t => !reported.has(t));
@@ -32,7 +32,6 @@ export default function ScrapDropOffForm({ artisanId, bookingId, reports, onRepo
       )}
       {remaining.length > 0 && (open ? (
         <DropOffFields
-          artisanId={artisanId}
           bookingId={bookingId}
           materials={remaining}
           onCancel={() => setOpen(false)}
@@ -50,7 +49,7 @@ export default function ScrapDropOffForm({ artisanId, bookingId, reports, onRepo
   );
 }
 
-function DropOffFields({ artisanId, bookingId, materials, onCancel, onReported }) {
+function DropOffFields({ bookingId, materials, onCancel, onReported }) {
   const [attempt, setAttempt] = useState(0);
   const { data: locations, error: loadError, loading } = useAsync(fetchCollectionLocations, [attempt]);
   const [form, setForm] = useState({ locationId: '', materialType: materials[0], quantityKg: '', notes: '' });
@@ -65,7 +64,6 @@ function DropOffFields({ artisanId, bookingId, materials, onCancel, onReported }
     setSaving(true);
     try {
       await reportDropOff({
-        artisanId,
         bookingId,
         locationId: form.locationId,
         // Saved with the report, so the dashboard can name the yard later.

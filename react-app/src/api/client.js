@@ -15,6 +15,10 @@ export async function request(path, options = {}) {
       method: options.method || 'GET',
       headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
       body: options.body ? JSON.stringify(options.body) : undefined,
+      // Sends the sign-in cookie (set by /login) with every request. The built
+      // site is on the same address as the API, where browsers send it anyway;
+      // Vite's dev server is on another port, where they only do when asked.
+      credentials: 'include',
     });
   } catch {
     // fetch only throws when no response came back at all, e.g. the server is off.

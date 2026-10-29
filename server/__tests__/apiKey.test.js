@@ -4,7 +4,7 @@ const express = require('express');
 const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
-const { TEST_API_KEY } = require('../jest.setup');
+const { TEST_API_KEY, signedInAs } = require('../jest.setup');
 const { createApiKeyCheck, parseKeys } = require('../apiKey');
 
 afterAll(async () => {
@@ -94,9 +94,10 @@ describe('the website needs no key', () => {
     expect(res.status).toBe(200);
   });
 
-  it('reaches the busy-time route through /profiles without a key', async () => {
+  it('reaches the busy-time route through /profiles with a sign-in, not a key', async () => {
     const res = await request(app)
       .post('/profiles/999999/availability')
+      .set('Cookie', signedInAs('artisan', 999999))
       .send({ start: '2030-01-01T09:00:00Z', end: '2030-01-01T10:00:00Z' });
 
     // Same code as the partner route: a 404 for the missing artisan, not a 401.
