@@ -124,11 +124,15 @@ there is no `/upcoming` cache route in this app.
 
 ## Ring-partner traffic and publication status
 
-**Still pending:** actual ring-partner traffic and GitHub publication. The user
-confirmed that the partner will run the script after deployment. A local second
-key proves caller separation but is not a substitute for the partner's run.
+The implementation and local evidence were published to the GitHub
+`person-a` branch on 2 November 2026 through VS Code, after all 194 tests and
+the website build passed again in the original project folder.
 
-After the user approves pushing and the changes are deployed:
+**Still pending:** actual ring-partner traffic after deployment. The user
+confirmed that the partner will run the script then. A local second key proves
+caller separation but is not a substitute for the partner's run.
+
+After the branch is deployed:
 
 1. Give the partner their own issued key privately. Ask them to run
    `traffic.js` with the deployed `API` URL and `N=60`.
