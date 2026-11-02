@@ -1,0 +1,43 @@
+{
+  "beganAt": "2026-11-02T09:52:57.897Z",
+  "completedAt": "2026-11-02T09:53:08.351Z",
+  "environment": "isolated local MariaDB 10.4, seeded schema, built React app",
+  "probes": [
+    200,
+    401,
+    401,
+    401,
+    401
+  ],
+  "owner": {
+    "requests": 60,
+    "statuses": {
+      "200": 30,
+      "401": 13,
+      "404": 17
+    }
+  },
+  "simulatedSecondCaller": {
+    "requests": 60,
+    "statuses": {
+      "200": 32,
+      "401": 7,
+      "404": 21
+    },
+    "actualRingPartner": false
+  },
+  "ownerBurst": {
+    "requests": 200,
+    "statuses": {
+      "200": 8,
+      "401": 36,
+      "404": 3,
+      "429": 153
+    }
+  },
+  "controlledFailure": "One GET /partner/materials with upstream settings deliberately unset; expected 502; no upstream request sent.",
+  "loggedRequests": 343,
+  "secretMatches": 0,
+  "distinctVerifiedCallers": 3,
+  "partnerTraffic": "Pending deployment and an actual run by the ring partner."
+}

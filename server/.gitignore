@@ -1,2 +1,8 @@
 node_modules
 .env
+
+# Request logs and private environment files
+*.log
+.env
+.env.*
+!.env.example

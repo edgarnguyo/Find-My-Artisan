@@ -1,0 +1,53 @@
+{
+  "startedAt": "2026-11-02T09:52:57.584Z",
+  "uptimeSeconds": 8,
+  "total": 139,
+  "clientErrors": 63,
+  "serverErrors": 0,
+  "errorRatePercent": 0,
+  "avgMs": 1.8,
+  "routes": {
+    "GET /artisans/": {
+      "count": 47,
+      "clientErrors": 0,
+      "serverErrors": 0,
+      "avgMs": 2.7,
+      "maxMs": 26.4
+    },
+    "GET (no route)": {
+      "count": 43,
+      "clientErrors": 42,
+      "serverErrors": 0,
+      "avgMs": 0.9,
+      "maxMs": 6.8
+    },
+    "GET /artisans/:id": {
+      "count": 37,
+      "clientErrors": 20,
+      "serverErrors": 0,
+      "avgMs": 1.7,
+      "maxMs": 2.7
+    },
+    "POST (no route)": {
+      "count": 1,
+      "clientErrors": 1,
+      "serverErrors": 0,
+      "avgMs": 4.1,
+      "maxMs": 4.1
+    },
+    "OPTIONS (no route)": {
+      "count": 1,
+      "clientErrors": 0,
+      "serverErrors": 0,
+      "avgMs": 0.6,
+      "maxMs": 0.6
+    },
+    "GET /site-stats/": {
+      "count": 10,
+      "clientErrors": 0,
+      "serverErrors": 0,
+      "avgMs": 1.8,
+      "maxMs": 3.1
+    }
+  }
+}
