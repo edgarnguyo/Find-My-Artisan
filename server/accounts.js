@@ -1,3 +1,4 @@
+const { logError } = require('./monitoring');
 // Password changes and account deletion, shared by clients (routes/clients.js)
 // and artisans (routes/profiles.js). The routes using these only run for the
 // signed-in owner of the account (requireOwnAccount in session.js), and both
@@ -58,7 +59,7 @@ function changePasswordRoute(kind) {
       ]);
       res.json({ id: Number(req.params.id), changed: true });
     } catch (err) {
-      console.error(err);
+      logError(err);
       res.status(500).json({ error: 'Failed to change password' });
     }
   };
