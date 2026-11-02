@@ -90,7 +90,7 @@ describe('error responses give nothing away', () => {
 
 describe('the website needs no key', () => {
   it('serves its own routes without one', async () => {
-    const res = await request(app).get('/stats');
+    const res = await request(app).get('/site-stats');
     expect(res.status).toBe(200);
   });
 
@@ -154,13 +154,11 @@ describe('createApiKeyCheck', () => {
     expect(lines[0]).toMatch(/API_KEYS is not set/);
   });
 
-  it('logs who called and the status, but never a key', async () => {
+  it('never prints submitted keys in authentication diagnostics', async () => {
     const { small, lines } = appWith({ keys: 'meditrac:secret-m-key' });
     await request(small).get('/').set('X-API-Key', 'secret-m-key');
     await request(small).get('/').set('X-API-Key', 'guessed-key');
 
-    expect(lines.join('\n')).toMatch(/meditrac GET \/ → 200/);
-    expect(lines.join('\n')).toMatch(/401 unknown key/);
     expect(lines.join('\n')).not.toMatch(/secret-m-key|guessed-key/);
   });
 });

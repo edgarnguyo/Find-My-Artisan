@@ -5,6 +5,10 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+const { monitor, statsHandler, logError } = require('./monitoring');
+
+// First: includes CORS preflights, malformed JSON, 401s, 429s and static files.
+app.use(monitor);
 
 // The React site after `vite build` has turned it into plain HTML, JS and CSS files.
 const reactBuild = path.join(__dirname, '..', 'react-app', 'dist');
@@ -60,8 +64,13 @@ app.use('/login', loginRoutes);
 const bookingRoutes = require('./routes/bookings');
 app.use('/bookings', bookingRoutes);
 
-const statsRoutes = require('./routes/stats');
-app.use('/stats', statsRoutes);
+// Monitoring uses the same verified keys and rate-limit buckets as /artisans.
+app.use('/stats', requireApiKey);
+app.get('/stats', statsHandler);
+
+// Public homepage data has its own address, so browsers never need API keys.
+const siteStatsRoutes = require('./routes/siteStats');
+app.use('/site-stats', siteStatsRoutes);
 
 // Website-only: material prices from our upstream partner, Kanairo-Klean.
 const partnerRoutes = require('./routes/partner');
@@ -75,7 +84,7 @@ app.use(express.static(reactBuild));
 // reads the address and picks the page. So for any other GET, send index.html.
 // API addresses are skipped, so a mistyped API URL still gets "Cannot GET".
 // Old /api/... URLs are included, so anything still calling them gets a 404.
-const API_PATHS = /^\/(artisans|profiles|clients|login|bookings|stats|partner|docs|api)(\/|$)/;
+const API_PATHS = /^\/(artisans|profiles|clients|login|bookings|stats|site-stats|partner|docs|api)(\/|$)/;
 
 app.use((req, res, next) => {
   if (req.method !== 'GET' || API_PATHS.test(req.path)) return next();
@@ -106,7 +115,7 @@ app.use((err, req, res, next) => {
   if (err.type === 'entity.too.large') {
     return res.status(413).json({ code: 'body_too_large', message: 'Request body must be under 100 kB.' });
   }
-  console.error(err);
+  logError(err);
   // Body-parsing errors carry a 4xx status (e.g. 415 for an unknown charset).
   const status = err.status >= 400 && err.status < 500 ? err.status : 500;
   const code = status === 500 ? 'server_error' : 'bad_request';
