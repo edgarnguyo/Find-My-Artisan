@@ -467,6 +467,25 @@ npm run partner:standin
 
 then set `PARTNER_URL=http://localhost:5050` and `PARTNER_API_KEY=standin-token`.
 
+**When Kanairo is slow or failing (Week 11).** Every call to Kanairo gives up
+after 2 seconds. A read (GET) is tried up to 3 times in all, waiting 200 ms and
+then 400 ms between tries, but only after a timeout, a refused connection, or a
+429/5xx answer. A 4xx such as a wrong token is not retried, and neither is a
+write (the drop-off POST), since that could send the same scrap twice. When the
+Materials page can't reach Kanairo, it shows the last list it got, with a banner
+saying when it was saved. `GET /partner/materials` therefore answers
+`{ data, stale, asOf }`. Quotes are always priced from a fresh list. Details and
+measurements are in [RESILIENCE_NOTES.md](RESILIENCE_NOTES.md).
+
+To watch it happen, switch the stand-in's behaviour without restarting it:
+
+```bash
+curl http://localhost:5050/__mode/slow    # answers after 10 s
+curl http://localhost:5050/__mode/flaky   # 503 twice, then works
+curl http://localhost:5050/__mode/error   # always 500
+curl http://localhost:5050/__mode/ok      # back to normal
+```
+
 ## Week 12 monitoring
 
 `GET /stats` needs a valid `X-API-Key` and uses the same per-key rate limit as
@@ -587,7 +606,8 @@ against an isolated seeded database, including a clearly labelled simulated
 second caller. It is **not** evidence that the ring partner has sent traffic.
 [MONITORING_NOTES.md](MONITORING_NOTES.md) records predictions, measured figures,
 a hypothesis, an alert and the remaining partner step. The optional Week 11
-fallback counter is not included: this app has no `/upcoming` cached-data route.
+fallback counter is not included yet. The Week 11 fallback (the saved Materials
+list) was added after this section was written, so it could now be counted.
 
 ## More
 

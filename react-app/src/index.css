@@ -2242,6 +2242,25 @@ a.submit-btn {
   margin-bottom: var(--spacing-md);
 }
 
+/* The partner is down but we have a saved copy: say so above the table. */
+.materials-stale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-star);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.materials-stale p {
+  margin: 0;
+}
+
 @media (max-width: 600px) {
   .materials-table th,
   .materials-table td {

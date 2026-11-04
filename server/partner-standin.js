@@ -37,6 +37,39 @@ const dropOffs = [];
 const app = express();
 app.use(express.json());
 
+// Week 11: how the stand-in misbehaves, switched without restarting it:
+//   curl http://localhost:5050/__mode/slow
+//   ok    = answers normally
+//   slow  = answers after 10 seconds
+//   flaky = fails with 503 twice, then works on the third call
+//   error = always fails with 500
+// Only the GET routes misbehave. Drop-offs (POST) always behave, since our
+// server never retries a write.
+let mode = 'ok';
+let calls = 0;
+
+app.get('/__mode/:m', (req, res) => {
+  if (!['ok', 'slow', 'flaky', 'error'].includes(req.params.m)) {
+    return res.status(400).json({ message: 'mode must be ok, slow, flaky or error' });
+  }
+  mode = req.params.m;
+  calls = 0;
+  console.log(`stand-in mode: ${mode}`);
+  res.json({ mode });
+});
+
+app.use(async (req, res, next) => {
+  if (req.method !== 'GET') return next();
+  calls += 1;
+  console.log(`GET ${req.path} (call ${calls}, mode ${mode})`);
+  if (mode === 'slow') await new Promise(r => setTimeout(r, 10000));
+  if (mode === 'flaky' && calls % 3 !== 0) {
+    return res.status(503).json({ code: 503, message: 'Try again' });
+  }
+  if (mode === 'error') return res.status(500).json({ code: 500, message: 'Internal error' });
+  next();
+});
+
 app.use((req, res, next) => {
   if (req.get('Authorization') !== `Bearer ${TOKEN}`) {
     return res.status(401).json({ code: 401, message: 'Missing or invalid API token' });

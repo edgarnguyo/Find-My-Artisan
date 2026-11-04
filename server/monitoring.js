@@ -81,10 +81,11 @@ const SAFE_CODES = new Set([
   'ER_BAD_FIELD_ERROR', 'ER_DUP_ENTRY', 'ER_LOCK_DEADLOCK',
 ]);
 function logError(err) {
-  const code = err?.cause?.code || err?.code;
+  // A partner call cut off by its timeout (Week 11) has no code, only this name.
+  const code = err?.name === 'TimeoutError' ? 'timeout' : (err?.cause?.code || err?.code);
   console.error(JSON.stringify({
     time: new Date().toISOString(), level: 'error',
-    code: SAFE_CODES.has(code) ? code : 'internal_error',
+    code: code === 'timeout' || SAFE_CODES.has(code) ? code : 'internal_error',
   }));
 }
 
