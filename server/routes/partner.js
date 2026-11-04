@@ -1,3 +1,4 @@
+const { logError } = require('../monitoring');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -30,7 +31,7 @@ router.get('/materials', async (req, res) => {
     res.json({ data, stale: false, asOf: saved.asOf });
   } catch (err) {
     // kanairo.js has already logged why (timeout, ECONNREFUSED, a status...).
-    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    if (!(err instanceof PartnerUnavailable)) logError(err);
     const saved = lastGood.get(key);
     if (saved) {
       console.error(`Kanairo-Klean: serving materials saved at ${saved.asOf}`);
@@ -55,7 +56,7 @@ router.get('/collection-locations', async (req, res) => {
       locations.map(l => ({ id: l.location_id, name: l.name, area: l.area, county: l.county }))
     );
   } catch (err) {
-    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    if (!(err instanceof PartnerUnavailable)) logError(err);
     res.status(502).json({ error: UNAVAILABLE });
   }
 });
@@ -174,11 +175,11 @@ router.post('/drop-offs', requireSignIn('artisan'), async (req, res) => {
     }
     res.status(502).json({ error: UNAVAILABLE });
   } catch (err) {
-    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    if (!(err instanceof PartnerUnavailable)) logError(err);
     try {
       await release();
     } catch (releaseErr) {
-      console.error('Could not remove the unsent scrap report', reservedId, releaseErr.message);
+      logError(releaseErr);
     }
     res.status(502).json({ error: UNAVAILABLE });
   }

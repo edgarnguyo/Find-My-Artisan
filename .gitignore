@@ -15,3 +15,9 @@ LAB5-6-STUDY.md
 LAB5-EXPLAINED.md
 LAB6-EXPLAINED.md
 SUBMISSIONS.md
+
+# Request logs and private environment files
+*.log
+.env
+.env.*
+!.env.example

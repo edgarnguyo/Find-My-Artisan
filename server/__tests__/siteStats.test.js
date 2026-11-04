@@ -1,4 +1,4 @@
-// Automated tests for GET /stats, the landing page's numbers and recent work.
+// Automated tests for GET /site-stats, the landing page's numbers and recent work.
 // Each number is checked against the same count asked of the database directly.
 const request = require('supertest');
 const app = require('../app');
@@ -28,9 +28,9 @@ afterAll(async () => {
   await db.end();
 });
 
-describe('GET /stats', () => {
+describe('GET /site-stats', () => {
   it('returns the real counts from the database', async () => {
-    const res = await request(app).get('/stats');
+    const res = await request(app).get('/site-stats');
 
     const [[expected]] = await db.query(
       `SELECT (SELECT COUNT(*) FROM artisans a WHERE ${verifiedSql('a')}) AS verified,
@@ -55,7 +55,7 @@ describe('GET /stats', () => {
       imageUrl: 'https://example.com/wardrobe.jpg',
     })).body;
 
-    const res = await request(app).get('/stats');
+    const res = await request(app).get('/site-stats');
 
     expect(res.body.recentWork[0]).toEqual({
       id: item.id,

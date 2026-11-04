@@ -1,3 +1,4 @@
+const { logError } = require('../monitoring');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -25,7 +26,7 @@ router.get('/:id', ownAccount, async (req, res) => {
     }
     res.json(rows[0]);
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to fetch account' });
   }
 });
@@ -64,7 +65,7 @@ router.post('/', async (req, res) => {
     startSession(req, res, { id: result.insertId, role: 'client' });
     res.status(201).json({ id: result.insertId, name, email, role: 'client' });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to create client' });
   }
 });
@@ -110,7 +111,7 @@ router.patch('/:id', ownAccount, async (req, res) => {
     );
     res.json(rows[0]);
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to update account' });
   }
 });
@@ -144,7 +145,7 @@ router.delete('/:id', ownAccount, async (req, res) => {
     endSession(req, res);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to delete account' });
   }
 });
