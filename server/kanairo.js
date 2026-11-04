@@ -6,6 +6,8 @@
 // Only this server calls Kanairo. If the browser did, the partner's token would
 // sit in the page's JavaScript where anyone can read it.
 
+const { fetchWithRetry, failureReason } = require('./resilientFetch');
+
 // The fixed list from their contract (MaterialType). Checked here so a bad value
 // gets our own 400 instead of using up a call to the partner.
 const MATERIAL_TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
@@ -15,6 +17,19 @@ const MATERIAL_TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
 const MATERIAL_FIELDS = ['material_id', 'name', 'type', 'quantity_kg', 'unit_price_kes'];
 
 const UNAVAILABLE = 'Kanairo-Klean is unavailable right now. Try again later.';
+
+// Week 11: how long to wait for Kanairo, and how often to try again. See
+// RESILIENCE_NOTES.md for why these numbers. A normal call through their ngrok
+// tunnel took about 0.65 s. Worst case, with every attempt timing out:
+// 3 x 2000 + 200 + 400 = 6600 ms. The environment variables exist so the tests
+// can use shorter times.
+function callSettings() {
+  return {
+    timeoutMs: Number(process.env.PARTNER_TIMEOUT_MS) || 2000,
+    retries: 2,
+    delayMs: Number(process.env.PARTNER_RETRY_DELAY_MS) || 200,
+  };
+}
 
 // Thrown by callPartner when no usable answer came back: the settings are
 // missing, nothing answered, or the answer wasn't JSON.
@@ -40,7 +55,8 @@ async function callPartner(path, { method = 'GET', body } = {}) {
 
   let r;
   try {
-    r = await fetch(url, {
+    // GETs are retried; writes (the drop-off POST) get the timeout but no retry.
+    r = await fetchWithRetry(url, {
       method,
       headers: {
         // Their README's header, not the X-API-Key in the lab handout.
@@ -51,12 +67,13 @@ async function callPartner(path, { method = 'GET', body } = {}) {
         ...(body && { 'Content-Type': 'application/json' }),
       },
       body: body && JSON.stringify(body),
-    });
+    }, { ...callSettings(), label });
   } catch (err) {
-    // fetch throws when no response came back at all. err.cause.code says why:
+    // No response came back at all, even after the retries. The reason says why:
+    // timeout = they took longer than timeoutMs on every attempt,
     // ECONNREFUSED = nothing listening at that address (server off, wrong port),
     // ENOTFOUND = the hostname doesn't exist (misspelt, or the ngrok URL changed).
-    console.error('Kanairo-Klean call failed:', err.cause?.code || err.message);
+    console.error('Kanairo-Klean call failed:', failureReason(err));
     throw new PartnerUnavailable();
   }
 
@@ -65,7 +82,13 @@ async function callPartner(path, { method = 'GET', body } = {}) {
 
   try {
     return { status: r.status, body: await r.json() };
-  } catch {
+  } catch (err) {
+    // The timeout also covers reading the body, so a partner that stalls
+    // halfway through its answer is cut off here.
+    if (err.name === 'TimeoutError') {
+      console.error(`${label}: timeout while reading the answer`);
+      throw new PartnerUnavailable();
+    }
     // ngrok's "endpoint offline" page is HTML, not JSON.
     console.error(`${label}: the answer was not JSON (status ${r.status})`);
     throw new PartnerUnavailable();

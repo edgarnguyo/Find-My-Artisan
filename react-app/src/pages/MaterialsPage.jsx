@@ -11,7 +11,8 @@ export default function MaterialsPage() {
   const [type, setType] = useState('');
   // Bumped by "Try again", so useAsync asks the server again for the same type.
   const [attempt, setAttempt] = useState(0);
-  const { data: materials, error, loading } = useAsync(() => fetchMaterials(type), [type, attempt]);
+  const { data: result, error, loading } = useAsync(() => fetchMaterials(type), [type, attempt]);
+  const materials = result?.data;
 
   return (
     <main className="materials-page">
@@ -41,29 +42,45 @@ export default function MaterialsPage() {
             Try again
           </button>
         </div>
-      ) : materials.length === 0 ? (
-        <p>No {type} materials in stock right now.</p>
       ) : (
-        <table className="materials-table">
-          <thead>
-            <tr>
-              <th>Material</th>
-              <th>Type</th>
-              <th>In stock</th>
-              <th>Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {materials.map((m) => (
-              <tr key={m.id}>
-                <td>{m.name}</td>
-                <td>{m.type}</td>
-                <td>{kes.format(m.quantityKg)} kg</td>
-                <td>KES {kes.format(m.pricePerKgKes)} / kg</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          {result.stale && (
+            // Without this, an old price list would look live. It's part of the fallback.
+            <div className="materials-stale" role="status">
+              <p>
+                Showing saved prices from {new Date(result.asOf).toLocaleTimeString()}.
+                Kanairo-Klean is not responding, so these may be out of date.
+              </p>
+              <button className="btn-primary" onClick={() => setAttempt((n) => n + 1)}>
+                Check again
+              </button>
+            </div>
+          )}
+          {materials.length === 0 ? (
+            <p>No {type} materials in stock right now.</p>
+          ) : (
+            <table className="materials-table">
+              <thead>
+                <tr>
+                  <th>Material</th>
+                  <th>Type</th>
+                  <th>In stock</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {materials.map((m) => (
+                  <tr key={m.id}>
+                    <td>{m.name}</td>
+                    <td>{m.type}</td>
+                    <td>{kes.format(m.quantityKg)} kg</td>
+                    <td>KES {kes.format(m.pricePerKgKes)} / kg</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
       )}
     </main>
   );
