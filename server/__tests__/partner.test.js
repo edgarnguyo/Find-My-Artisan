@@ -6,6 +6,7 @@ const request = require('supertest');
 const app = require('../app');
 const db = require('../db');
 const { signedInAs } = require('../jest.setup');
+const partnerRoutes = require('../routes/partner');
 
 const realFetch = global.fetch;
 const env = { ...process.env };
@@ -27,8 +28,13 @@ function connectionRefused() {
 beforeEach(() => {
   process.env.PARTNER_URL = 'http://partner.test';
   process.env.PARTNER_API_KEY = 'test-token';
+  // Retries wait 1 ms instead of 200, so the failure tests stay quick.
+  process.env.PARTNER_RETRY_DELAY_MS = '1';
+  // Each test starts with no saved materials list (Week 11 fallback).
+  partnerRoutes.forgetSavedMaterials();
   // The route logs why each failure happened; keep the test output readable.
   jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -46,9 +52,11 @@ describe('GET /partner/materials', () => {
     const res = await request(app).get('/partner/materials?type=metal');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([
-      { id: 'ALU', name: 'Aluminium', type: 'metal', quantityKg: 430, pricePerKgKes: 85 },
-    ]);
+    expect(res.body).toEqual({
+      data: [{ id: 'ALU', name: 'Aluminium', type: 'metal', quantityKg: 430, pricePerKgKes: 85 }],
+      stale: false,
+      asOf: expect.any(String),
+    });
     const [url, options] = global.fetch.mock.calls[0];
     expect(String(url)).toBe('http://partner.test/materials?type=metal');
     expect(options.headers.Authorization).toBe('Bearer test-token');

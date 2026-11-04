@@ -30,7 +30,10 @@ export default function QuoteForm({ booking, onSent, onCancel }) {
   const [sending, setSending] = useState(false);
   // Bumped by "Try again", so useAsync asks the server again.
   const [attempt, setAttempt] = useState(0);
-  const { data, error: loadError, loading } = useAsync(() => fetchMaterials(), [attempt]);
+  const { data: result, error: loadError, loading } = useAsync(() => fetchMaterials(), [attempt]);
+  // A saved (stale) list is fine for picking materials: the server prices the
+  // quote from a fresh Kanairo list when it is sent, or refuses if it can't.
+  const data = result?.data;
 
   const materials = data ?? [];
   const { forTrade, other } = splitByTrade(materials, booking.worker.skill);
