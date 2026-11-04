@@ -1,3 +1,4 @@
+const { logError } = require('../monitoring');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -48,7 +49,7 @@ router.post('/', loginLimit, async (req, res) => {
     startSession(req, res, { id: account.id, role: account.role });
     res.json({ id: account.id, name: account.name, email: account.email, role: account.role });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to sign in' });
   }
 });
@@ -70,7 +71,7 @@ router.get('/', async (req, res) => {
     }
     res.json({ ...rows[0], role: account.role });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to check sign-in' });
   }
 });

@@ -1,0 +1,67 @@
+{
+  "startedAt": "2026-11-02T09:52:57.584Z",
+  "uptimeSeconds": 11,
+  "total": 342,
+  "clientErrors": 255,
+  "serverErrors": 1,
+  "errorRatePercent": 0.3,
+  "avgMs": 1,
+  "routes": {
+    "GET /artisans/": {
+      "count": 52,
+      "clientErrors": 0,
+      "serverErrors": 0,
+      "avgMs": 2.6,
+      "maxMs": 26.4
+    },
+    "GET (no route)": {
+      "count": 234,
+      "clientErrors": 233,
+      "serverErrors": 0,
+      "avgMs": 0.5,
+      "maxMs": 6.8
+    },
+    "GET /artisans/:id": {
+      "count": 41,
+      "clientErrors": 21,
+      "serverErrors": 0,
+      "avgMs": 1.7,
+      "maxMs": 2.7
+    },
+    "POST (no route)": {
+      "count": 1,
+      "clientErrors": 1,
+      "serverErrors": 0,
+      "avgMs": 4.1,
+      "maxMs": 4.1
+    },
+    "OPTIONS (no route)": {
+      "count": 1,
+      "clientErrors": 0,
+      "serverErrors": 0,
+      "avgMs": 0.6,
+      "maxMs": 0.6
+    },
+    "GET /site-stats/": {
+      "count": 10,
+      "clientErrors": 0,
+      "serverErrors": 0,
+      "avgMs": 1.8,
+      "maxMs": 3.1
+    },
+    "GET /stats": {
+      "count": 2,
+      "clientErrors": 0,
+      "serverErrors": 0,
+      "avgMs": 0.7,
+      "maxMs": 0.8
+    },
+    "GET /partner/materials": {
+      "count": 1,
+      "clientErrors": 0,
+      "serverErrors": 1,
+      "avgMs": 0.9,
+      "maxMs": 0.9
+    }
+  }
+}

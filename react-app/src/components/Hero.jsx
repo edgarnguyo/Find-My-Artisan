@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { RATING_OPTIONS } from "../data/ratings";
 
-// stats comes from GET /stats, or is null while it loads (shown as a dash).
+// stats comes from GET /site-stats, or is null while it loads (shown as a dash).
 export default function Hero({ stats }) {
   const [location, setLocation] = useState("");
   const [skill, setSkill] = useState("All");

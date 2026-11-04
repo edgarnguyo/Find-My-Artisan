@@ -1,3 +1,4 @@
+const { logError } = require('../monitoring');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -18,7 +19,7 @@ router.get('/materials', async (req, res) => {
   try {
     res.json(await fetchMaterials(type));
   } catch (err) {
-    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    if (!(err instanceof PartnerUnavailable)) logError(err);
     res.status(502).json({ error: UNAVAILABLE });
   }
 });
@@ -35,7 +36,7 @@ router.get('/collection-locations', async (req, res) => {
       locations.map(l => ({ id: l.location_id, name: l.name, area: l.area, county: l.county }))
     );
   } catch (err) {
-    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    if (!(err instanceof PartnerUnavailable)) logError(err);
     res.status(502).json({ error: UNAVAILABLE });
   }
 });
@@ -154,11 +155,11 @@ router.post('/drop-offs', requireSignIn('artisan'), async (req, res) => {
     }
     res.status(502).json({ error: UNAVAILABLE });
   } catch (err) {
-    if (!(err instanceof PartnerUnavailable)) console.error(err);
+    if (!(err instanceof PartnerUnavailable)) logError(err);
     try {
       await release();
     } catch (releaseErr) {
-      console.error('Could not remove the unsent scrap report', reservedId, releaseErr.message);
+      logError(releaseErr);
     }
     res.status(502).json({ error: UNAVAILABLE });
   }
