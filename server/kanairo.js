@@ -1,3 +1,5 @@
+const { logError } = require('./monitoring');
+
 // Calls to our upstream partner, Kanairo-Klean (Team 13). Their contract is
 // openapi.yaml in github.com/berur874/Kanairo-cleaan (v1.1.0). Used by
 // routes/partner.js (the Materials page, scrap drop-offs) and routes/bookings.js
@@ -6,7 +8,7 @@
 // Only this server calls Kanairo. If the browser did, the partner's token would
 // sit in the page's JavaScript where anyone can read it.
 
-const { fetchWithRetry, failureReason } = require('./resilientFetch');
+const { fetchWithRetry } = require('./resilientFetch');
 
 // The fixed list from their contract (MaterialType). Checked here so a bad value
 // gets our own 400 instead of using up a call to the partner.
@@ -51,7 +53,7 @@ async function callPartner(path, { method = 'GET', body } = {}) {
   }
 
   const url = new URL(path, partnerUrl);
-  const label = `Kanairo-Klean ${method} ${url.pathname}${url.search}`;
+  const label = `Kanairo-Klean ${method} ${url.pathname}`;
 
   let r;
   try {
@@ -69,11 +71,11 @@ async function callPartner(path, { method = 'GET', body } = {}) {
       body: body && JSON.stringify(body),
     }, { ...callSettings(), label });
   } catch (err) {
-    // No response came back at all, even after the retries. The reason says why:
+    // No response came back at all, even after the retries. The logged code says why:
     // timeout = they took longer than timeoutMs on every attempt,
     // ECONNREFUSED = nothing listening at that address (server off, wrong port),
     // ENOTFOUND = the hostname doesn't exist (misspelt, or the ngrok URL changed).
-    console.error('Kanairo-Klean call failed:', failureReason(err));
+    logError(err);
     throw new PartnerUnavailable();
   }
 

@@ -4,9 +4,8 @@
 //
 //   API_KEYS=meditrac:<long random key>,kanairo:<another key>
 //
-// The name before the colon says who is calling. It shows in the log and is
-// the bucket for the rate limit, so one team's traffic never uses up another's
-// allowance, and one key can be removed without touching the rest.
+// The name before the colon is the bucket for the rate limit, so one team's
+// traffic never uses up another's allowance, and one key can be removed without touching the rest.
 const crypto = require('crypto');
 
 const HEADER = 'X-API-Key';
@@ -63,20 +62,20 @@ function createApiKeyCheck({ keys = '', perMinute = 60, log = console.log } = {}
   }
 
   return function requireApiKey(req, res, next) {
-    // The path without the query string, e.g. "GET /artisans/3".
-    const where = `${req.method} ${req.originalUrl.split('?')[0]}`;
     const sentKey = req.get(HEADER);
 
     if (!sentKey) {
-      log(`[api] 401 no key: ${where}`);
       return sendError(res, 401, 'unauthorized', `Send your API key in the ${HEADER} header.`);
     }
     const consumer = findConsumer(consumers, sentKey);
     if (!consumer) {
-      // Log that a key was wrong, never the key itself.
-      log(`[api] 401 unknown key: ${where}`);
+      // The monitor records the rejection with caller "none".
       return sendError(res, 401, 'unauthorized', 'That API key is not valid.');
     }
+
+    // Only verified keys reach monitoring. Set before the rate-limit rejection.
+    req.apiKey = sentKey;
+    req.consumer = consumer.name;
 
     // Fixed window: count requests since the window began; start a new one each minute.
     const now = Date.now();
@@ -93,7 +92,6 @@ function createApiKeyCheck({ keys = '', perMinute = 60, log = console.log } = {}
     if (entry.count > perMinute) {
       const retryAfter = Math.ceil((entry.windowStart + 60_000 - now) / 1000);
       res.set('Retry-After', String(retryAfter));
-      log(`[api] 429 ${consumer.name}: ${where}`);
       return sendError(
         res,
         429,
@@ -102,9 +100,7 @@ function createApiKeyCheck({ keys = '', perMinute = 60, log = console.log } = {}
       );
     }
 
-    // Log once the route has answered, so the line has the status code.
-    res.on('finish', () => log(`[api] ${consumer.name} ${where} → ${res.statusCode}`));
-    req.consumer = consumer.name;
+    // monitoring.js writes the single structured request log.
     next();
   };
 }

@@ -1,3 +1,4 @@
+const { logError } = require('../monitoring');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -6,7 +7,7 @@ const { verifiedSql } = require('../verified');
 // Website-only: the real numbers and recent work shown on the landing page, in
 // place of the made-up "200+ artisans" and stock photos it used to have.
 
-// GET /stats
+// GET /site-stats
 router.get('/', async (req, res) => {
   try {
     // jobs_completed counts the same way as on each profile: the number each
@@ -47,7 +48,7 @@ router.get('/', async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });

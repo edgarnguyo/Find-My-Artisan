@@ -35,6 +35,13 @@ function neverAnswers() {
   }));
 }
 
+// The error codes logged as JSON by monitoring.js's logError (Week 12 format).
+function loggedCodes() {
+  return console.error.mock.calls.flatMap(([line]) => {
+    try { return [JSON.parse(line).code]; } catch { return []; }
+  });
+}
+
 function connectionRefused() {
   const err = new TypeError('fetch failed');
   err.cause = { code: 'ECONNREFUSED' };
@@ -161,7 +168,7 @@ describe('GET /partner/materials when Kanairo misbehaves', () => {
 
     expect(res.status).toBe(502);
     expect(global.fetch).toHaveBeenCalledTimes(3);
-    expect(console.error).toHaveBeenCalledWith('Kanairo-Klean call failed:', 'timeout');
+    expect(loggedCodes()).toContain('timeout');
   });
 
   it('calls a rejected token once only, since retrying cannot fix it', async () => {
@@ -182,7 +189,7 @@ describe('GET /partner/materials when Kanairo misbehaves', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ data: [OUR_ALU], stale: true, asOf: live.body.asOf });
     // Saved data hides the failure from users, so the log must still record it.
-    expect(console.error).toHaveBeenCalledWith('Kanairo-Klean call failed:', 'ECONNREFUSED');
+    expect(loggedCodes()).toContain('ECONNREFUSED');
   });
 
   it('keeps a separate saved list for each type filter', async () => {

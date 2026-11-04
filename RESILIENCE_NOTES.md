@@ -51,13 +51,19 @@ server on port 5001. The log column is our server's terminal output.
 | Failure | What the user saw | What our log said |
 |---|---|---|
 | Partner normal (`ok`) | Live list, no banner, 1 to 6 ms | nothing |
-| Partner **slow** (10 s), live list loaded earlier | Saved list **with the banner**, after **6.6 s** | `attempt 1 failed (timeout), retrying in 200 ms`, `attempt 2 failed (timeout), retrying in 400 ms`, `call failed: timeout`, `serving materials saved at 2026-11-04T09:08:31.967Z` |
+| Partner **slow** (10 s), live list loaded earlier | Saved list **with the banner**, after **6.6 s** | `attempt 1 failed (timeout), retrying in 200 ms`, `attempt 2 failed (timeout), retrying in 400 ms`, `call failed: timeout` (now `{"level":"error","code":"timeout"}`, see below), `serving materials saved at 2026-11-04T09:08:31.967Z` |
 | Partner **slow**, our server just restarted (nothing saved) | "Kanairo-Klean is unavailable right now. Try again later." after **6.6 s**, with a Try again button | the same two retry lines, then `call failed: timeout` |
 | Partner **flaky** (503, 503, then OK) | Live list, no banner, after **0.61 s**. The user never saw a failure | `attempt 1 failed (status 503)…`, `attempt 2 failed (status 503)…`, then nothing |
 | Partner **erroring** (always 500) | Saved list with the banner, after 0.61 s | two retry lines (`status 500`), then `GET /materials returned 500`, `serving materials saved at …`. Exactly 2 retries, so no loop |
 | Partner **stopped** (stand-in killed) | Saved list with the banner, after 0.61 s ([screenshot](evidence/week11/partner-stopped-saved-data.jpg)). After a server restart, the unavailable message ([screenshot](evidence/week11/partner-stopped-nothing-saved.jpg)) | `attempt 1 failed (ECONNREFUSED)…`, `attempt 2 failed (ECONNREFUSED)…`, `call failed: ECONNREFUSED` |
 | **Wrong token** (our choice) | Unavailable message after 0.05 s | `Kanairo-Klean GET /materials returned 401`. **One** call, no retries: asking again with a wrong token gets the same 401 |
 | Partner back (`ok`) after the failures | Live list again, banner gone, no code changed | nothing |
+
+Since Week 12 merged, the final "call failed" line is a JSON record from
+`logError` in `server/monitoring.js`, for example
+`{"time":"…","level":"error","code":"ECONNREFUSED"}`. `logError` was extended
+so a timeout is recorded as `"code":"timeout"` rather than `internal_error`.
+The retry lines are unchanged.
 
 The token never appears in any of these lines. The automated test "never puts
 the token in the retry or failure log" checks this.

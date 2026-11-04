@@ -1,3 +1,4 @@
+const { logError } = require('../monitoring');
 // The routes promised in openapi.yaml. Every response here is checked against
 // that file, so field names and types must match it exactly.
 const express = require('express');
@@ -79,7 +80,7 @@ router.get('/', async (req, res) => {
 
     res.status(200).json(artisans);
   } catch (err) {
-    console.error(err);
+    logError(err);
     sendError(res, 500, 'server_error', 'Failed to fetch artisans.');
   }
 });
@@ -98,7 +99,7 @@ router.get('/:id', async (req, res) => {
     const busy = await busyByArtisan(rows[0].id);
     res.status(200).json(toArtisan(rows[0], busy[rows[0].id]));
   } catch (err) {
-    console.error(err);
+    logError(err);
     sendError(res, 500, 'server_error', 'Failed to fetch artisan.');
   }
 });
@@ -171,7 +172,7 @@ async function createBlock(req, res) {
     const [rows] = await db.query('SELECT * FROM availability_blocks WHERE id = ?', [result.insertId]);
     res.status(201).json(toBlock(rows[0]));
   } catch (err) {
-    console.error(err);
+    logError(err);
     sendError(res, 500, 'server_error', 'Failed to create availability block.');
   }
 }
@@ -226,7 +227,7 @@ router.patch('/:id/availability/:blockId', async (req, res) => {
     const [rows] = await db.query('SELECT * FROM availability_blocks WHERE id = ?', [block.id]);
     res.status(200).json(toBlock(rows[0]));
   } catch (err) {
-    console.error(err);
+    logError(err);
     sendError(res, 500, 'server_error', 'Failed to update availability block.');
   }
 });
@@ -244,7 +245,7 @@ async function deleteBlock(req, res) {
     // 204 means success with no body, so send() with nothing.
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logError(err);
     sendError(res, 500, 'server_error', 'Failed to delete availability block.');
   }
 }
@@ -322,7 +323,7 @@ router.post('/:id/reviews', async (req, res) => {
     const [rows] = await db.query('SELECT * FROM reviews WHERE id = ?', [result.insertId]);
     res.status(201).json(toReview(rows[0]));
   } catch (err) {
-    console.error(err);
+    logError(err);
     sendError(res, 500, 'server_error', 'Failed to create review.');
   }
 });
@@ -355,7 +356,7 @@ router.patch('/:id/reviews/:reviewId', async (req, res) => {
     const [rows] = await db.query('SELECT * FROM reviews WHERE id = ?', [review.id]);
     res.status(200).json(toReview(rows[0]));
   } catch (err) {
-    console.error(err);
+    logError(err);
     sendError(res, 500, 'server_error', 'Failed to update review.');
   }
 });
@@ -372,7 +373,7 @@ router.delete('/:id/reviews/:reviewId', async (req, res) => {
     await db.query('DELETE FROM reviews WHERE id = ?', [review.id]);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logError(err);
     sendError(res, 500, 'server_error', 'Failed to delete review.');
   }
 });

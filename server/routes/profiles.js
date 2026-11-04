@@ -1,3 +1,4 @@
+const { logError } = require('../monitoring');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -37,7 +38,7 @@ router.get('/', async (req, res) => {
     const [rows] = await db.query(`SELECT ${COLUMNS} FROM artisans ORDER BY id`);
     res.json(rows);
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to fetch artisans' });
   }
 });
@@ -80,7 +81,7 @@ router.get('/:id', async (req, res) => {
       busy: busy[artisan.id] ?? [],
     });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to fetch artisan' });
   }
 });
@@ -108,7 +109,7 @@ router.get('/:id/availability', ownAccount, async (req, res) => {
       job: row.job,
     })));
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to fetch busy times' });
   }
 });
@@ -153,7 +154,7 @@ router.post('/', async (req, res) => {
     startSession(req, res, { id: result.insertId, role: 'artisan' });
     res.status(201).json({ id: result.insertId, name, email, role: 'artisan' });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to create artisan' });
   }
 });
@@ -237,7 +238,7 @@ router.patch('/:id', ownAccount, async (req, res) => {
     const [rows] = await db.query(`SELECT ${COLUMNS} FROM artisans WHERE id = ?`, [req.params.id]);
     res.json(rows[0]);
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to update profile' });
   }
 });
@@ -283,7 +284,7 @@ router.post('/:id/portfolio', ownAccount, async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to add portfolio item' });
   }
 });
@@ -301,7 +302,7 @@ router.delete('/:id/portfolio/:itemId', ownAccount, async (req, res) => {
     }
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to remove portfolio item' });
   }
 });
@@ -342,7 +343,7 @@ router.delete('/:id', ownAccount, async (req, res) => {
     endSession(req, res);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to delete account' });
   }
 });

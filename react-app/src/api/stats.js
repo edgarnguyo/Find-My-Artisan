@@ -5,5 +5,5 @@ import { request } from './client';
  * { verifiedArtisans, averageRating, reviewCount, jobsCompleted, recentWork }.
  */
 export function fetchStats() {
-  return request('/stats');
+  return request('/site-stats');
 }
