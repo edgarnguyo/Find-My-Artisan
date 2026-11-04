@@ -1,3 +1,4 @@
+const { logError } = require('../monitoring');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -141,7 +142,7 @@ router.get('/', signedIn, async (req, res) => {
       ...(artisanId && { scrap_drop_offs: scrapByBooking[row.id] ?? [] }),
     })));
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 });
@@ -189,7 +190,7 @@ router.post('/', signedInClient, async (req, res) => {
     );
     res.status(201).json({ id: result.insertId, status: 'pending' });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to create booking' });
   }
 });
@@ -283,7 +284,7 @@ router.put('/:id/quote', signedInArtisan, async (req, res) => {
     });
     res.status(code).json(body);
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to save quote' });
   }
 });
@@ -339,7 +340,7 @@ router.patch('/:id/quote', signedInClient, async (req, res) => {
     }
     res.status(409).json({ error: `You have already ${row.quote_status} this quote` });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to save your answer' });
   }
 });
@@ -389,7 +390,7 @@ router.patch('/:id/cancel', signedInClient, async (req, res) => {
     }
     res.json({ id: Number(req.params.id), status: 'cancelled' });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to cancel booking' });
   }
 });
@@ -421,7 +422,7 @@ router.patch('/:id/status', signedInArtisan, async (req, res) => {
     }
     res.json({ id: Number(req.params.id), status });
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to update booking' });
   }
 });
@@ -469,7 +470,7 @@ router.post('/:id/review', signedInClient, async (req, res) => {
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ error: 'You have already reviewed this job' });
     }
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to save review' });
   }
 });
@@ -518,7 +519,7 @@ async function acceptBooking(bookingId, artisanId, endTime, res) {
     });
     res.status(code).json(body);
   } catch (err) {
-    console.error(err);
+    logError(err);
     res.status(500).json({ error: 'Failed to accept booking' });
   }
 }

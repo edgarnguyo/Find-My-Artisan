@@ -79,7 +79,9 @@ describe('GET /partner/materials', () => {
 
     expect(res.status).toBe(502);
     expect(res.body.error).toMatch(/unavailable/);
-    expect(console.error).toHaveBeenCalledWith(expect.any(String), 'ECONNREFUSED');
+    expect(JSON.parse(console.error.mock.calls[0][0])).toMatchObject({
+      level: 'error', code: 'ECONNREFUSED',
+    });
   });
 
   it('answers 502 when the partner rejects the token', async () => {

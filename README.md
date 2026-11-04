@@ -74,6 +74,7 @@ On the [docs page](https://edgarnguyo.github.io/Find-My-Artisan/), press
 
 | Method | Path | What it does |
 |---|---|---|
+| `GET` | `/stats` | Protected request totals, errors and response timings |
 | `GET` | `/artisans` | List artisans, optionally filtered by `trade` and `county` |
 | `GET` | `/artisans/{id}` | One artisan's full profile, including phone and hourly rate |
 | `POST` | `/artisans/{id}/reviews` | Leave a review of an artisan |
@@ -330,7 +331,7 @@ curl -H "X-API-Key: $API_KEY" -X POST https://find-my-artisan.onrender.com/artis
 
 **If you get HTML back instead of JSON, the path is wrong.** The same server
 also serves the Find My Artisan website, so an address that is not one of the
-eight endpoints above returns a web page. Check the spelling, for example
+API endpoints above returns a web page. Check the spelling, for example
 `/artisans/3/reviews` and not `/artisans/3/review`.
 
 ## Run it locally
@@ -484,6 +485,129 @@ curl http://localhost:5050/__mode/flaky   # 503 twice, then works
 curl http://localhost:5050/__mode/error   # always 500
 curl http://localhost:5050/__mode/ok      # back to normal
 ```
+
+## Week 12 monitoring
+
+`GET /stats` needs a valid `X-API-Key` and uses the same per-key rate limit as
+`/artisans`. It reports every completed request to this server, including
+website/assets traffic, CORS preflights, invalid JSON, 401s, 404s and 429s.
+
+```bash
+curl -H "X-API-Key: <your-api-key>" http://localhost:5001/stats
+```
+
+Example response (illustrative; read your own server for current figures):
+
+```json
+{
+  "startedAt": "2026-11-02T09:00:00.000Z",
+  "uptimeSeconds": 120,
+  "total": 20,
+  "clientErrors": 4,
+  "serverErrors": 1,
+  "errorRatePercent": 5,
+  "avgMs": 3.2,
+  "routes": {
+    "GET /artisans/:id": {
+      "count": 15, "clientErrors": 0, "serverErrors": 1,
+      "avgMs": 4, "maxMs": 18
+    },
+    "GET (no route)": {
+      "count": 5, "clientErrors": 4, "serverErrors": 0,
+      "avgMs": 0.8, "maxMs": 1.5
+    }
+  }
+}
+```
+
+`errorRatePercent` counts **5xx only**, divided by all completed requests.
+Per-route `avgMs` is the mean and `maxMs` is the slowest completed request.
+Different IDs share a route pattern, such as `GET /artisans/:id`. Rejections
+before a route and unmatched paths share `(no route)`; inspect their log status
+codes to distinguish them. All figures reset on restart and describe one server
+process, so they are not suitable for combining multiple deployed instances.
+The `/stats` request being answered appears in the **next** snapshot.
+
+The public homepage figures (artisan counts, ratings and recent work) are now
+at `GET /site-stats`. The React website uses this address without an API key;
+`/stats` is reserved for operational monitoring.
+
+### Record safe request logs
+
+From `server/`, start the server and capture its output:
+
+```bash
+node index.js | tee requests.log
+```
+
+PowerShell:
+
+```powershell
+node index.js | Tee-Object -FilePath requests.log
+```
+
+There is one JSON record per completed request, with `time`, `method`, `path`,
+`status`, `ms` and `caller`. Verified keys have a stable `key-xxxxxx` SHA-256
+fingerprint, including when rate limited; missing or invalid keys have `none`.
+The monitor runs before CORS, body parsing, authentication and rate limiting.
+It omits query strings, headers, keys and bodies. Startup diagnostics are
+separate from request records. Error diagnostics retain only allowlisted error
+codes, because raw database errors can contain SQL and private values.
+
+`.env`, other private `.env.*` files and `*.log` are ignored by Git. Before
+sharing a recording, check that it contains none of your real keys:
+
+```bash
+grep -F -c "$API_KEY" requests.log
+```
+
+PowerShell (with your key in `$API_KEY`):
+
+```powershell
+(Select-String -LiteralPath requests.log -SimpleMatch -Pattern $API_KEY | Measure-Object).Count
+```
+
+The result must be `0`. Never paste the key into notes or sample output.
+
+### Generate traffic and collect partner evidence
+
+`server/traffic.js` sends only GET requests: successful lists/profiles, a missing
+ID, an unmatched API path and requests with no key. It never creates or changes
+records. `N` defaults to 60, `DELAY_MS` to 50 and `TIMEOUT_MS` to 90000 (to allow
+for Render waking up). The status summary records network failures separately.
+
+From `server/`, in Bash:
+
+```bash
+API=http://localhost:5001 KEY='<your-api-key>' N=60 node traffic.js
+```
+
+PowerShell:
+
+```powershell
+$env:API = 'http://localhost:5001'
+$env:KEY = '<your-api-key>'
+$env:N = '60'
+node traffic.js
+```
+
+Run again with `N=200` to observe rate limiting. Read and save `/stats` after
+each phase; a separate observer key can read stats if the traffic key has used
+its allowance. Otherwise wait for the window to reset. Issue different keys to
+different callers through `API_KEYS=name:key,...` in the server environment.
+
+After deployment, have the ring partner run the same script with the deployed
+base URL and **their own issued key**. Capture their status summary, matching
+caller fingerprint in the server logs, and a fresh `/stats` snapshot. Keep keys
+private and update `MONITORING_NOTES.md` with the actual partner measurements.
+
+The checked-in [local evidence](evidence/week12/) contains measured HTTP traffic
+against an isolated seeded database, including a clearly labelled simulated
+second caller. It is **not** evidence that the ring partner has sent traffic.
+[MONITORING_NOTES.md](MONITORING_NOTES.md) records predictions, measured figures,
+a hypothesis, an alert and the remaining partner step. The optional Week 11
+fallback counter is not included yet. The Week 11 fallback (the saved Materials
+list) was added after this section was written, so it could now be counted.
 
 ## More
 
