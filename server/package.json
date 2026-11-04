@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "traffic": "node traffic.js",
     "dev": "concurrently --names api,react --prefix-colors blue,magenta \"nodemon index.js\" \"npm --prefix ../react-app run build -- --watch\"",
     "build": "npm --prefix ../react-app run build",
     "test": "jest --runInBand",

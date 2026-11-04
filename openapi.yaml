@@ -27,6 +27,26 @@ security:
   - ApiKeyAuth: []
 
 paths:
+  /stats:
+    get:
+      summary: Request monitoring since this server process started
+      description: >
+        Requires an API key and shares its rate limit with /artisans. Includes
+        website requests and rejected requests. Counters reset on restart.
+        The request currently being answered is included in the next snapshot.
+        Homepage figures are served separately at the public /site-stats route.
+      responses:
+        '200':
+          description: Completed request counts and timings, grouped by route pattern.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonitoringStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
   /artisans:
     get:
       summary: List artisans, optionally filtered by trade and county, with when each is booked
@@ -496,6 +516,57 @@ components:
             message: "Too many requests: the limit is 60 a minute. Try again in 42 seconds."
 
   schemas:
+    MonitoringStats:
+      type: object
+      required: [startedAt, uptimeSeconds, total, clientErrors, serverErrors, errorRatePercent, avgMs, routes]
+      properties:
+        startedAt:
+          type: string
+          format: date-time
+        uptimeSeconds:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+        clientErrors:
+          type: integer
+          minimum: 0
+          description: Completed responses with status 400-499.
+        serverErrors:
+          type: integer
+          minimum: 0
+          description: Completed responses with status 500 or higher.
+        errorRatePercent:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: serverErrors divided by total, as a percentage (zero with no requests).
+        avgMs:
+          type: number
+          minimum: 0
+        routes:
+          type: object
+          description: Method plus route pattern; unmatched or early rejections use (no route).
+          additionalProperties:
+            type: object
+            required: [count, clientErrors, serverErrors, avgMs, maxMs]
+            properties:
+              count:
+                type: integer
+                minimum: 1
+              clientErrors:
+                type: integer
+                minimum: 0
+              serverErrors:
+                type: integer
+                minimum: 0
+              avgMs:
+                type: number
+                minimum: 0
+              maxMs:
+                type: number
+                minimum: 0
     ArtisanSummary:
       type: object
       required: [id, name, trade, area, county, verified, busy]
