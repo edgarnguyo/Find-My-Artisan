@@ -9,20 +9,40 @@ const { requireSignIn } = require('../session');
 // Website-only: data from our upstream partner, Kanairo-Klean (Team 13). The
 // page asks this server, and kanairo.js adds the token from server/.env.
 
+// Week 11: the last list Kanairo sent for each filter ('' = all types), as
+// { data, asOf }. Shown, labelled as saved, when Kanairo can't be reached.
+// Kept in memory only, so a server restart clears it.
+const lastGood = new Map();
+
 // GET /partner/materials?type=metal
+// Answers { data: [materials], stale, asOf }. stale is true when Kanairo
+// couldn't be reached and data is the copy saved at asOf.
 router.get('/materials', async (req, res) => {
   const { type } = req.query;
   if (type !== undefined && !MATERIAL_TYPES.includes(type)) {
     return res.status(400).json({ error: `type must be one of: ${MATERIAL_TYPES.join(', ')}` });
   }
 
+  const key = type ?? '';
   try {
-    res.json(await fetchMaterials(type));
+    const data = await fetchMaterials(type);
+    const saved = { data, asOf: new Date().toISOString() };
+    lastGood.set(key, saved);
+    res.json({ data, stale: false, asOf: saved.asOf });
   } catch (err) {
+    // kanairo.js has already logged why (timeout, ECONNREFUSED, a status...).
     if (!(err instanceof PartnerUnavailable)) logError(err);
+    const saved = lastGood.get(key);
+    if (saved) {
+      console.error(`Kanairo-Klean: serving materials saved at ${saved.asOf}`);
+      return res.json({ data: saved.data, stale: true, asOf: saved.asOf });
+    }
     res.status(502).json({ error: UNAVAILABLE });
   }
 });
+
+// For the tests, so each one starts with nothing saved.
+router.forgetSavedMaterials = () => lastGood.clear();
 
 // GET /partner/collection-locations: the yards that take scrap drop-offs.
 // Kanairo lists only active ones, so is_active is left out.
