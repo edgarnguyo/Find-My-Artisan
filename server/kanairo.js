@@ -1,3 +1,5 @@
+const { logError } = require('./monitoring');
+
 // Calls to our upstream partner, Kanairo-Klean (Team 13). Their contract is
 // openapi.yaml in github.com/berur874/Kanairo-cleaan (v1.1.0). Used by
 // routes/partner.js (the Materials page, scrap drop-offs) and routes/bookings.js
@@ -36,7 +38,7 @@ async function callPartner(path, { method = 'GET', body } = {}) {
   }
 
   const url = new URL(path, partnerUrl);
-  const label = `Kanairo-Klean ${method} ${url.pathname}${url.search}`;
+  const label = `Kanairo-Klean ${method} ${url.pathname}`;
 
   let r;
   try {
@@ -56,7 +58,7 @@ async function callPartner(path, { method = 'GET', body } = {}) {
     // fetch throws when no response came back at all. err.cause.code says why:
     // ECONNREFUSED = nothing listening at that address (server off, wrong port),
     // ENOTFOUND = the hostname doesn't exist (misspelt, or the ngrok URL changed).
-    console.error('Kanairo-Klean call failed:', err.cause?.code || err.message);
+    logError(err);
     throw new PartnerUnavailable();
   }
 
