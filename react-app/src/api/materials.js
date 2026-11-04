@@ -2,8 +2,10 @@ import { request } from './client';
 
 /**
  * Scrap materials in stock at Kanairo-Klean, our upstream partner, with prices:
- * [{ id, name, type, quantityKg, pricePerKgKes }]. Our server makes the call to
- * Kanairo with the token, so no token is ever in the browser.
+ * { data: [{ id, name, type, quantityKg, pricePerKgKes }], stale, asOf }.
+ * stale is true when Kanairo couldn't be reached and data is the copy our
+ * server saved at asOf (an ISO time). Our server makes the call to Kanairo
+ * with the token, so no token is ever in the browser.
  * `type` is one of metal, plastic, paper, glass, e-waste, or empty for all.
  */
 export function fetchMaterials(type) {
