@@ -86,16 +86,15 @@ Automated tests: `server/__tests__/resilience.test.js` (21 tests) covers each ru
 
 | Setting | Value | Why |
 |---|---|---|
-| Timeout | **2000 ms** | Kanairo is hosted on an ngrok tunnel. Five calls to it on 2026-11-04 took **0.59 to 0.70 s** just to come back from ngrok (their app was off, so ngrok answered 404). A real answer will be at least that long. The handout's 1500 ms is for calls that normally take under 0.5 s, and it leaves too little room over 0.7 s. 2000 ms is about 3× a normal call and well under a user's patience for one attempt |
+| Timeout | **2000 ms** | Kanairo is hosted on an ngrok tunnel. Real answers took **0.70 to 1.16 s** in the Part E drill. Before their app was up, ngrok alone took 0.59 to 0.70 s. The handout's 1500 ms is for calls that normally take under 0.5 s, and it would leave only 0.34 s of room over our slowest real answer. 2000 ms is about twice a normal call and well under a user's patience for one attempt |
 | Retries | **2** | The handout's cap. Covers the flaky case (two failures, then success), and means at most 3 hits on Kanairo per page load |
 | Delay | **200 ms, then 400 ms** | Short enough not to be felt. Growing, so a struggling partner gets breathing room |
 | Worst case | **3 × 2000 + 200 + 400 = 6600 ms** | Measured as 6.61 s and 6.63 s in the slow drill. That only happens when every attempt times out. A stopped partner (refused connection) or a 5xx gives up in about **0.6 s**, almost all of it the two waits |
 
 Is 6.6 s acceptable? Only just, for a page people browse rather than a checkout.
 It beats the 10 s or more they waited before, and they then get prices rather
-than an error. When we can time real answers from Kanairo's app, we would like
-the timeout lower. If those answers come back in under 0.5 s, 1500 ms brings the
-worst case to 5.1 s.
+than an error. Real answers from Kanairo took up to 1.16 s, so a lower timeout would cut off
+normal calls. 2000 ms stays.
 
 ## Part F3: what a real user would get without this code
 
@@ -122,21 +121,41 @@ restarts (Render restarts it on every deploy and after it sleeps). Collection
 yards (`GET /partner/collection-locations`) get the timeout and retries but no
 saved copy. If they fail, the drop-off form shows its own unavailable message.
 
-## Part E: real-partner drill (still to do)
+## Part E: real-partner drill
 
-**Not done yet.** On 2026-11-04 Kanairo's ngrok address answered, but their app
-behind it was off (ngrok returned 404 for `/materials`). So the drill with their
-real server could not be run. To finish it, agree a 10-minute window with Team 13
-and do the following:
+Run against Kanairo-Klean's real server (their ngrok address), with the token
+they issued us in `server/.env`. Team 13 stopped and restarted their server
+for us when asked.
 
-1. Point `PARTNER_URL` and `PARTNER_API_KEY` in `server/.env` at their real server
-   and token. Load the Materials page and expect live data.
-2. Ask them to stop their server. Within 6.6 s, expect the saved list with the
-   banner.
-3. Ask them to restart it. Reload: live data again, banner gone, no code changed.
-4. Watch their terminal: at most 3 hits per page load.
-5. Check our own log for Meditrac's bursts of 3 (their retries). Make sure those
-   stay under our Week 9 limit.
+| Step | When (EAT) | What the user saw | What our log said |
+|---|---|---|---|
+| Normal | 2026-11-04 20:37 | Live list (6 materials, Aluminium 390 kg, not the stand-in's 430), no banner. 0.30 to 0.71 s through our server ([screenshot](evidence/week11/real-partner-1-live.jpg)) | nothing |
+| Partner stopped | 2026-11-05 | Saved list **with the banner**, in **0.52 to 0.63 s** ([screenshot](evidence/week11/real-partner-2-stopped.jpg)) | `Kanairo-Klean GET /materials returned 404`, `the answer was not JSON (status 404)`, `serving materials saved at 2026-11-04T17:37:01.118Z` |
+| Partner back | 2026-11-06 11:53 | Live list again, banner gone, no code changed. 0.28 to 0.71 s ([screenshot](evidence/week11/real-partner-3-back.jpg)) | nothing |
 
-Record the results in the table above. `PARTNER_URL` must stay pointed at them
-afterwards, not at the stand-in.
+Direct calls to their server with our token took **0.70 to 1.16 s** (6 calls
+over the drill), so the 2000 ms timeout leaves room for a bad moment.
+
+What the real partner taught us that the stand-in didn't:
+
+- **A stopped partner behind ngrok is not a refused connection.** ngrok answers
+  for them with a 404 HTML page (header `ngrok-error-code: ERR_NGROK_3200`,
+  "endpoint offline"). A 404 is never retried, so each page load made **one**
+  call, not three. Our fallback still worked, and quickly, because a non-JSON
+  answer counts as unusable. The cost: during a short restart on their side, we
+  don't try a second time. Treating `ERR_NGROK_3200` as retryable would fix that,
+  but we left it: during a real outage it would only add load and wait time.
+- **The banner hid how old the data was.** The list saved on Nov 4 was still
+  being shown on Nov 5 as "saved prices from 20:37:01". With no date, a list
+  more than a day old looked like it was from earlier today. Fixed: the banner
+  now adds the date when the list isn't from today ("Nov 4, 8:37:01 PM").
+- **Hits per page load:** at most 1 while they were down (the 404 is not
+  retried), and 1 while they were up. Never a burst, so we stayed well within
+  any limit on their side. We didn't see their terminal; this count comes from
+  our own log.
+
+Not checked: calls from Meditrac, our downstream partner, to us. Their retries
+would show on our hosted server (Render), not on this local drill.
+
+`PARTNER_URL` in `server/.env` now points at Kanairo's real server, not the
+stand-in.

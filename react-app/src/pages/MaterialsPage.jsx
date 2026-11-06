@@ -7,6 +7,15 @@ const TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
 
 const kes = new Intl.NumberFormat('en-KE', { maximumFractionDigits: 2 });
 
+// When the saved list is from. The date is added when it isn't today: in the
+// Week 11 drill a list saved two days earlier showed only "20:37:01".
+function savedAt(iso) {
+  const saved = new Date(iso);
+  const time = saved.toLocaleTimeString();
+  if (saved.toDateString() === new Date().toDateString()) return time;
+  return `${saved.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}, ${time}`;
+}
+
 export default function MaterialsPage() {
   const [type, setType] = useState('');
   // Bumped by "Try again", so useAsync asks the server again for the same type.
@@ -48,7 +57,7 @@ export default function MaterialsPage() {
             // Without this, an old price list would look live. It's part of the fallback.
             <div className="materials-stale" role="status">
               <p>
-                Showing saved prices from {new Date(result.asOf).toLocaleTimeString()}.
+                Showing saved prices from {savedAt(result.asOf)}.
                 Kanairo-Klean is not responding, so these may be out of date.
               </p>
               <button className="btn-primary" onClick={() => setAttempt((n) => n + 1)}>
