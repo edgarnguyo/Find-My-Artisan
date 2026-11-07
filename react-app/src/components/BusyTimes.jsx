@@ -16,6 +16,8 @@ export default function BusyTimes({ artisanId, reloadKey }) {
   const [date, setDate] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  // A job Meditrac booked by phone. Meditrac can only review artisans who have one.
+  const [forMeditrac, setForMeditrac] = useState(false);
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(null);
@@ -41,10 +43,11 @@ export default function BusyTimes({ artisanId, reloadKey }) {
 
     setSaving(true);
     try {
-      await addBusyTime(artisanId, fromKenya(date, from), fromKenya(date, to));
+      await addBusyTime(artisanId, fromKenya(date, from), fromKenya(date, to), forMeditrac ? 'meditrac' : null);
       setDate('');
       setFrom('');
       setTo('');
+      setForMeditrac(false);
       setOwnKey(k => k + 1);
     } catch (err) {
       setFormError(err.message);
@@ -88,7 +91,9 @@ export default function BusyTimes({ artisanId, reloadKey }) {
                   {kenyaDayLabel(block.start)}, {kenyaClock(block.start)}–{kenyaClock(block.end)}
                 </strong>
                 <span className="busy-reason">
-                  {block.bookingId ? `Booked job: ${block.job}` : 'Marked busy'}
+                  {block.bookingId
+                    ? `Booked job: ${block.job}`
+                    : block.forPartner === 'meditrac' ? 'Meditrac job' : 'Marked busy'}
                 </span>
               </span>
               {/* A booked job's time is freed by the booking being cancelled, not here. */}
@@ -122,6 +127,10 @@ export default function BusyTimes({ artisanId, reloadKey }) {
         <button type="submit" className="booking-action" disabled={saving}>
           {saving ? 'Saving…' : 'Mark busy'}
         </button>
+        <label className="busy-partner">
+          <input type="checkbox" checked={forMeditrac} onChange={e => setForMeditrac(e.target.checked)} />
+          Meditrac booked this job by phone (lets them review you afterwards)
+        </label>
       </form>
       {formError && <small className="error">{formError}</small>}
     </section>

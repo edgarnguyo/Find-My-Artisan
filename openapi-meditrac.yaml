@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API (Meditrac)
-  version: 2.1.0
+  version: 2.2.0
   description: >
     The part of Find My Artisan's API that Meditrac (Team 2) uses. Meditrac
     finds and vets artisans with the two GET endpoints, then books them by
@@ -120,6 +120,10 @@ paths:
         Called by Meditrac after a job agreed by phone is finished. The review
         appears on the artisan's public profile and helps later vetting. This
         records feedback only; it does not create or change a booking.
+        You can only review an artisan you have hired: when you book them by
+        phone, the artisan logs the job on Find My Artisan as a job for your
+        team. Until that job has started, the review is refused with 403.
+        The review belongs to your API key: only your key can change or remove it.
       parameters:
         - name: id
           in: path
@@ -169,13 +173,25 @@ paths:
               example:
                 code: "not_found"
                 message: "No artisan with id 999."
+        '403':
+          description: >
+            The artisan has no job logged for your team that has started yet,
+            so you can't review them. Ask the artisan to log the job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "no_job"
+                message: "You can only review an artisan after a job with them. Ask the artisan to log the job on Find My Artisan."
 
   /artisans/{id}/reviews/{reviewId}:
     patch:
       summary: Correct a review Meditrac posted earlier
       description: >
-        Only reviews created through POST /artisans/{id}/reviews can be changed;
-        the reviews already on Find My Artisan's site can't. Send only the fields
+        Only reviews your own API key created through POST /artisans/{id}/reviews
+        can be changed; the reviews already on Find My Artisan's site, and
+        reviews another team posted, answer 404. Send only the fields
         being changed. Sending "comment": null removes the comment. Values are
         set, not added to, so sending the same PATCH twice gives the same review.
       parameters:
@@ -235,7 +251,8 @@ paths:
     delete:
       summary: Remove a review Meditrac posted earlier
       description: >
-        Only reviews created through POST /artisans/{id}/reviews can be removed.
+        Only reviews your own API key created through POST /artisans/{id}/reviews
+        can be removed. Others answer 404.
       parameters:
         - name: id
           in: path
