@@ -4,7 +4,7 @@ const { logError } = require('../monitoring');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { toDbTime, fromDbTime, busyByArtisan, overlapsExistingBlock } = require('../availability');
+const { toDbTime, fromDbTime, busyByArtisan, overlapsExistingBlock, JOB_PARTNERS } = require('../availability');
 
 // The database stores the job title ("Plumber"); the contract promises the
 // trade ("plumbing").
@@ -140,9 +140,14 @@ async function artisanExists(id) {
 }
 
 // POST /artisans/1/availability   body: { "start": "...", "end": "..." }
+// From the artisan's dashboard (/profiles), the body may also have
+// "forPartner": "meditrac", marking the time as a job booked by that team.
+// Partners' API calls can't set it, or a partner could log its own jobs and
+// review anyone.
 async function createBlock(req, res) {
   const artisanId = req.params.id;
   const { start, end } = req.body ?? {};
+  const forPartner = req.consumer ? undefined : req.body?.forPartner;
 
   // 1. Validate. Nothing is written unless every check passes.
   if (start === undefined || end === undefined) {
@@ -153,6 +158,9 @@ async function createBlock(req, res) {
   }
   if (Date.parse(end) <= Date.parse(start)) {
     return sendError(res, 400, 'invalid_body', 'end must be after start.');
+  }
+  if (forPartner != null && !JOB_PARTNERS.includes(forPartner)) {
+    return sendError(res, 400, 'invalid_body', `forPartner must be one of: ${JOB_PARTNERS.join(', ')}.`);
   }
 
   try {
@@ -166,8 +174,8 @@ async function createBlock(req, res) {
 
     // 3. Write, then read the new row back so the response shows what was saved.
     const [result] = await db.query(
-      'INSERT INTO availability_blocks (artisan_id, start_at, end_at, created_at) VALUES (?, ?, ?, ?)',
-      [artisanId, toDbTime(start), toDbTime(end), toDbTime(new Date())]
+      'INSERT INTO availability_blocks (artisan_id, start_at, end_at, created_at, for_partner) VALUES (?, ?, ?, ?, ?)',
+      [artisanId, toDbTime(start), toDbTime(end), toDbTime(new Date()), forPartner ?? null]
     );
     const [rows] = await db.query('SELECT * FROM availability_blocks WHERE id = ?', [result.insertId]);
     res.status(201).json(toBlock(rows[0]));
@@ -252,7 +260,8 @@ async function deleteBlock(req, res) {
 router.delete('/:id/availability/:blockId', deleteBlock);
 
 // ---------------------------------------------------------------------------
-// Reviews: Meditrac rates an artisan after a job, and can fix or remove its own reviews.
+// Reviews: Meditrac rates an artisan after a job they logged for Meditrac, and can
+// fix or remove its own reviews.
 // ---------------------------------------------------------------------------
 
 // The mapping step for Review.
@@ -290,16 +299,28 @@ function reviewProblem({ author, rating, comment }, partial = false) {
   return null;
 }
 
-// Finds a review of this artisan that was posted through the API, or null.
-// Reviews that came from the website have from_api = FALSE and are never found,
-// so they can't be edited or deleted here.
-async function findApiReview(artisanId, reviewId) {
+// Finds a review of this artisan that this key posted through the API, or null.
+// Reviews from the website (from_api = FALSE) and reviews another partner's key
+// posted are never found, so they answer 404 as if they weren't there.
+async function findApiReview(artisanId, reviewId, consumer) {
   if (!isId(artisanId) || !isId(reviewId)) return null;
   const [rows] = await db.query(
-    'SELECT * FROM reviews WHERE id = ? AND artisan_id = ? AND from_api = TRUE',
-    [reviewId, artisanId]
+    'SELECT * FROM reviews WHERE id = ? AND artisan_id = ? AND from_api = TRUE AND api_consumer = ?',
+    [reviewId, artisanId, consumer]
   );
   return rows[0] ?? null;
+}
+
+// True when the artisan has logged a job for this partner that has already
+// started. Bookings with partners happen by phone, so this busy time, tagged on
+// the artisan's dashboard, is our only record that the partner hired them.
+async function hasJobFor(artisanId, consumer) {
+  const [rows] = await db.query(
+    `SELECT id FROM availability_blocks
+     WHERE artisan_id = ? AND for_partner = ? AND start_at <= UTC_TIMESTAMP() LIMIT 1`,
+    [artisanId, consumer]
+  );
+  return rows.length > 0;
 }
 
 // POST /artisans/1/reviews   body: { "author": "...", "rating": 5, "comment": "..." }
@@ -314,11 +335,15 @@ router.post('/:id/reviews', async (req, res) => {
     if (!isId(artisanId) || !(await artisanExists(artisanId))) {
       return sendError(res, 404, 'not_found', `No artisan with id ${artisanId}.`);
     }
+    if (!(await hasJobFor(artisanId, req.consumer))) {
+      return sendError(res, 403, 'no_job',
+        'You can only review an artisan after a job with them. Ask the artisan to log the job on Find My Artisan.');
+    }
 
     const [result] = await db.query(
-      `INSERT INTO reviews (artisan_id, author, rating, comment, created_at, from_api)
-       VALUES (?, ?, ?, ?, ?, TRUE)`,
-      [artisanId, author.trim(), rating, comment?.trim() || null, toDbTime(new Date())]
+      `INSERT INTO reviews (artisan_id, author, rating, comment, created_at, from_api, api_consumer)
+       VALUES (?, ?, ?, ?, ?, TRUE, ?)`,
+      [artisanId, author.trim(), rating, comment?.trim() || null, toDbTime(new Date()), req.consumer]
     );
     const [rows] = await db.query('SELECT * FROM reviews WHERE id = ?', [result.insertId]);
     res.status(201).json(toReview(rows[0]));
@@ -337,7 +362,7 @@ router.patch('/:id/reviews/:reviewId', async (req, res) => {
   if (problem) return sendError(res, 400, 'invalid_body', problem);
 
   try {
-    const review = await findApiReview(artisanId, reviewId);
+    const review = await findApiReview(artisanId, reviewId, req.consumer);
     if (!review) {
       return sendError(res, 404, 'not_found', `No review with id ${reviewId} for artisan ${artisanId}.`);
     }
@@ -366,7 +391,7 @@ router.delete('/:id/reviews/:reviewId', async (req, res) => {
   const { id: artisanId, reviewId } = req.params;
 
   try {
-    const review = await findApiReview(artisanId, reviewId);
+    const review = await findApiReview(artisanId, reviewId, req.consumer);
     if (!review) {
       return sendError(res, 404, 'not_found', `No review with id ${reviewId} for artisan ${artisanId}.`);
     }
