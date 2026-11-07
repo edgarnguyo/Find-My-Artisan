@@ -204,10 +204,10 @@ export function fetchBusyTimes(artisanId) {
 }
 
 /** Mark the artisan busy from start to end (Date objects). */
-export async function addBusyTime(artisanId, start, end) {
+export async function addBusyTime(artisanId, start, end, forPartner = null) {
   await request(`/profiles/${artisanId}/availability`, {
     method: 'POST',
-    body: { start: start.toISOString(), end: end.toISOString() },
+    body: { start: start.toISOString(), end: end.toISOString(), forPartner },
   });
 }
 
