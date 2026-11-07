@@ -51,4 +51,8 @@ async function overlapsExistingBlock(artisanId, start, end, skipBlockId = null, 
   return rows.length > 0;
 }
 
-module.exports = { toDbTime, fromDbTime, kenyaToDbTime, busyByArtisan, overlapsExistingBlock };
+// Partner teams an artisan can log a phone-booked job for, by API key name.
+// A partner can only review an artisan who has a job logged for it.
+const JOB_PARTNERS = ['meditrac'];
+
+module.exports = { toDbTime, fromDbTime, kenyaToDbTime, busyByArtisan, overlapsExistingBlock, JOB_PARTNERS };

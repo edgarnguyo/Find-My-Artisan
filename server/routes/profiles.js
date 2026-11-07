@@ -94,7 +94,7 @@ router.get('/:id/availability', ownAccount, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT availability_blocks.id, availability_blocks.start_at, availability_blocks.end_at,
-              availability_blocks.booking_id, bookings.job
+              availability_blocks.booking_id, availability_blocks.for_partner, bookings.job
        FROM availability_blocks
        LEFT JOIN bookings ON bookings.id = availability_blocks.booking_id
        WHERE availability_blocks.artisan_id = ? AND availability_blocks.end_at > UTC_TIMESTAMP()
@@ -107,6 +107,7 @@ router.get('/:id/availability', ownAccount, async (req, res) => {
       end: fromDbTime(row.end_at),
       bookingId: row.booking_id,
       job: row.job,
+      forPartner: row.for_partner,
     })));
   } catch (err) {
     logError(err);
