@@ -4,7 +4,7 @@
 // contract, so they're out of scope for this file.
 const request = require('supertest');
 const app = require('../app');
-const { TEST_API_KEY } = require('../jest.setup');
+const { TEST_API_KEY, OTHER_API_KEY, signedInAs, logPartnerJob } = require('../jest.setup');
 const db = require('../db');
 
 // Artisan 1 (Wanjiru Kamau) is one of the 23 sample rows schema.sql always
@@ -208,12 +208,72 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
   // come straight from the database, not from any endpoint under test.
   let seededReviewId;
 
+  // Busy times made by these tests, removed at the end.
+  const blockIds = [];
+
   beforeAll(async () => {
     const [rows] = await db.query(
       'SELECT id FROM reviews WHERE artisan_id = ? AND from_api = FALSE LIMIT 1',
       [REAL_ARTISAN_ID]
     );
     seededReviewId = rows[0].id;
+    // The test key may only review an artisan it has a job with.
+    blockIds.push(await logPartnerJob(REAL_ARTISAN_ID));
+  });
+
+  afterAll(async () => {
+    await db.query('DELETE FROM availability_blocks WHERE id IN (?)', [blockIds]);
+  });
+
+  it('refuses a review with 403 no_job when the artisan has no job logged for this partner', async () => {
+    const res = await request(app)
+      .post(`/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
+      .send({ author: 'Other team', rating: 5 });
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ code: 'no_job', message: expect.any(String) });
+  });
+
+  it("doesn't count a job that hasn't started yet", async () => {
+    blockIds.push(await logPartnerJob(2, { partner: 'other', hoursFromNow: 48 }));
+    const res = await request(app)
+      .post(`/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
+      .send({ author: 'Other team', rating: 5 });
+
+    expect(res.status).toBe(403);
+  });
+
+  it("doesn't let a partner tag its own job through the API", async () => {
+    const start = new Date(Date.now() - 6 * 3600 * 1000).toISOString().slice(0, 19) + 'Z';
+    const end = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 19) + 'Z';
+    const made = await request(app)
+      .post(`/artisans/2/availability`).set('X-API-Key', OTHER_API_KEY)
+      .send({ start, end, forPartner: 'other' });
+    blockIds.push(made.body.id);
+
+    const res = await request(app)
+      .post(`/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
+      .send({ author: 'Other team', rating: 5 });
+
+    expect(made.status).toBe(201);
+    expect(res.status).toBe(403);
+  });
+
+  it("lets the artisan tag a Meditrac job from their dashboard, and only a known partner", async () => {
+    const start = new Date(Date.now() + 72 * 3600 * 1000).toISOString().slice(0, 19) + 'Z';
+    const end = new Date(Date.now() + 73 * 3600 * 1000).toISOString().slice(0, 19) + 'Z';
+    const cookie = signedInAs('artisan', REAL_ARTISAN_ID);
+
+    const bad = await request(app).post(`/profiles/${REAL_ARTISAN_ID}/availability`)
+      .set('Cookie', cookie).send({ start, end, forPartner: 'kanairo' });
+    const good = await request(app).post(`/profiles/${REAL_ARTISAN_ID}/availability`)
+      .set('Cookie', cookie).send({ start, end, forPartner: 'meditrac' });
+    blockIds.push(good.body.id);
+    const list = await request(app).get(`/profiles/${REAL_ARTISAN_ID}/availability`).set('Cookie', cookie);
+
+    expect(bad.status).toBe(400);
+    expect(good.status).toBe(201);
+    expect(list.body.find(b => b.id === good.body.id)).toMatchObject({ forPartner: 'meditrac' });
   });
 
   it('rejects a missing rating with 400 invalid_body', async () => {
@@ -267,6 +327,19 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ id: reviewId, rating: 3, author: 'Meditrac — Test branch' });
+  });
+
+  it("returns 404 when another partner's key tries to change or delete this review", async () => {
+    const patch = await request(app)
+      .patch(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`).set('X-API-Key', OTHER_API_KEY)
+      .send({ rating: 1 });
+    const del = await request(app)
+      .delete(`/artisans/${REAL_ARTISAN_ID}/reviews/${reviewId}`).set('X-API-Key', OTHER_API_KEY);
+    const [rows] = await db.query('SELECT rating FROM reviews WHERE id = ?', [reviewId]);
+
+    expect(patch.status).toBe(404);
+    expect(del.status).toBe(404);
+    expect(rows[0].rating).toBe(3);
   });
 
   it('rejects a PATCH with no fields with 400 invalid_body', async () => {
@@ -327,10 +400,12 @@ describe('verified: 30 days on the site and 3+ reviews averaging 4.3 or more', (
     });
     id = res.body.id;
     await signedUpDaysAgo(31);
+    await logPartnerJob(id);
   });
 
   afterAll(async () => {
     await db.query('DELETE FROM reviews WHERE artisan_id = ?', [id]);
+    await db.query('DELETE FROM availability_blocks WHERE artisan_id = ?', [id]);
     await db.query('DELETE FROM artisans WHERE id = ?', [id]);
   });
 

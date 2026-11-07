@@ -350,6 +350,29 @@ SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
 PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ---------------------------------------------------------------------------
+-- A partner team may only review an artisan it has hired. The artisan logs the
+-- phone-booked job on their dashboard and says which team it was for:
+-- for_partner holds that team's API key name (e.g. 'meditrac'). NULL for
+-- every other busy time. Only the signed-in artisan can set it, never the API.
+-- ---------------------------------------------------------------------------
+SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = DATABASE() AND table_name = 'availability_blocks' AND column_name = 'for_partner') = 0,
+              'ALTER TABLE availability_blocks ADD COLUMN for_partner VARCHAR(50) NULL', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ---------------------------------------------------------------------------
+-- Each review posted through the API belongs to the key that posted it:
+-- api_consumer holds that key's name. Only that key can edit or delete it.
+-- Every API review written before this column existed came from Meditrac, the
+-- only key on the live server, so those are marked as theirs.
+-- ---------------------------------------------------------------------------
+SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = DATABASE() AND table_name = 'reviews' AND column_name = 'api_consumer') = 0,
+              'ALTER TABLE reviews ADD COLUMN api_consumer VARCHAR(50) NULL', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+UPDATE reviews SET api_consumer = 'meditrac' WHERE from_api = TRUE AND api_consumer IS NULL;
+
+-- ---------------------------------------------------------------------------
 -- Phase 4: an artisan's portfolio, the past work they show on their profile.
 -- Added from their dashboard. image_url points at a photo hosted elsewhere
 -- (https only): Render's free plan doesn't keep uploaded files.

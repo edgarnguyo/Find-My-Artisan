@@ -2129,6 +2129,24 @@ textarea:focus {
   padding: 0.7rem 1.1rem;
 }
 
+/* Spans the whole form, under the date and time fields. */
+.busy-form .busy-partner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.busy-form .busy-partner input {
+  width: auto;
+  margin: 0;
+}
+
 @media (max-width: 640px) {
   .busy-form {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
