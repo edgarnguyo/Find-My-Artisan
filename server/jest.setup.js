@@ -5,7 +5,9 @@
 // and a limit high enough that a full test run never hits 429.
 // dotenv doesn't overwrite variables that are already set, so these win over .env.
 const TEST_API_KEY = 'jest-test-key';
-process.env.API_KEYS = `jest:${TEST_API_KEY}`;
+// A second partner's key, to check one key can't touch another key's reviews.
+const OTHER_API_KEY = 'other-test-key';
+process.env.API_KEYS = `jest:${TEST_API_KEY},other:${OTHER_API_KEY}`;
 process.env.RATE_LIMIT_PER_MINUTE = '100000';
 // The /login limit has its own test with a low limit (login.test.js); the rest
 // of the suite signs in many times and must never hit it.
@@ -27,4 +29,18 @@ function sessionCookie(res) {
   return set?.split(';')[0];
 }
 
-module.exports = { TEST_API_KEY, signedInAs, sessionCookie };
+// Logs a job the 'jest' partner booked with this artisan, already started, so the
+// test key may review them. Returns the block id, for cleaning up.
+async function logPartnerJob(artisanId, { partner = 'jest', hoursFromNow = -2 } = {}) {
+  const db = require('./db');
+  const start = new Date(Date.now() + hoursFromNow * 3600 * 1000);
+  const end = new Date(start.getTime() + 3600 * 1000);
+  const toDb = d => d.toISOString().slice(0, 19).replace('T', ' ');
+  const [result] = await db.query(
+    'INSERT INTO availability_blocks (artisan_id, start_at, end_at, created_at, for_partner) VALUES (?, ?, ?, ?, ?)',
+    [artisanId, toDb(start), toDb(end), toDb(new Date()), partner]
+  );
+  return result.insertId;
+}
+
+module.exports = { TEST_API_KEY, OTHER_API_KEY, signedInAs, sessionCookie, logPartnerJob };

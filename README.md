@@ -152,6 +152,12 @@ turn `false` again if the average drops. The contract's optional
 `author` (text, up to 100 characters) and `rating` (a whole number from 1 to 5)
 are required. `comment` (text, up to 1000 characters) is optional.
 
+**You can only review an artisan you have hired.** When you book an artisan by
+phone, they log the job on Find My Artisan as a job for your team. Once that
+job's start time has passed, you can review them. Before that, or if the job
+was never logged, you get `403` with `{"code":"no_job", ...}`: ask the artisan
+to log the job.
+
 ```bash
 curl -H "X-API-Key: $API_KEY" -X POST https://find-my-artisan.onrender.com/artisans/3/reviews \
   -H "Content-Type: application/json" \
@@ -184,8 +190,8 @@ curl -H "X-API-Key: $API_KEY" -X PATCH https://find-my-artisan.onrender.com/arti
 {"id":242,"artisanId":3,"author":"Meditrac - Westlands branch","rating":4,"comment":"Fixed the leaking sink the same afternoon.","createdAt":"2026-10-12T13:59:13Z"}
 ```
 
-Only reviews posted through this API can be changed or removed. The reviews that
-came with the sample data return `404`.
+Only reviews your own key posted can be changed or removed. The reviews that
+came with the sample data, and reviews another team posted, return `404`.
 
 ### Remove a review
 
@@ -277,7 +283,8 @@ person to read, and its wording may change.
 | `400` | `invalid_query` | A query parameter has a bad value |
 | `400` | `invalid_body` | The JSON body is missing a field, has a wrong value, or is not valid JSON |
 | `401` | `unauthorized` | The `X-API-Key` header is missing, or the key is not one we issued |
-| `404` | `not_found` | No artisan, review or block has that id. A block made by a client's booking also gives `404`: only the booking can move or free that time |
+| `403` | `no_job` | You tried to review an artisan with no job logged for your team that has started |
+| `404` | `not_found` | No artisan, review or block has that id, or the review was posted by another team. A block made by a client's booking also gives `404`: only the booking can move or free that time |
 | `413` | `body_too_large` | The JSON body is over 100 kB |
 | `429` | `rate_limited` | This key made more than 60 requests this minute; wait `Retry-After` seconds |
 | `500` | `server_error` | Something failed on our side |

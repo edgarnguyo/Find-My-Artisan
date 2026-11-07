@@ -368,6 +368,7 @@ describe('Busy times from accepted bookings', () => {
       end: '2030-07-01T08:00:00Z',
       bookingId,
       job: 'Booking made by bookings.test.js',
+      forPartner: null,
     });
   });
 
