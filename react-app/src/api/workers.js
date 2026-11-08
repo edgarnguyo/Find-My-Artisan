@@ -212,6 +212,11 @@ export async function addBusyTime(artisanId, start, end, forPartner = null) {
 }
 
 /** Free up a busy time the artisan added themselves. */
+// Ends a Meditrac job now, so Meditrac can review the artisan straight away.
+export async function completeBusyTime(artisanId, blockId) {
+  await request(`/profiles/${artisanId}/availability/${blockId}/complete`, { method: 'PATCH' });
+}
+
 export async function removeBusyTime(artisanId, blockId) {
   await request(`/profiles/${artisanId}/availability/${blockId}`, { method: 'DELETE' });
 }
