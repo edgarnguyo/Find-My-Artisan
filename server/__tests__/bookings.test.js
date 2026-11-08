@@ -53,8 +53,22 @@ function cancel(bookingId, as = asClient) {
   return request(app).patch(`/bookings/${bookingId}/cancel`).set('Cookie', as);
 }
 
-// Accepting needs the time the job will be over; the tests' jobs start at 09:00.
-function accept(bookingId, endTime = '11:00') {
+// The artisan sends a labour-only quote (no call to Kanairo-Klean).
+function sendQuote(bookingId) {
+  return request(app).put(`/bookings/${bookingId}/quote`).set('Cookie', AS_ARTISAN).send({ labourKes: 1500 });
+}
+
+// The client accepts version 1 of the quote.
+function acceptQuote(bookingId) {
+  return request(app).patch(`/bookings/${bookingId}/quote`).set('Cookie', asClient)
+    .send({ decision: 'accepted', version: 1 });
+}
+
+// Accepting needs the client to have accepted a quote, and the time the job
+// will be over; the tests' jobs start at 09:00.
+async function accept(bookingId, endTime = '11:00') {
+  await sendQuote(bookingId);
+  await acceptQuote(bookingId);
   return setStatus(bookingId, { status: 'confirmed', endTime });
 }
 
@@ -88,9 +102,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (bookingIds.length > 0) {
-    // Blocks and reviews first: they point at the bookings, so MySQL won't
-    // delete a booking that still has one.
+    // Blocks, quotes and reviews first: they point at the bookings, so MySQL
+    // won't delete a booking that still has one.
     await db.query('DELETE FROM availability_blocks WHERE booking_id IN (?)', [bookingIds]);
+    await db.query('DELETE FROM booking_quotes WHERE booking_id IN (?)', [bookingIds]);
     await db.query('DELETE FROM reviews WHERE booking_id IN (?)', [bookingIds]);
     await db.query('DELETE FROM bookings WHERE id IN (?)', [bookingIds]);
   }
@@ -139,6 +154,27 @@ describe('PATCH /bookings/:id/status', () => {
     const completed = await setStatus(bookingId, { status: 'completed' });
     expect(completed.status).toBe(200);
     expect(completed.body).toEqual({ id: bookingId, status: 'completed' });
+  });
+
+  it("refuses to accept before the artisan has sent a quote", async () => {
+    const bookingId = await makeBooking();
+
+    const res = await setStatus(bookingId, { status: 'confirmed', endTime: '11:00' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/Send the client a quote first/);
+  });
+
+  it("refuses to accept until the client accepts the quote", async () => {
+    const bookingId = await makeBooking();
+    await sendQuote(bookingId);
+
+    const res = await setStatus(bookingId, { status: 'confirmed', endTime: '11:00' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/hasn't accepted your quote/);
+    const [rows] = await db.query('SELECT status FROM bookings WHERE id = ?', [bookingId]);
+    expect(rows[0].status).toBe('pending');
   });
 
   it('lets the artisan decline a request', async () => {
