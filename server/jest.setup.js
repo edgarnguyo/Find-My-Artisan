@@ -29,8 +29,8 @@ function sessionCookie(res) {
   return set?.split(';')[0];
 }
 
-// Logs a job the 'jest' partner booked with this artisan, already started, so the
-// test key may review them. Returns the block id, for cleaning up.
+// Logs a job the 'jest' partner booked with this artisan (by default one that
+// is already over, so the test key may review them). Returns the block id, for cleaning up.
 async function logPartnerJob(artisanId, { partner = 'jest', hoursFromNow = -2 } = {}) {
   const db = require('./db');
   const start = new Date(Date.now() + hoursFromNow * 3600 * 1000);

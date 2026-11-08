@@ -243,6 +243,46 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
     expect(res.status).toBe(403);
   });
 
+  it("doesn't count a job still under way, until the artisan marks it complete", async () => {
+    const blockId = await logPartnerJob(2, { partner: 'other', hoursFromNow: -0.5 });
+    const future = await logPartnerJob(2, { partner: 'other', hoursFromNow: 96 });
+    blockIds.push(blockId, future);
+    const asArtisan = signedInAs('artisan', 2);
+    const post = () => request(app)
+      .post(`/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
+      .send({ author: 'Other team', rating: 4 });
+
+    const during = await post();
+    const tooEarly = await request(app)
+      .patch(`/profiles/2/availability/${future}/complete`).set('Cookie', asArtisan);
+    const completed = await request(app)
+      .patch(`/profiles/2/availability/${blockId}/complete`).set('Cookie', asArtisan);
+    const after = await post();
+    // Remove the finished job and its review now, so later tests see none.
+    if (after.body.id) await db.query('DELETE FROM reviews WHERE id = ?', [after.body.id]);
+    await db.query('DELETE FROM availability_blocks WHERE id = ?', [blockId]);
+
+    expect(during.status).toBe(403);
+    expect(tooEarly.status).toBe(409);
+    expect(completed.status).toBe(200);
+    expect(after.status).toBe(201);
+  });
+
+  it("doesn't let a partner move or delete a job logged for a partner", async () => {
+    const blockId = await logPartnerJob(2, { partner: 'other', hoursFromNow: 120 });
+    blockIds.push(blockId);
+    const past = new Date(Date.now() - 3600 * 1000).toISOString().slice(0, 19) + 'Z';
+
+    const moved = await request(app)
+      .patch(`/artisans/2/availability/${blockId}`).set('X-API-Key', OTHER_API_KEY)
+      .send({ end: past });
+    const deleted = await request(app)
+      .delete(`/artisans/2/availability/${blockId}`).set('X-API-Key', OTHER_API_KEY);
+
+    expect(moved.status).toBe(404);
+    expect(deleted.status).toBe(404);
+  });
+
   it("doesn't let a partner tag its own job through the API", async () => {
     const start = new Date(Date.now() - 6 * 3600 * 1000).toISOString().slice(0, 19) + 'Z';
     const end = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 19) + 'Z';

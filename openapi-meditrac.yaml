@@ -122,7 +122,9 @@ paths:
         records feedback only; it does not create or change a booking.
         You can only review an artisan you have hired: when you book them by
         phone, the artisan logs the job on Find My Artisan as a job for your
-        team. Until that job has started, the review is refused with 403.
+        team. Once that job's end time has passed (or the artisan marks it
+        complete early), you can review them; before that, the review is
+        refused with 403.
         The review belongs to your API key: only your key can change or remove it.
       parameters:
         - name: id
@@ -175,15 +177,16 @@ paths:
                 message: "No artisan with id 999."
         '403':
           description: >
-            The artisan has no job logged for your team that has started yet,
-            so you can't review them. Ask the artisan to log the job.
+            The artisan has no job logged for your team that has finished yet,
+            so you can't review them. Ask the artisan to log the job, or to
+            mark it complete.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
               example:
                 code: "no_job"
-                message: "You can only review an artisan after a job with them. Ask the artisan to log the job on Find My Artisan."
+                message: "You can review an artisan once a job with them has finished. Ask the artisan to log the job on Find My Artisan, or to mark it complete there."
 
   /artisans/{id}/reviews/{reviewId}:
     patch:

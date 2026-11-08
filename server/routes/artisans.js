@@ -190,11 +190,15 @@ router.post('/:id/availability', createBlock);
 // a booking (booking_id set) are never found: they are the client's booked time,
 // so only the booking itself can move or free them. Otherwise anyone could free
 // an artisan's booked hours by DELETE-ing ids one by one.
-async function findBlock(artisanId, blockId) {
+// fromPartner: the call came with a partner's API key. Jobs logged for a partner
+// (for_partner set) are then not found either: a partner that could move its
+// job into the past could unlock reviews itself. Only the artisan changes them.
+async function findBlock(artisanId, blockId, fromPartner = false) {
   if (!isId(artisanId) || !isId(blockId)) return null;
   const [rows] = await db.query(
-    'SELECT * FROM availability_blocks WHERE id = ? AND artisan_id = ? AND booking_id IS NULL',
-    [blockId, artisanId]
+    `SELECT * FROM availability_blocks
+     WHERE id = ? AND artisan_id = ? AND booking_id IS NULL AND (? = FALSE OR for_partner IS NULL)`,
+    [blockId, artisanId, fromPartner]
   );
   return rows[0] ?? null;
 }
@@ -212,7 +216,7 @@ router.patch('/:id/availability/:blockId', async (req, res) => {
   }
 
   try {
-    const block = await findBlock(artisanId, blockId);
+    const block = await findBlock(artisanId, blockId, Boolean(req.consumer));
     if (!block) {
       return sendError(res, 404, 'not_found', `No availability block with id ${blockId}.`);
     }
@@ -245,7 +249,7 @@ async function deleteBlock(req, res) {
   const { id: artisanId, blockId } = req.params;
 
   try {
-    const block = await findBlock(artisanId, blockId);
+    const block = await findBlock(artisanId, blockId, Boolean(req.consumer));
     if (!block) {
       return sendError(res, 404, 'not_found', `No availability block with id ${blockId}.`);
     }
@@ -260,7 +264,7 @@ async function deleteBlock(req, res) {
 router.delete('/:id/availability/:blockId', deleteBlock);
 
 // ---------------------------------------------------------------------------
-// Reviews: Meditrac rates an artisan after a job they logged for Meditrac, and can
+// Reviews: Meditrac rates an artisan after a job logged for Meditrac has finished, and can
 // fix or remove its own reviews.
 // ---------------------------------------------------------------------------
 
@@ -311,13 +315,15 @@ async function findApiReview(artisanId, reviewId, consumer) {
   return rows[0] ?? null;
 }
 
-// True when the artisan has logged a job for this partner that has already
-// started. Bookings with partners happen by phone, so this busy time, tagged on
-// the artisan's dashboard, is our only record that the partner hired them.
+// True when the artisan has logged a job for this partner that has finished:
+// its end time has passed, or the artisan marked it complete on their dashboard
+// (which ends it then). Bookings with partners happen by phone, so this busy
+// time, tagged on the artisan's dashboard, is our only record that the partner
+// hired them.
 async function hasJobFor(artisanId, consumer) {
   const [rows] = await db.query(
     `SELECT id FROM availability_blocks
-     WHERE artisan_id = ? AND for_partner = ? AND start_at <= UTC_TIMESTAMP() LIMIT 1`,
+     WHERE artisan_id = ? AND for_partner = ? AND end_at <= UTC_TIMESTAMP() LIMIT 1`,
     [artisanId, consumer]
   );
   return rows.length > 0;
@@ -337,7 +343,7 @@ router.post('/:id/reviews', async (req, res) => {
     }
     if (!(await hasJobFor(artisanId, req.consumer))) {
       return sendError(res, 403, 'no_job',
-        'You can only review an artisan after a job with them. Ask the artisan to log the job on Find My Artisan.');
+        'You can review an artisan once a job with them has finished. Ask the artisan to log the job on Find My Artisan, or to mark it complete there.');
     }
 
     const [result] = await db.query(
