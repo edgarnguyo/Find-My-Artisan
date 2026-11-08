@@ -25,13 +25,13 @@ function connectionRefused() {
   return jest.fn().mockRejectedValue(err);
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   process.env.PARTNER_URL = 'http://partner.test';
   process.env.PARTNER_API_KEY = 'test-token';
   // Retries wait 1 ms instead of 200, so the failure tests stay quick.
   process.env.PARTNER_RETRY_DELAY_MS = '1';
   // Each test starts with no saved materials list (Week 11 fallback).
-  partnerRoutes.forgetSavedMaterials();
+  await partnerRoutes.forgetSavedMaterials();
   // The route logs why each failure happened; keep the test output readable.
   jest.spyOn(console, 'error').mockImplementation(() => {});
   jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -41,6 +41,12 @@ afterEach(() => {
   global.fetch = realFetch;
   process.env = { ...env };
   jest.restoreAllMocks();
+});
+
+// Removes the saved lists these tests wrote, then closes the database pool.
+afterAll(async () => {
+  await partnerRoutes.forgetSavedMaterials();
+  await db.end();
 });
 
 describe('GET /partner/materials', () => {

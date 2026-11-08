@@ -1663,6 +1663,58 @@ textarea:focus {
   cursor: default;
 }
 
+/* Sign-in: one-click test accounts under the form. */
+.test-accounts {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.test-accounts-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.test-accounts-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.test-account {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  background: var(--color-bg);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.test-account:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.test-account:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.test-account span {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
 /* Sign-up: client/artisan choice and the artisan-only fields. */
 .auth-card fieldset {
   border: none;
