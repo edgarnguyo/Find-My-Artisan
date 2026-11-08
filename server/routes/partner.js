@@ -11,8 +11,51 @@ const { requireSignIn } = require('../session');
 
 // Week 11: the last list Kanairo sent for each filter ('' = all types), as
 // { data, asOf }. Shown, labelled as saved, when Kanairo can't be reached.
-// Kept in memory only, so a server restart clears it.
+// Kept in memory for speed, and in the partner_saved_lists table so it
+// survives a restart: Render's free plan restarts the server after it sits idle.
 const lastGood = new Map();
+
+// Tests run against the same database as the live site, so their lists are
+// saved under their own keys and never replace the real saved prices.
+const KEY_PREFIX = process.env.NODE_ENV === 'test' ? 'test:' : '';
+
+// MySQL DATETIME(3) text '2026-11-08 16:14:05.123' <-> ISO '2026-11-08T16:14:05.123Z'.
+const toDbTime = iso => iso.replace('T', ' ').replace('Z', '');
+const fromDbTime = text => `${text.replace(' ', 'T')}Z`;
+
+// Saving is a backup, so a database problem is logged and the live list is
+// still sent: the user shouldn't lose it because the copy couldn't be kept.
+async function saveList(key, saved) {
+  lastGood.set(key, saved);
+  try {
+    await db.query(
+      `INSERT INTO partner_saved_lists (list_key, data, saved_at) VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE data = VALUES(data), saved_at = VALUES(saved_at)`,
+      [KEY_PREFIX + key, JSON.stringify(saved.data), toDbTime(saved.asOf)]
+    );
+  } catch (err) {
+    logError(err);
+  }
+}
+
+// The saved list for this filter, or undefined. Memory first; after a restart
+// memory is empty, so the copy in the database is used and kept in memory.
+async function findSavedList(key) {
+  if (lastGood.has(key)) return lastGood.get(key);
+  try {
+    const [[row]] = await db.query(
+      'SELECT data, saved_at FROM partner_saved_lists WHERE list_key = ?',
+      [KEY_PREFIX + key]
+    );
+    if (!row) return undefined;
+    const saved = { data: JSON.parse(row.data), asOf: fromDbTime(row.saved_at) };
+    lastGood.set(key, saved);
+    return saved;
+  } catch (err) {
+    logError(err);
+    return undefined;
+  }
+}
 
 // GET /partner/materials?type=metal
 // Answers { data: [materials], stale, asOf }. stale is true when Kanairo
@@ -24,25 +67,33 @@ router.get('/materials', async (req, res) => {
   }
 
   const key = type ?? '';
+  let data;
   try {
-    const data = await fetchMaterials(type);
-    const saved = { data, asOf: new Date().toISOString() };
-    lastGood.set(key, saved);
-    res.json({ data, stale: false, asOf: saved.asOf });
+    data = await fetchMaterials(type);
   } catch (err) {
     // kanairo.js has already logged why (timeout, ECONNREFUSED, a status...).
     if (!(err instanceof PartnerUnavailable)) logError(err);
-    const saved = lastGood.get(key);
+    const saved = await findSavedList(key);
     if (saved) {
       console.error(`Kanairo-Klean: serving materials saved at ${saved.asOf}`);
       return res.json({ data: saved.data, stale: true, asOf: saved.asOf });
     }
-    res.status(502).json({ error: UNAVAILABLE });
+    return res.status(502).json({ error: UNAVAILABLE });
   }
+
+  const saved = { data, asOf: new Date().toISOString() };
+  await saveList(key, saved);
+  res.json({ data, stale: false, asOf: saved.asOf });
 });
 
-// For the tests, so each one starts with nothing saved.
-router.forgetSavedMaterials = () => lastGood.clear();
+// For the tests, so each one starts with nothing saved: clears memory and the
+// tests' own rows (the live site's saved lists are left alone).
+router.forgetSavedMaterials = async () => {
+  lastGood.clear();
+  await db.query("DELETE FROM partner_saved_lists WHERE list_key LIKE 'test:%'");
+};
+// For the tests: forget memory only, as a server restart does.
+router.forgetMemoryOnly = () => lastGood.clear();
 
 // GET /partner/collection-locations: the yards that take scrap drop-offs.
 // Kanairo lists only active ones, so is_active is left out.

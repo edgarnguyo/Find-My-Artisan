@@ -3,6 +3,7 @@
 const request = require('supertest');
 const app = require('../app');
 const partnerRoutes = require('../routes/partner');
+const db = require('../db');
 const { fetchWithRetry } = require('../resilientFetch');
 
 const realFetch = global.fetch;
@@ -48,11 +49,11 @@ function connectionRefused() {
   return err;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   process.env.PARTNER_URL = 'http://partner.test';
   process.env.PARTNER_API_KEY = 'test-token';
   process.env.PARTNER_RETRY_DELAY_MS = '1';
-  partnerRoutes.forgetSavedMaterials();
+  await partnerRoutes.forgetSavedMaterials();
   jest.spyOn(console, 'error').mockImplementation(() => {});
   jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
@@ -61,6 +62,12 @@ afterEach(() => {
   global.fetch = realFetch;
   process.env = { ...env };
   jest.restoreAllMocks();
+});
+
+// Removes the saved lists these tests wrote, then closes the database pool.
+afterAll(async () => {
+  await partnerRoutes.forgetSavedMaterials();
+  await db.end();
 });
 
 describe('fetchWithRetry', () => {
@@ -190,6 +197,17 @@ describe('GET /partner/materials when Kanairo misbehaves', () => {
     expect(res.body).toEqual({ data: [OUR_ALU], stale: true, asOf: live.body.asOf });
     // Saved data hides the failure from users, so the log must still record it.
     expect(loggedCodes()).toContain('ECONNREFUSED');
+  });
+
+  it('still has the saved list after a server restart', async () => {
+    global.fetch = partnerSequence([200, [KANAIRO_ALU]], connectionRefused());
+    const live = await request(app).get('/partner/materials');
+    partnerRoutes.forgetMemoryOnly();
+
+    const res = await request(app).get('/partner/materials');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ data: [OUR_ALU], stale: true, asOf: live.body.asOf });
   });
 
   it('keeps a separate saved list for each type filter', async () => {

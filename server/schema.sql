@@ -474,3 +474,17 @@ CREATE TABLE IF NOT EXISTS booking_quotes (
   FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );
 
+
+-- ---------------------------------------------------------------------------
+-- Week 11, revised: the last good Kanairo-Klean materials list for each type
+-- filter ('' = all types), shown labelled as saved when Kanairo is down.
+-- Kept here as well as in memory because Render's free plan restarts the
+-- server after it sits idle, which used to clear the saved copy.
+-- data: the list as JSON text, in our shape (the one /partner/materials sends).
+-- Rows whose key starts with 'test:' belong to the automated tests.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS partner_saved_lists (
+  list_key VARCHAR(40) PRIMARY KEY,
+  data MEDIUMTEXT NOT NULL,
+  saved_at DATETIME(3) NOT NULL
+);

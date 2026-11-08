@@ -6,6 +6,12 @@ import { COUNTIES } from '../data/counties';
 // Same trades as the listings filter.
 const SKILLS = ['Plumber', 'Electrician', 'Carpenter', 'Painter'];
 
+// Test accounts for demos and marking: one click signs in as each role.
+const TEST_ACCOUNTS = [
+  { label: 'Edgardinho', detail: 'Artisan · Plumber', email: 'edgar@gmail.com', password: '123456' },
+  { label: 'Tyler', detail: 'Client', email: 'tyler@gmail.com', password: '123456' },
+];
+
 export default function SignInPage() {
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
@@ -74,9 +80,27 @@ export default function SignInPage() {
       } else {
         signedIn = await signIn(email, password);
       }
-      // Otherwise clients go to their bookings and artisans to the jobs booked with them.
-      const home = signedIn.role === 'client' ? '/my-bookings' : '/dashboard';
-      navigate(from ?? home, { replace: true });
+      goHome(signedIn);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Otherwise clients go to their bookings and artisans to the jobs booked with them.
+  function goHome(signedIn) {
+    const home = signedIn.role === 'client' ? '/my-bookings' : '/dashboard';
+    navigate(from ?? home, { replace: true });
+  }
+
+  async function signInAsTest(account) {
+    setError(null);
+    setEmail(account.email);
+    setPassword(account.password);
+    setBusy(true);
+    try {
+      goHome(await signIn(account.email, account.password));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -261,6 +285,26 @@ export default function SignInPage() {
             {busy ? 'Please wait…' : isSignup ? 'Create Account' : 'Sign In'}
           </button>
         </form>
+
+        {!isSignup && (
+          <div className="test-accounts">
+            <p className="test-accounts-title">Test accounts</p>
+            <div className="test-accounts-list">
+              {TEST_ACCOUNTS.map(account => (
+                <button
+                  key={account.email}
+                  type="button"
+                  className="test-account"
+                  disabled={busy}
+                  onClick={() => signInAsTest(account)}
+                >
+                  <strong>{account.label}</strong>
+                  <span>{account.detail}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="auth-switch">
           {isSignup ? 'Already have an account? ' : 'No account yet? '}
