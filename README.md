@@ -154,9 +154,9 @@ are required. `comment` (text, up to 1000 characters) is optional.
 
 **You can only review an artisan you have hired.** When you book an artisan by
 phone, they log the job on Find My Artisan as a job for your team. Once that
-job's start time has passed, you can review them. Before that, or if the job
-was never logged, you get `403` with `{"code":"no_job", ...}`: ask the artisan
-to log the job.
+job's end time has passed, or the artisan marks it complete early on their
+dashboard, you can review them. Before that, or if the job was never logged,
+you get `403` with `{"code":"no_job", ...}`: ask the artisan to log the job.
 
 ```bash
 curl -H "X-API-Key: $API_KEY" -X POST https://find-my-artisan.onrender.com/artisans/3/reviews \
@@ -283,7 +283,7 @@ person to read, and its wording may change.
 | `400` | `invalid_query` | A query parameter has a bad value |
 | `400` | `invalid_body` | The JSON body is missing a field, has a wrong value, or is not valid JSON |
 | `401` | `unauthorized` | The `X-API-Key` header is missing, or the key is not one we issued |
-| `403` | `no_job` | You tried to review an artisan with no job logged for your team that has started |
+| `403` | `no_job` | You tried to review an artisan with no job logged for your team that has finished |
 | `404` | `not_found` | No artisan, review or block has that id, or the review was posted by another team. A block made by a client's booking also gives `404`: only the booking can move or free that time |
 | `413` | `body_too_large` | The JSON body is over 100 kB |
 | `429` | `rate_limited` | This key made more than 60 requests this minute; wait `Retry-After` seconds |
