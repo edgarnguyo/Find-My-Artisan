@@ -335,6 +335,14 @@ router.delete('/:id', ownAccount, async (req, res) => {
     // Rows that point at the artisan (or at their bookings) go first: MySQL
     // won't delete a row something else still points at.
     await inTransaction(async conn => {
+      // A quote and its material lines point at a booking, not the artisan.
+      for (const table of ['booking_materials', 'booking_quotes']) {
+        await conn.query(
+          `DELETE ${table} FROM ${table} JOIN bookings ON bookings.id = ${table}.booking_id
+           WHERE bookings.artisan_id = ?`,
+          [id]
+        );
+      }
       for (const table of ['availability_blocks', 'reviews', 'portfolio_items',
         'languages', 'work_history', 'verifications', 'scrap_drop_offs', 'bookings']) {
         await conn.query(`DELETE FROM ${table} WHERE artisan_id = ?`, [id]);

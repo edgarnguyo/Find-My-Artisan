@@ -33,6 +33,9 @@ async function makeBooking(artisan, client, status, date) {
     date, time: '09:00', job: 'Booking made by accounts.test.js',
   })).body;
   if (status !== 'pending') {
+    // The artisan can only accept once the client has accepted their quote.
+    await request(app).put(`/bookings/${id}/quote`).set('Cookie', artisan.cookie).send({ labourKes: 1500 });
+    await request(app).patch(`/bookings/${id}/quote`).set('Cookie', client.cookie).send({ decision: 'accepted', version: 1 });
     await request(app).patch(`/bookings/${id}/status`).set('Cookie', artisan.cookie).send({ status: 'confirmed', endTime: '11:00' });
   }
   if (status === 'completed') {
@@ -57,6 +60,10 @@ const madeArtisans = [];
 afterAll(async () => {
   // Anything a test left behind: rows pointing at these artisans first.
   if (madeArtisans.length > 0) {
+    await db.query(
+      'DELETE FROM booking_quotes WHERE booking_id IN (SELECT id FROM bookings WHERE artisan_id IN (?))',
+      [madeArtisans]
+    );
     for (const table of ['availability_blocks', 'reviews', 'portfolio_items', 'bookings']) {
       await db.query(`DELETE FROM ${table} WHERE artisan_id IN (?)`, [madeArtisans]);
     }
