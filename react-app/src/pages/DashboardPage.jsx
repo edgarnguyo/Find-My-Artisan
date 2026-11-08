@@ -22,10 +22,11 @@ const TABS = [
 
 // The buttons each status gets. confirm is the question asked first, for the
 // changes that can't be undone. askEndTime: accepting first asks when the job
-// will be over, so that time can be kept free for it.
+// will be over, so that time can be kept free for it. needsAcceptedQuote:
+// shown only once the client has accepted the artisan's quote.
 const ACTIONS = {
   pending: [
-    { status: 'confirmed', label: 'Accept', busyLabel: 'Accepting…', askEndTime: true },
+    { status: 'confirmed', label: 'Accept', busyLabel: 'Accepting…', askEndTime: true, needsAcceptedQuote: true },
     { status: 'declined', label: 'Decline', busyLabel: 'Declining…',
       confirm: 'Decline this request? The client will see it as declined.' },
   ],
@@ -47,6 +48,21 @@ function formatDate(value) {
 function guessEndTime(time) {
   const hour = Math.min(Number(time.slice(0, 2)) + 2, 23);
   return `${String(hour).padStart(2, '0')}${hour === 23 ? ':59' : time.slice(2, 5)}`;
+}
+
+// What a pending request is waiting for before the artisan can accept it.
+function waitingFor(quote) {
+  if (!quote) return 'Send a quote. You can accept the job once the client accepts it.';
+  if (quote.status === 'sent') return 'You can accept the job once the client accepts your quote.';
+  if (quote.status === 'declined') return 'The client declined your quote. Send a new one.';
+  return null;
+}
+
+// The buttons a booking shows now. Accept waits for the client to accept the quote.
+function actionsFor(booking) {
+  return (ACTIONS[booking.status] ?? []).filter(
+    action => !action.needsAcceptedQuote || booking.quote?.status === 'accepted'
+  );
 }
 
 // The booking form takes an email or a phone number in one field.
@@ -174,6 +190,9 @@ export default function DashboardPage() {
                   <p className="booking-row-budget">Budget: {formatKes(booking.budget)}</p>
                 )}
                 <BookingQuote quote={booking.quote} viewer="artisan" />
+                {booking.status === 'pending' && waitingFor(booking.quote) && (
+                  <p className="booking-quote-waiting">{waitingFor(booking.quote)}</p>
+                )}
 
                 {/* A quote can be sent while the job is going ahead, until the client accepts it. */}
                 {(booking.status === 'pending' || booking.status === 'confirmed') &&
@@ -232,7 +251,7 @@ export default function DashboardPage() {
                 <span className={`status-pill status-${booking.status}`}>
                   {capitalize(booking.status)}
                 </span>
-                {accepting?.id !== booking.id && (ACTIONS[booking.status] ?? []).map(action => (
+                {accepting?.id !== booking.id && actionsFor(booking).map(action => (
                   <button
                     key={action.status}
                     className={action.status === 'declined' ? 'link-button' : 'booking-action'}
