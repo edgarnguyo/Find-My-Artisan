@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { fetchBusyTimes, addBusyTime, removeBusyTime } from '../api/workers';
+import { fetchBusyTimes, addBusyTime, removeBusyTime, completeBusyTime } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
 import { fromKenya, kenyaClock, kenyaDate, kenyaDayLabel } from '../lib/kenyaTime';
 
@@ -21,6 +21,7 @@ export default function BusyTimes({ artisanId, reloadKey }) {
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(null);
+  const [completing, setCompleting] = useState(null);
 
   const load = useCallback(() => fetchBusyTimes(artisanId), [artisanId]);
   const { data: blocks, error, loading } = useAsync(load, [artisanId, reloadKey, ownKey]);
@@ -68,6 +69,20 @@ export default function BusyTimes({ artisanId, reloadKey }) {
     }
   }
 
+  // A Meditrac job done before its end time: ending it now lets Meditrac review.
+  async function handleComplete(blockId) {
+    if (!window.confirm('Mark this Meditrac job complete? Meditrac can then review you.')) return;
+    setCompleting(blockId);
+    try {
+      await completeBusyTime(artisanId, blockId);
+      setOwnKey(k => k + 1);
+    } catch (err) {
+      alert(`Could not mark it complete: ${err.message}`);
+    } finally {
+      setCompleting(null);
+    }
+  }
+
   return (
     <section className="busy-times">
       <h2>When You're Busy</h2>
@@ -96,6 +111,16 @@ export default function BusyTimes({ artisanId, reloadKey }) {
                     : block.forPartner === 'meditrac' ? 'Meditrac job' : 'Marked busy'}
                 </span>
               </span>
+              {/* A Meditrac job under way can be finished early. */}
+              {block.forPartner === 'meditrac' && new Date(block.start) <= new Date() && (
+                <button
+                  className="link-button"
+                  onClick={() => handleComplete(block.id)}
+                  disabled={completing === block.id}
+                >
+                  {completing === block.id ? 'Saving…' : 'Mark Complete'}
+                </button>
+              )}
               {/* A booked job's time is freed by the booking being cancelled, not here. */}
               {!block.bookingId && (
                 <button

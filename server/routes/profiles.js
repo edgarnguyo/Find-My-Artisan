@@ -121,6 +121,29 @@ router.get('/:id/availability', ownAccount, async (req, res) => {
 router.post('/:id/availability', ownAccount, createBlock);
 router.delete('/:id/availability/:blockId', ownAccount, deleteBlock);
 
+// PATCH /profiles/5/availability/9/complete: the artisan finished a job logged
+// for a partner (Meditrac) early. Its end time becomes now, which frees the
+// rest of the time and lets that partner review them straight away.
+router.patch('/:id/availability/:blockId/complete', ownAccount, async (req, res) => {
+  try {
+    const [[block]] = await db.query(
+      `SELECT id, start_at <= UTC_TIMESTAMP() AS started, end_at <= UTC_TIMESTAMP() AS ended
+       FROM availability_blocks
+       WHERE id = ? AND artisan_id = ? AND booking_id IS NULL AND for_partner IS NOT NULL`,
+      [req.params.blockId, req.params.id]
+    );
+    if (!block) return res.status(404).json({ error: 'No partner job with that id' });
+    if (!block.started) return res.status(409).json({ error: "This job hasn't started yet" });
+    if (block.ended) return res.status(409).json({ error: 'This job is already over' });
+
+    await db.query('UPDATE availability_blocks SET end_at = UTC_TIMESTAMP() WHERE id = ?', [block.id]);
+    res.json({ id: block.id, completed: true });
+  } catch (err) {
+    logError(err);
+    res.status(500).json({ error: 'Failed to mark the job complete' });
+  }
+});
+
 // POST a new artisan (the sign-up form, "An artisan")
 router.post('/', async (req, res) => {
   const { name, email, password, skill, location, county, phone, price, bio } = req.body;
