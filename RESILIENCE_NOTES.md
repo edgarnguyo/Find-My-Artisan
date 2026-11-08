@@ -16,7 +16,7 @@ What changed this week:
   retried: that covers the drop-off `POST`, which could otherwise report the
   same scrap to Kanairo twice.
 - **Fallback:** the Materials route keeps the last good list for each filter in
-  memory. When Kanairo can't be reached it answers
+  memory and, since 2026-11-08, in the `partner_saved_lists` table (see below). When Kanairo can't be reached it answers
   `{ data, stale: true, asOf }`, and the page shows a banner: "Showing saved
   prices from 12:09:47. Kanairo-Klean is not responding, so these may be out of
   date." With nothing saved, the page shows "Kanairo-Klean is unavailable right
@@ -116,8 +116,14 @@ away and only trying again now and then. Users would then wait 0.6 to 6.6 s
 less during a long outage, and Kanairo would get no traffic while it recovers.
 Ours still makes up to 3 attempts on every page load.
 
-Also not built: the saved list lives in memory, so it is lost when our server
-restarts (Render restarts it on every deploy and after it sleeps). Collection
+Fixed on 2026-11-08: the saved list used to live in memory only, so it was lost
+whenever our server restarted (Render restarts it on every deploy and after it
+sleeps). Kanairo's ngrok server went offline after one of those restarts, and the
+quote form and Materials page had no saved copy to fall back on. The last good
+list for each filter is now also saved in the `partner_saved_lists` table and read
+from there when memory is empty. The test "still has the saved list after a server
+restart" checks this. The tests save under `test:` keys, so they never replace the
+live site's saved prices. Collection
 yards (`GET /partner/collection-locations`) get the timeout and retries but no
 saved copy. If they fail, the drop-off form shows its own unavailable message.
 
