@@ -15,8 +15,8 @@ const signedInClient = requireSignIn('client');
 const signedInArtisan = requireSignIn('artisan');
 
 // Which status an artisan may move a booking to, from which status. A request
-// starts as pending; the artisan accepts or declines it, and marks an accepted
-// job completed once it's done. Anything else (completing a job never accepted,
+// starts as pending; the artisan accepts it (once the client has accepted their
+// quote) or declines it, and marks an accepted job completed once it's done. Anything else (completing a job never accepted,
 // re-opening a declined one) is refused.
 const ARTISAN_MOVES = {
   confirmed: ['pending'],
@@ -478,6 +478,8 @@ router.post('/:id/review', signedInClient, async (req, res) => {
 // Accepting saves the job's time as an availability block, so the artisan shows
 // as busy then: on the profile page, to the booking form, and to Meditrac's
 // GET /artisans. The block and the new status are saved together or not at all.
+// The artisan can only accept once the client has accepted their quote, so a
+// job is never taken on before both sides agree on the price.
 async function acceptBooking(bookingId, artisanId, endTime, res) {
   if (typeof endTime !== 'string' || !TIME.test(endTime)) {
     return res.status(400).json({ error: 'endTime is required when accepting, like 12:00' });
@@ -489,14 +491,21 @@ async function acceptBooking(bookingId, artisanId, endTime, res) {
       // FOR UPDATE locks this booking until the transaction ends, so the client
       // can't cancel it halfway through being accepted.
       const [rows] = await conn.query(
-        `SELECT booking_date, booking_time, status FROM bookings
-         WHERE id = ? AND artisan_id = ? FOR UPDATE`,
+        `SELECT bookings.booking_date, bookings.booking_time, bookings.status,
+                booking_quotes.status AS quote_status
+         FROM bookings LEFT JOIN booking_quotes ON booking_quotes.booking_id = bookings.id
+         WHERE bookings.id = ? AND bookings.artisan_id = ? FOR UPDATE`,
         [bookingId, artisanId]
       );
       if (rows.length === 0) return [404, { error: 'Booking not found' }];
       const booking = rows[0];
       if (booking.status !== 'pending') {
         return [409, { error: `This booking is ${booking.status} and can't be changed that way` }];
+      }
+      if (booking.quote_status !== 'accepted') {
+        return [409, { error: booking.quote_status
+          ? "The client hasn't accepted your quote yet. You can accept the job once they do."
+          : 'Send the client a quote first. You can accept the job once they accept it.' }];
       }
 
       const start = kenyaToDbTime(booking.booking_date, booking.booking_time);
