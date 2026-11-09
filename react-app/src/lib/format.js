@@ -12,3 +12,12 @@ export function formatKes(value) {
 export function capitalize(word) {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
+
+// When a saved (stale) price list is from. The date is added when it isn't
+// today: in the Week 11 drill a list saved two days earlier showed only "20:37:01".
+export function savedAt(iso) {
+  const saved = new Date(iso);
+  const time = saved.toLocaleTimeString();
+  if (saved.toDateString() === new Date().toDateString()) return time;
+  return `${saved.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}, ${time}`;
+}

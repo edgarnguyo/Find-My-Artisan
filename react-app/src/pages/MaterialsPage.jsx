@@ -1,20 +1,12 @@
 import { useState } from 'react';
 import { fetchMaterials } from '../api/materials';
 import { useAsync } from '../hooks/useAsync';
+import { savedAt } from '../lib/format';
 
 // Kanairo-Klean's fixed list of material types (their contract's MaterialType).
 const TYPES = ['metal', 'plastic', 'paper', 'glass', 'e-waste'];
 
 const kes = new Intl.NumberFormat('en-KE', { maximumFractionDigits: 2 });
-
-// When the saved list is from. The date is added when it isn't today: in the
-// Week 11 drill a list saved two days earlier showed only "20:37:01".
-function savedAt(iso) {
-  const saved = new Date(iso);
-  const time = saved.toLocaleTimeString();
-  if (saved.toDateString() === new Date().toDateString()) return time;
-  return `${saved.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}, ${time}`;
-}
 
 export default function MaterialsPage() {
   const [type, setType] = useState('');
