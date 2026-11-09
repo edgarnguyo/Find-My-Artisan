@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { fetchMaterials } from '../api/materials';
 import { sendQuote } from '../api/workers';
 import { useAsync } from '../hooks/useAsync';
+import { savedAt } from '../lib/format';
 import { splitByTrade, formatKesAmount, materialsTotal } from '../lib/tradeMaterials';
 
 // A labour charge or kg amount as typed: blank, or a number in range.
@@ -138,6 +139,19 @@ export default function QuoteForm({ booking, onSent, onCancel }) {
           <p className="material-estimate-note">Kanairo-Klean has no materials in stock right now.</p>
         ) : (
           <>
+            {result.stale && (
+              // Same fallback as the Materials page. Sending still needs live prices.
+              <div className="materials-stale" role="status">
+                <p>
+                  Showing saved prices from {savedAt(result.asOf)}. Kanairo-Klean is not
+                  responding, so a quote with materials can't be sent until it's back.
+                  You can still send one for labour only.
+                </p>
+                <button type="button" className="booking-action" onClick={() => setAttempt(n => n + 1)}>
+                  Check Again
+                </button>
+              </div>
+            )}
             {forTrade.length > 0 && <ul className="material-estimate-list">{forTrade.map(row)}</ul>}
             {other.length > 0 && (forTrade.length === 0 ? (
               <ul className="material-estimate-list">{other.map(row)}</ul>
