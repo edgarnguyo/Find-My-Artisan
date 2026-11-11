@@ -201,7 +201,7 @@ describe('Availability blocks (POST, PATCH, DELETE /artisans/:id/availability)',
   });
 });
 
-describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
+describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews; the job rule is v2)', () => {
   let reviewId;
   // A review that shipped with schema.sql, not posted through the API. The
   // contract says only API-posted reviews can be edited, so this id has to
@@ -227,7 +227,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
 
   it('refuses a review with 403 no_job when the artisan has no job logged for this partner', async () => {
     const res = await request(app)
-      .post(`/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
+      .post(`/v2/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
       .send({ author: 'Other team', rating: 5 });
 
     expect(res.status).toBe(403);
@@ -237,7 +237,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
   it("doesn't count a job that hasn't started yet", async () => {
     blockIds.push(await logPartnerJob(2, { partner: 'other', hoursFromNow: 48 }));
     const res = await request(app)
-      .post(`/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
+      .post(`/v2/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
       .send({ author: 'Other team', rating: 5 });
 
     expect(res.status).toBe(403);
@@ -249,7 +249,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
     blockIds.push(blockId, future);
     const asArtisan = signedInAs('artisan', 2);
     const post = () => request(app)
-      .post(`/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
+      .post(`/v2/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
       .send({ author: 'Other team', rating: 4 });
 
     const during = await post();
@@ -292,7 +292,7 @@ describe('Reviews (POST, PATCH, DELETE /artisans/:id/reviews)', () => {
     blockIds.push(made.body.id);
 
     const res = await request(app)
-      .post(`/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
+      .post(`/v2/artisans/2/reviews`).set('X-API-Key', OTHER_API_KEY)
       .send({ author: 'Other team', rating: 5 });
 
     expect(made.status).toBe(201);

@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API
-  version: 2.3.0
+  version: 3.0.0
   description: >
     Access to artisan profiles. Meditrac (Team 2) uses the two GET
     endpoints to find and vet artisans, and the /artisans/{id}/reviews
@@ -16,6 +16,15 @@ info:
     repo. A missing or wrong key gets 401. Each key may make 60 requests a
     minute; more than that gets 429 with a Retry-After header saying how many
     seconds to wait.
+
+    Versions (Week 13). This file describes v2, at /v2/artisans/... (for
+    example /v2/artisans/{id}/reviews). The only breaking change from v1:
+    POST .../reviews answers 403 no_job unless the artisan has logged a
+    finished job for your team. v1, at /v1/artisans/... and at the old
+    /artisans/..., is deprecated: it takes a review with no job behind it and
+    never answers 403, and every v1 response carries Deprecation, Sunset
+    (Tue, 24 Nov 2026) and Link headers. Every other path answers the same in
+    both versions. See DEPRECATION_NOTICE.md.
 
 servers:
   - url: https://find-my-artisan.onrender.com
