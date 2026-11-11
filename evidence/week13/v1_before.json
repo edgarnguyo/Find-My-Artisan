@@ -1,0 +1,235 @@
+{
+  "list": [
+    200,
+    [
+      {
+        "id": 1,
+        "name": "Wanjiru Kamau",
+        "trade": "electrical",
+        "area": "Westlands",
+        "county": "Nairobi",
+        "verified": true,
+        "busy": []
+      },
+      {
+        "id": 2,
+        "name": "Kiptoo Ruto",
+        "trade": "electrical",
+        "area": "Kasarani",
+        "county": "Nairobi",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 3,
+        "name": "Achieng Nyambura",
+        "trade": "plumbing",
+        "area": "Embakasi",
+        "county": "Nairobi",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 4,
+        "name": "Kevin Mwangi",
+        "trade": "plumbing",
+        "area": "Ngong Road",
+        "county": "Nairobi",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 5,
+        "name": "Njeri Kariuki",
+        "trade": "carpentry",
+        "area": "Kilimani",
+        "county": "Nairobi",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 6,
+        "name": "Baraka Mwadime",
+        "trade": "carpentry",
+        "area": "Lang'ata",
+        "county": "Nairobi",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 7,
+        "name": "Faith Chebet",
+        "trade": "painting",
+        "area": "Ruaka",
+        "county": "Nairobi",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 8,
+        "name": "Dennis Omondi",
+        "trade": "painting",
+        "area": "South B",
+        "county": "Nairobi",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 9,
+        "name": "Mutua Kioko",
+        "trade": "painting",
+        "area": "Nyali",
+        "county": "Mombasa",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 10,
+        "name": "Halima Juma",
+        "trade": "electrical",
+        "area": "Bamburi",
+        "county": "Mombasa",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 11,
+        "name": "Charo Mwakio",
+        "trade": "electrical",
+        "area": "Likoni",
+        "county": "Mombasa",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 12,
+        "name": "Zawadi Salim",
+        "trade": "plumbing",
+        "area": "Tudor",
+        "county": "Mombasa",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 13,
+        "name": "Omar Bakari",
+        "trade": "carpentry",
+        "area": "Kizingo",
+        "county": "Mombasa",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 14,
+        "name": "Rehema Athman",
+        "trade": "carpentry",
+        "area": "Mtwapa",
+        "county": "Mombasa",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 15,
+        "name": "Otieno Odhiambo",
+        "trade": "plumbing",
+        "area": "Kisumu",
+        "county": "Kisumu",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 16,
+        "name": "Brenda Anyango",
+        "trade": "plumbing",
+        "area": "Milimani",
+        "county": "Kisumu",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 17,
+        "name": "Collins Owino",
+        "trade": "electrical",
+        "area": "Nyalenda",
+        "county": "Kisumu",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 18,
+        "name": "Mercy Adhiambo",
+        "trade": "carpentry",
+        "area": "Kondele",
+        "county": "Kisumu",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 19,
+        "name": "Tom Okoth",
+        "trade": "painting",
+        "area": "Mamboleo",
+        "county": "Kisumu",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 20,
+        "name": "Naliaka Wafula",
+        "trade": "carpentry",
+        "area": "Section 58",
+        "county": "Nakuru",
+        "verified": true,
+        "busy": []
+      },
+      {
+        "id": 21,
+        "name": "Peter Kiplagat",
+        "trade": "electrical",
+        "area": "Milimani",
+        "county": "Nakuru",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 22,
+        "name": "Grace Wambui",
+        "trade": "plumbing",
+        "area": "Free Area",
+        "county": "Nakuru",
+        "verified": false,
+        "busy": []
+      },
+      {
+        "id": 23,
+        "name": "Samuel Kimutai",
+        "trade": "painting",
+        "area": "London Estate",
+        "county": "Nakuru",
+        "verified": false,
+        "busy": []
+      }
+    ]
+  ],
+  "one": [
+    200,
+    {
+      "id": 1,
+      "name": "Wanjiru Kamau",
+      "trade": "electrical",
+      "area": "Westlands",
+      "county": "Nairobi",
+      "verified": true,
+      "busy": [],
+      "phone": "+254712000001",
+      "hourlyRateKes": 900
+    }
+  ],
+  "missing": [
+    404,
+    {
+      "code": "not_found",
+      "message": "No artisan with id 999999."
+    }
+  ]
+}

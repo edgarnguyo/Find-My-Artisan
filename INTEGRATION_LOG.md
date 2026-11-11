@@ -117,3 +117,18 @@ reported, and whether it was our bug or a contract ambiguity (and what we change
 1. Materials page shows live Kanairo data.
 2. Kanairo stops → the page shows the unavailable message, and our server keeps running.
 3. Kanairo restarts → "Try again" shows the data again.
+
+## Week 13 — Kanairo-Klean v2
+
+| Symptom | What changed | What we changed | Whose code |
+|---|---|---|---|
+| A deprecation notice arrived from Kanairo-Klean (2026-11-11), before anything broke | Their `GET /materials` and `GET /collection-locations` now have a v2 that wraps the list as `{ "data": [...], "count": N }`. v1 still answers, with `Deprecation`/`Sunset`/`Link` headers | `server/kanairoVersions.js` knows both shapes. `kanairo.js` and `routes/partner.js` call `partnerVersion()`, picked by `PARTNER_VERSION` in `.env`. Tests in `__tests__/kanairoVersions.test.js` | Theirs (a planned change); our consumer code updated |
+
+This time nothing broke, because we were warned. Without the change, our
+`Array.isArray(...)` checks would have turned their wrapped list into the Week 11
+fallback: the Materials page would quietly show saved prices, and the drop-off form
+would get `502`.
+
+_TODO: run against their live v2 once their ngrok tunnel is back (it was offline
+when tested), switch `PARTNER_VERSION=v2` locally and on Render, and record their
+`/stats` showing our calls on `GET /v2/...`._

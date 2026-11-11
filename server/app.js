@@ -49,7 +49,19 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(contract));
 // (see apiKey.js). The website never uses them: it has its own /profiles routes.
 const { requireApiKey } = require('./apiKey');
 const artisanRoutes = require('./routes/artisans');
-app.use('/artisans', requireApiKey, artisanRoutes);
+
+// Week 13: v2 runs beside v1 (see VERSIONING_NOTES.md). v2 is the current
+// router: a review needs a finished job logged for the partner. v1 keeps the
+// old review rule, at /v1/artisans and at the old unversioned /artisans that
+// Meditrac calls today, and both v1 addresses announce the sunset. Every
+// version sits behind the key check.
+const artisanV1Routes = require('./routes/artisansV1');
+const { deprecated } = require('./deprecate');
+const v1Deprecated = deprecated({ sunset: '2026-11-24', successor: '/v2/artisans' });
+
+app.use('/v2/artisans', requireApiKey, artisanRoutes);                  // the new version
+app.use('/v1/artisans', requireApiKey, v1Deprecated, artisanV1Routes);  // the old version, still running
+app.use('/artisans', requireApiKey, v1Deprecated, artisanV1Routes);     // old URLs keep working
 
 // Website-only: the extra profile data (photos, reviews...) and artisan sign-up.
 const profileRoutes = require('./routes/profiles');
@@ -84,7 +96,7 @@ app.use(express.static(reactBuild));
 // reads the address and picks the page. So for any other GET, send index.html.
 // API addresses are skipped, so a mistyped API URL still gets "Cannot GET".
 // Old /api/... URLs are included, so anything still calling them gets a 404.
-const API_PATHS = /^\/(artisans|profiles|clients|login|bookings|stats|site-stats|partner|docs|api)(\/|$)/;
+const API_PATHS = /^\/(v1|v2|artisans|profiles|clients|login|bookings|stats|site-stats|partner|docs|api)(\/|$)/;
 
 app.use((req, res, next) => {
   if (req.method !== 'GET' || API_PATHS.test(req.path)) return next();
