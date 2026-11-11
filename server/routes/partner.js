@@ -5,6 +5,7 @@ const db = require('../db');
 
 const { MATERIAL_TYPES, UNAVAILABLE, PartnerUnavailable, callPartner, fetchMaterials } = require('../kanairo');
 const { requireSignIn } = require('../session');
+const { partnerVersion } = require('../kanairoVersions');
 
 // Website-only: data from our upstream partner, Kanairo-Klean (Team 13). The
 // page asks this server, and kanairo.js adds the token from server/.env.
@@ -99,8 +100,15 @@ router.forgetMemoryOnly = () => lastGood.clear();
 // Kanairo lists only active ones, so is_active is left out.
 router.get('/collection-locations', async (req, res) => {
   try {
-    const { status, body: locations } = await callPartner('/collection-locations');
-    if (status !== 200 || !Array.isArray(locations)) {
+    // Week 13: /collection-locations or /v2/collection-locations (kanairoVersions.js).
+    const ver = partnerVersion();
+    const { status, body } = await callPartner(`${ver.prefix}/collection-locations`);
+    if (status !== 200) return res.status(502).json({ error: UNAVAILABLE });
+    let locations;
+    try {
+      locations = ver.list(body);
+    } catch (err) {
+      console.error(`Kanairo-Klean GET /collection-locations: ${err.message}`);
       return res.status(502).json({ error: UNAVAILABLE });
     }
     res.json(
