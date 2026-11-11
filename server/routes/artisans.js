@@ -382,3 +382,8 @@ module.exports = router;
 // The website's /profiles/:id/availability routes reuse these without an API key.
 module.exports.createBlock = createBlock;
 module.exports.deleteBlock = deleteBlock;
+// v2 (routes/artisansV2.js) reuses these so both versions check reviews and
+// blocks the same way. Exporting them changes nothing about v1's responses.
+module.exports.v1Helpers = {
+  isId, artisanExists, findBlock, reviewProblem, toReview, sendError,
+};

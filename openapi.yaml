@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Find My Artisan API
-  version: 2.2.0
+  version: 3.0.0
   description: >
     Access to artisan profiles. Meditrac (Team 2) uses the two GET
     endpoints to find and vet artisans, and the /artisans/{id}/reviews
@@ -200,6 +200,80 @@ paths:
               example:
                 code: "invalid_body"
                 message: "rating must be a whole number from 1 to 5."
+        '404':
+          description: No artisan exists with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "not_found"
+                message: "No artisan with id 999."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v2/artisans/{id}/reviews:
+    post:
+      summary: "v2: leave a review for a booked job"
+      description: >
+        The same as POST /artisans/{id}/reviews, plus one required field,
+        blockId: the availability block (the booked job) this review is about.
+        It must be a block of this artisan that was added through the API.
+        Every other /v2/artisans path answers exactly like v1. v1 (/artisans
+        and /v1/artisans) is deprecated, with a Sunset of 17 November 2026.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreateV2'
+            example:
+              blockId: 41
+              author: "Meditrac — Westlands branch"
+              rating: 5
+              comment: "Fixed the leaking sink the same afternoon."
+      responses:
+        '201':
+          description: The review was created. The Review shape, plus the blockId it was left for.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Review'
+                  - type: object
+                    required: [blockId]
+                    properties:
+                      blockId:
+                        type: integer
+                        example: 41
+              example:
+                id: 58
+                artisanId: 3
+                author: "Meditrac — Westlands branch"
+                rating: 5
+                comment: "Fixed the leaking sink the same afternoon."
+                createdAt: "2026-09-22T10:30:00Z"
+                blockId: 41
+        '400':
+          description: >
+            blockId is missing or not a whole number, the block is not this
+            artisan's, or another field is invalid (the same checks as v1).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "invalid_body"
+                message: "blockId is required in v2: the id of the booked availability block this review is about."
         '404':
           description: No artisan exists with this id.
           content:
@@ -658,6 +732,19 @@ components:
           nullable: true
           maxLength: 1000
           example: "Fixed the leaking sink the same afternoon."
+
+    ReviewCreateV2:
+      description: ReviewCreate plus blockId, which is required in v2.
+      allOf:
+        - $ref: '#/components/schemas/ReviewCreate'
+        - type: object
+          required: [blockId]
+          properties:
+            blockId:
+              type: integer
+              minimum: 1
+              description: The availability block (the booked job) this review is about.
+              example: 41
 
     ReviewUpdate:
       type: object

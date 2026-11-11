@@ -9,6 +9,7 @@ const { logError } = require('./monitoring');
 // sit in the page's JavaScript where anyone can read it.
 
 const { fetchWithRetry } = require('./resilientFetch');
+const { partnerVersion } = require('./kanairoVersions');
 
 // The fixed list from their contract (MaterialType). Checked here so a bad value
 // gets our own 400 instead of using up a call to the partner.
@@ -103,12 +104,17 @@ async function callPartner(path, { method = 'GET', body } = {}) {
  * MaterialType. Throws PartnerUnavailable when there is no usable list.
  */
 async function fetchMaterials(type) {
-  const { status, body: materials } = await callPartner(
-    type ? `/materials?type=${encodeURIComponent(type)}` : '/materials'
+  // Week 13: /materials or /v2/materials, and how to read its list (kanairoVersions.js).
+  const ver = partnerVersion();
+  const { status, body } = await callPartner(
+    ver.prefix + (type ? `/materials?type=${encodeURIComponent(type)}` : '/materials')
   );
   if (status !== 200) throw new PartnerUnavailable();
-  if (!Array.isArray(materials)) {
-    console.error('Kanairo-Klean GET /materials: expected an array, got', typeof materials);
+  let materials;
+  try {
+    materials = ver.list(body);
+  } catch (err) {
+    console.error(`Kanairo-Klean GET /materials: ${err.message}`);
     throw new PartnerUnavailable();
   }
 

@@ -112,9 +112,19 @@ CREATE TABLE IF NOT EXISTS bookings (
 -- reviews and the ones Meditrac posts). UNIQUE: one review per booking.
 -- Added here, before the sample reviews below, because their DELETE uses it.
 -- ---------------------------------------------------------------------------
+-- Three separate steps (column, unique key, foreign key), each skipped when
+-- already done. TiDB, the hosted database, can't do them in one ALTER.
 SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
                WHERE table_schema = DATABASE() AND table_name = 'reviews' AND column_name = 'booking_id') = 0,
-              'ALTER TABLE reviews ADD COLUMN booking_id INT NULL UNIQUE, ADD FOREIGN KEY (booking_id) REFERENCES bookings(id)', 'DO 0');
+              'ALTER TABLE reviews ADD COLUMN booking_id INT NULL', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @add = IF((SELECT COUNT(*) FROM information_schema.statistics
+               WHERE table_schema = DATABASE() AND table_name = 'reviews' AND column_name = 'booking_id' AND non_unique = 0) = 0,
+              'ALTER TABLE reviews ADD UNIQUE KEY (booking_id)', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @add = IF((SELECT COUNT(*) FROM information_schema.key_column_usage
+               WHERE table_schema = DATABASE() AND table_name = 'reviews' AND column_name = 'booking_id' AND referenced_table_name = 'bookings') = 0,
+              'ALTER TABLE reviews ADD FOREIGN KEY (booking_id) REFERENCES bookings(id)', 'DO 0');
 PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Sample artisans (ids 1-23). INSERT IGNORE skips a row whose id already
@@ -344,9 +354,19 @@ CREATE TABLE IF NOT EXISTS availability_blocks (
 -- booking_id links the block to that booking (NULL for blocks added by hand or
 -- through the API). UNIQUE: one booking can't have two blocks.
 -- ---------------------------------------------------------------------------
+-- Three separate steps (column, unique key, foreign key), each skipped when
+-- already done. TiDB, the hosted database, can't do them in one ALTER.
 SET @add = IF((SELECT COUNT(*) FROM information_schema.columns
                WHERE table_schema = DATABASE() AND table_name = 'availability_blocks' AND column_name = 'booking_id') = 0,
-              'ALTER TABLE availability_blocks ADD COLUMN booking_id INT NULL UNIQUE, ADD FOREIGN KEY (booking_id) REFERENCES bookings(id)', 'DO 0');
+              'ALTER TABLE availability_blocks ADD COLUMN booking_id INT NULL', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @add = IF((SELECT COUNT(*) FROM information_schema.statistics
+               WHERE table_schema = DATABASE() AND table_name = 'availability_blocks' AND column_name = 'booking_id' AND non_unique = 0) = 0,
+              'ALTER TABLE availability_blocks ADD UNIQUE KEY (booking_id)', 'DO 0');
+PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @add = IF((SELECT COUNT(*) FROM information_schema.key_column_usage
+               WHERE table_schema = DATABASE() AND table_name = 'availability_blocks' AND column_name = 'booking_id' AND referenced_table_name = 'bookings') = 0,
+              'ALTER TABLE availability_blocks ADD FOREIGN KEY (booking_id) REFERENCES bookings(id)', 'DO 0');
 PREPARE stmt FROM @add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ---------------------------------------------------------------------------
