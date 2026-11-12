@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-const { MATERIAL_TYPES, UNAVAILABLE, PartnerUnavailable, callPartner, fetchMaterials } = require('../kanairo');
+const { MATERIAL_TYPES, UNAVAILABLE, PartnerUnavailable, callPartner, fetchList, fetchMaterials } = require('../kanairo');
 const { requireSignIn } = require('../session');
 
 // Website-only: data from our upstream partner, Kanairo-Klean (Team 13). The
@@ -48,10 +48,7 @@ router.forgetSavedMaterials = () => lastGood.clear();
 // Kanairo lists only active ones, so is_active is left out.
 router.get('/collection-locations', async (req, res) => {
   try {
-    const { status, body: locations } = await callPartner('/collection-locations');
-    if (status !== 200 || !Array.isArray(locations)) {
-      return res.status(502).json({ error: UNAVAILABLE });
-    }
+    const locations = await fetchList('/collection-locations');
     res.json(
       locations.map(l => ({ id: l.location_id, name: l.name, area: l.area, county: l.county }))
     );

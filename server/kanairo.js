@@ -98,19 +98,31 @@ async function callPartner(path, { method = 'GET', body } = {}) {
 }
 
 /**
+ * GET one of Kanairo's v2 lists and return the array inside it. v2 answers
+ * { data: [...], count } where v1 answered the bare array; the item fields are
+ * the same. Checked against live v2 on 12 Nov 2026 (both lists returned 200).
+ * Throws PartnerUnavailable when there is no usable list.
+ */
+async function fetchList(path) {
+  const { status, body } = await callPartner(`/v2${path}`);
+  if (status !== 200) throw new PartnerUnavailable();
+  if (!Array.isArray(body?.data)) {
+    const got = Array.isArray(body) ? 'a bare array (v1 shape)' : typeof body?.data;
+    console.error(`Kanairo-Klean GET /v2${path}: expected { data: [...] }, got`, got);
+    throw new PartnerUnavailable();
+  }
+  return body.data;
+}
+
+/**
  * Kanairo's materials in stock, renamed to the camelCase our site uses:
  * [{ id, name, type, quantityKg, pricePerKgKes }]. `type` filters to one
  * MaterialType. Throws PartnerUnavailable when there is no usable list.
  */
 async function fetchMaterials(type) {
-  const { status, body: materials } = await callPartner(
+  const materials = await fetchList(
     type ? `/materials?type=${encodeURIComponent(type)}` : '/materials'
   );
-  if (status !== 200) throw new PartnerUnavailable();
-  if (!Array.isArray(materials)) {
-    console.error('Kanairo-Klean GET /materials: expected an array, got', typeof materials);
-    throw new PartnerUnavailable();
-  }
 
   const missing = MATERIAL_FIELDS.filter(field => materials.some(m => m[field] === undefined));
   if (missing.length) {
@@ -126,4 +138,4 @@ async function fetchMaterials(type) {
   }));
 }
 
-module.exports = { MATERIAL_TYPES, UNAVAILABLE, PartnerUnavailable, callPartner, fetchMaterials };
+module.exports = { MATERIAL_TYPES, UNAVAILABLE, PartnerUnavailable, callPartner, fetchList, fetchMaterials };

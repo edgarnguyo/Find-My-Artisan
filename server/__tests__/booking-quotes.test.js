@@ -100,7 +100,7 @@ describe('POST /bookings', () => {
 describe('PUT /bookings/:id/quote', () => {
   it("saves the quote with each material at Kanairo's price", async () => {
     const fake = fakeDatabase();
-    global.fetch = partnerAnswers(200, KANAIRO_MATERIALS);
+    global.fetch = partnerAnswers(200, { data: KANAIRO_MATERIALS, count: KANAIRO_MATERIALS.length });
 
     const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send({
       ...quote,
@@ -141,7 +141,7 @@ describe('PUT /bookings/:id/quote', () => {
 
   it('lets the artisan change a quote the client declined', async () => {
     fakeDatabase({ quoteStatus: 'declined' });
-    global.fetch = partnerAnswers(200, KANAIRO_MATERIALS);
+    global.fetch = partnerAnswers(200, { data: KANAIRO_MATERIALS, count: KANAIRO_MATERIALS.length });
 
     const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send(quote);
 
@@ -198,7 +198,7 @@ describe('PUT /bookings/:id/quote', () => {
 
   it("rejects a material Kanairo doesn't list and saves nothing", async () => {
     const fake = fakeDatabase();
-    global.fetch = partnerAnswers(200, KANAIRO_MATERIALS);
+    global.fetch = partnerAnswers(200, { data: KANAIRO_MATERIALS, count: KANAIRO_MATERIALS.length });
 
     const res = await request(app).put('/bookings/7/quote').set('Cookie', AS_ARTISAN).send({
       ...quote,

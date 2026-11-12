@@ -1,8 +1,8 @@
 // A stand-in for Kanairo-Klean's API, for building and testing while their server
 // is off. It answers with the example rows from their README, and checks the
-// Bearer token and each input the way their contract (v1.1.0) says:
-//   GET /materials, GET /collection-locations,
-//   POST /collection-locations/{location_id}/drop-offs
+// Bearer token and each input the way their contract says:
+//   GET /v2/materials, GET /v2/collection-locations (v2: lists wrapped as { data, count }),
+//   POST /collection-locations/{location_id}/drop-offs (still v1)
 //
 // Run it with `npm run partner:standin` inside server/, then set in server/.env:
 //   PARTNER_URL=http://localhost:5050
@@ -77,16 +77,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/materials', (req, res) => {
+// Kanairo's v2 lists come wrapped as { data, count } (checked live, 12 Nov 2026).
+const list = items => ({ data: items, count: items.length });
+
+app.get('/v2/materials', (req, res) => {
   const { type } = req.query;
   if (type !== undefined && !TYPES.includes(type)) {
     return res.status(400).json({ code: 400, message: `type must be one of: ${TYPES.join(', ')}` });
   }
-  res.json(type ? MATERIALS.filter(m => m.type === type) : MATERIALS);
+  res.json(list(type ? MATERIALS.filter(m => m.type === type) : MATERIALS));
 });
 
-app.get('/collection-locations', (req, res) => {
-  res.json(LOCATIONS);
+app.get('/v2/collection-locations', (req, res) => {
+  res.json(list(LOCATIONS));
 });
 
 app.post('/collection-locations/:id/drop-offs', (req, res) => {

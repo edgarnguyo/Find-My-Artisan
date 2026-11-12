@@ -45,9 +45,9 @@ afterEach(() => {
 
 describe('GET /partner/materials', () => {
   it('sends the Bearer token and returns each material in our shape', async () => {
-    global.fetch = partnerAnswers(200, [
+    global.fetch = partnerAnswers(200, { data: [
       { material_id: 'ALU', name: 'Aluminium', type: 'metal', quantity_kg: 430, unit_price_kes: 85 },
-    ]);
+    ], count: 1 });
 
     const res = await request(app).get('/partner/materials?type=metal');
 
@@ -58,7 +58,7 @@ describe('GET /partner/materials', () => {
       asOf: expect.any(String),
     });
     const [url, options] = global.fetch.mock.calls[0];
-    expect(String(url)).toBe('http://partner.test/materials?type=metal');
+    expect(String(url)).toBe('http://partner.test/v2/materials?type=metal');
     expect(options.headers.Authorization).toBe('Bearer test-token');
   });
 
@@ -114,11 +114,32 @@ describe('GET /partner/materials', () => {
   });
 });
 
+describe('Kanairo v2 list shape', () => {
+  it('answers 502 if Kanairo sends a bare array (the v1 shape) instead of { data }', async () => {
+    global.fetch = partnerAnswers(200, [
+      { material_id: 'ALU', name: 'Aluminium', type: 'metal', quantity_kg: 430, unit_price_kes: 85 },
+    ]);
+
+    const res = await request(app).get('/partner/materials');
+
+    expect(res.status).toBe(502);
+  });
+
+  it('calls /v2/collection-locations', async () => {
+    global.fetch = partnerAnswers(200, { data: [], count: 0 });
+
+    const res = await request(app).get('/partner/collection-locations');
+
+    expect(res.status).toBe(200);
+    expect(String(global.fetch.mock.calls[0][0])).toBe('http://partner.test/v2/collection-locations');
+  });
+});
+
 describe('GET /partner/collection-locations', () => {
   it('returns each yard in our shape', async () => {
-    global.fetch = partnerAnswers(200, [
+    global.fetch = partnerAnswers(200, { data: [
       { location_id: '2', name: 'Gikomba', area: 'Gikomba', county: 'Nairobi', is_active: true },
-    ]);
+    ], count: 1 });
 
     const res = await request(app).get('/partner/collection-locations');
 

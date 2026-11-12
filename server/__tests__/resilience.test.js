@@ -151,7 +151,7 @@ describe('fetchWithRetry', () => {
 
 describe('GET /partner/materials when Kanairo misbehaves', () => {
   it('succeeds through a flaky partner: two 503s, then the list', async () => {
-    global.fetch = partnerSequence([503], [503], [200, [KANAIRO_ALU]]);
+    global.fetch = partnerSequence([503], [503], [200, { data: [KANAIRO_ALU], count: 1 }]);
 
     const res = await request(app).get('/partner/materials');
 
@@ -181,7 +181,7 @@ describe('GET /partner/materials when Kanairo misbehaves', () => {
   });
 
   it('shows the saved list, marked stale, when the partner goes down', async () => {
-    global.fetch = partnerSequence([200, [KANAIRO_ALU]], connectionRefused());
+    global.fetch = partnerSequence([200, { data: [KANAIRO_ALU], count: 1 }], connectionRefused());
     const live = await request(app).get('/partner/materials');
 
     const res = await request(app).get('/partner/materials');
@@ -193,7 +193,7 @@ describe('GET /partner/materials when Kanairo misbehaves', () => {
   });
 
   it('keeps a separate saved list for each type filter', async () => {
-    global.fetch = partnerSequence([200, [KANAIRO_ALU]], connectionRefused());
+    global.fetch = partnerSequence([200, { data: [KANAIRO_ALU], count: 1 }], connectionRefused());
     await request(app).get('/partner/materials?type=metal');
 
     const res = await request(app).get('/partner/materials?type=glass');

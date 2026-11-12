@@ -35,6 +35,21 @@ and supporting our downstream partner, **Meditrac (Team 2)**.
 | Live channel and contacts | _TODO: channel; our contact; their contact_ |
 | Check-in slot | _TODO_ |
 
+## Moved to Kanairo v2 (12 Nov 2026)
+
+- Kanairo asked us to retry `GET /v2/materials` and `GET /v2/collection-locations`.
+  At 15:11 EAT both returned `200` (0.75 s and 0.68 s) with our usual key.
+- **What v2 changes:** each list is wrapped as `{ data: [...], count }` instead of
+  a bare array. Item fields are the same as v1.
+- **What it broke for us:** the array checks before the loops in
+  `server/kanairo.js` (`materials.map`) and `server/routes/partner.js`
+  (`locations.map`). A v2 answer would have been rejected, so users would have seen
+  the saved list or the unavailable message.
+- **Fix:** both GETs now call `/v2/...` through `fetchList` in `server/kanairo.js`,
+  which reads `data`. If a bare array comes back, the log says "v1 shape" and the
+  page shows the unavailable message. The drop-off `POST` stays on v1: v2 wasn't
+  offered for it, and their published `openapi.yaml` (v1.2.0) has no v2 paths yet.
+
 ## Before the lab
 
 The things below happened before the first call. They aren't bugs, but they shaped the integration.
