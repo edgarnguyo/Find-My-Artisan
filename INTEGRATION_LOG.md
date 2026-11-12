@@ -129,6 +129,12 @@ This time nothing broke, because we were warned. Without the change, our
 fallback: the Materials page would quietly show saved prices, and the drop-off form
 would get `502`.
 
-_TODO: run against their live v2 once their ngrok tunnel is back (it was offline
-when tested), switch `PARTNER_VERSION=v2` locally and on Render, and record their
-`/stats` showing our calls on `GET /v2/...`._
+**Live v2 retry (2026-11-12, 15:11 EAT).** Kanairo asked us to retry with their
+log open. With our usual key, `GET /v2/materials` returned `200` (0.75 s, 6
+materials) and `GET /v2/collection-locations` returned `200` (0.68 s, 5
+locations). Then our own code ran with `PARTNER_VERSION=v2` against their server:
+6 materials in our shape, `?type=metal` filtered to 1, and 5 locations. Since
+then `server/.env.example` defaults to `v2`.
+
+_TODO: set `PARTNER_VERSION=v2` on Render, and record their `/stats` showing our
+calls on `GET /v2/...`._
